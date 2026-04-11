@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --sidebar-bg: #0F0F13;
+  --sidebar-text: #A1A1AA;
+  --sidebar-text-active: #FAFAFA;
+  --sidebar-hover: #1A1A22;
+  --sidebar-border: #27272A;
+  --content-bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --border: #E4E4E7;
+  --text-primary: #09090B;
+  --text-secondary: #71717A;
+  --text-tertiary: #A1A1AA;
+  --accent: #6366F1;
+  --accent-hover: #4F46E5;
+  --toolbar-bg: #1E1E2E;
+  --toolbar-text: #CDD6F4;
+}
+
+@theme inline {
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-active: var(--sidebar-text-active);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-content-bg: var(--content-bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-toolbar-bg: var(--toolbar-bg);
+  --color-toolbar-text: var(--toolbar-text);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--content-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}

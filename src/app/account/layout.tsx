@@ -1,0 +1,51 @@
+import { auth, signOut } from "@/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { FolderKanban, ArrowLeft } from "lucide-react";
+
+export const dynamic = "force-dynamic";
+
+export default async function AccountLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  return (
+    <div className="h-full flex">
+      <aside className="w-60 bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border">
+        <div className="h-14 flex items-center border-b border-sidebar-border pl-4">
+          <FolderKanban className="w-5 h-5 text-accent mr-2" />
+          <span className="font-semibold text-sidebar-text-active text-sm">Trakr</span>
+        </div>
+        <div className="px-3 py-3">
+          <Link href="/" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to projects
+          </Link>
+        </div>
+        <div className="flex-1" />
+        <div className="border-t border-sidebar-border py-2 px-3">
+          <div className="flex items-center gap-2.5 pl-1 py-1.5 group">
+            {session.user.image ? (
+              <img src={session.user.image} alt="" className="w-6 h-6 rounded-full shrink-0" />
+            ) : (
+              <span className="w-6 h-6 rounded-full bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center shrink-0">
+                {(session.user.name ?? session.user.email ?? "?").charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className="text-xs text-sidebar-text-active truncate flex-1">
+              {session.user.name ?? session.user.email}
+            </span>
+            <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}>
+              <button type="submit" className="text-[10px] text-sidebar-text opacity-0 group-hover:opacity-100 hover:text-sidebar-text-active transition-opacity">
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+      </aside>
+      <main className="flex-1 flex flex-col min-w-0 bg-content-bg">
+        {children}
+      </main>
+    </div>
+  );
+}
