@@ -8,7 +8,7 @@ import { emit } from "@/lib/events";
 const createSchema = z.object({
   projectId: z.number().int().positive(),
   title: z.string().min(1),
-  type: z.enum(["epic", "feature", "story"]),
+  type: z.enum(["epic", "feature", "story", "bug", "task"]),
   state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
   description: z.string().optional(),
   parentId: z.number().int().positive().nullable().optional(),

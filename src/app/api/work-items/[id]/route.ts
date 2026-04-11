@@ -7,7 +7,7 @@ import { emit } from "@/lib/events";
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
-  type: z.enum(["epic", "feature", "story"]).optional(),
+  type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
   state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
   description: z.string().optional(),
   parentId: z.number().int().positive().nullable().optional(),

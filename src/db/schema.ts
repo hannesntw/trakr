@@ -93,7 +93,7 @@ export const workItems = sqliteTable("work_items", {
     .notNull()
     .references(() => projects.id),
   title: text("title").notNull(),
-  type: text("type", { enum: ["epic", "feature", "story"] }).notNull(),
+  type: text("type", { enum: ["epic", "feature", "story", "bug", "task"] }).notNull(),
   state: text("state", {
     enum: ["new", "active", "ready", "in_progress", "done"],
   })

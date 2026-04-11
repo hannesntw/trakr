@@ -24,7 +24,7 @@ interface CreateWorkItemDialogProps {
   projectKey: string;
   onCreated: () => void;
   defaultParentId?: number | null;
-  defaultType?: "epic" | "feature" | "story";
+  defaultType?: "epic" | "feature" | "story" | "bug" | "task";
 }
 
 export function CreateWorkItemDialog({
@@ -37,7 +37,7 @@ export function CreateWorkItemDialog({
   defaultType,
 }: CreateWorkItemDialogProps) {
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<"epic" | "feature" | "story">(
+  const [type, setType] = useState<"epic" | "feature" | "story" | "bug" | "task">(
     defaultType ?? "story"
   );
   const [parentId, setParentId] = useState<number | "">(

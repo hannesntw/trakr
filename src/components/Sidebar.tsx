@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -44,8 +44,25 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction }: Si
   const pathname = usePathname();
   const router = useRouter();
   const currentProject = projects.find((p) => p.key === currentProjectKey);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("trakr-sidebar-collapsed") === "true";
+    return false;
+  });
   const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  // #84: Persist collapse state
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem("trakr-sidebar-collapsed", String(next));
+      return next;
+    });
+  }, []);
+
+  // #85: Persist selected project
+  useEffect(() => {
+    localStorage.setItem("trakr-last-project", currentProjectKey);
+  }, [currentProjectKey]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
@@ -95,7 +112,7 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction }: Si
 
   return (
     <aside
-      className="bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border transition-[width] duration-200 overflow-hidden"
+      className={cn("bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border transition-[width] duration-200", switcherOpen && collapsed ? "overflow-visible" : "overflow-hidden")}
       style={{ width: collapsed ? 56 : 240 }}
     >
       {/* Logo */}
@@ -174,12 +191,27 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction }: Si
         </div>
       )}
 
-      {/* Collapsed: project initial */}
+      {/* Collapsed: project initial with floating dropdown */}
       {collapsed && (
-        <div className="py-3 px-2 flex justify-center">
-          <span className="w-6 h-6 rounded bg-accent/20 text-accent text-xs font-bold flex items-center justify-center">
-            {currentProject?.key.charAt(0)}
-          </span>
+        <div className="py-3 px-2 relative" ref={switcherRef}>
+          <button onClick={() => setSwitcherOpen(!switcherOpen)} className="w-full flex justify-center">
+            <span className="w-8 h-8 rounded bg-accent/20 text-accent text-xs font-bold flex items-center justify-center hover:bg-accent/30 transition-colors cursor-pointer">
+              {currentProject?.key.charAt(0)}
+            </span>
+          </button>
+          {switcherOpen && (
+            <div className="absolute left-full top-0 ml-2 bg-sidebar-bg border border-sidebar-border rounded-md shadow-xl z-50 min-w-[200px]">
+              {projects.map(project => (
+                <Link key={project.key} href={`/projects/${project.key}/board`}
+                  onClick={() => setSwitcherOpen(false)}
+                  className={cn("flex items-center gap-2 px-3 py-2 text-sm hover:bg-sidebar-hover transition-colors", project.key === currentProjectKey && "text-sidebar-text-active bg-sidebar-hover")}>
+                  <span className="w-5 h-5 rounded bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center">{project.key.charAt(0)}</span>
+                  <span className="truncate">{project.name}</span>
+                  <span className="text-sidebar-text text-xs ml-auto">{project.key}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -228,7 +260,7 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction }: Si
       {/* Collapse toggle */}
       <div className="border-t border-sidebar-border py-2 px-2">
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
           className="flex items-center gap-2.5 pl-2 py-1.5 rounded-md text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors w-full"
         >
           <div className="w-4 h-4 shrink-0 relative">

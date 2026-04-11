@@ -59,7 +59,7 @@ export function SidebarNav({ variant }: { variant: string }) {
 
   return (
     <aside
-      className="bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border transition-[width] duration-200 overflow-hidden"
+      className={`bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border transition-[width] duration-200 ${switcherOpen && isCollapsed ? "overflow-visible" : "overflow-hidden"}`}
       style={{ width: isCollapsed ? 56 : 240 }}
     >
       {/* Logo */}
@@ -149,14 +149,38 @@ export function SidebarNav({ variant }: { variant: string }) {
         </div>
       )}
 
-      {/* Collapsed: just show project initial */}
+      {/* Collapsed: project initial with floating dropdown */}
       {isCollapsed && (
-        <div className="py-3 px-2">
-          <div className="flex justify-center">
-            <span className="w-6 h-6 rounded bg-accent/20 text-accent text-xs font-bold flex items-center justify-center">
+        <div className="py-3 px-2 relative" ref={switcherRef}>
+          <button onClick={() => { setSwitcherOpen(!switcherOpen); setCreating(false); }} className="w-full flex justify-center">
+            <span className="w-8 h-8 rounded bg-accent/20 text-accent text-xs font-bold flex items-center justify-center hover:bg-accent/30 transition-colors cursor-pointer">
               {currentProject?.key.charAt(0)}
             </span>
-          </div>
+          </button>
+
+          {switcherOpen && (
+            <div className="absolute left-full top-0 ml-2 bg-sidebar-bg border border-sidebar-border rounded-md shadow-xl z-50 min-w-[200px]">
+              {projects.map(p => (
+                <button
+                  key={p.key}
+                  onClick={() => { setCurrentKey(p.key); setSwitcherOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-sidebar-hover transition-colors ${p.key === currentKey ? "text-sidebar-text-active bg-sidebar-hover" : "text-sidebar-text"}`}
+                >
+                  <span className="w-5 h-5 rounded bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center">
+                    {p.key.charAt(0)}
+                  </span>
+                  <span className="truncate">{p.name}</span>
+                  <span className="text-sidebar-text text-xs ml-auto">{p.key}</span>
+                </button>
+              ))}
+              <div className="border-t border-sidebar-border">
+                <button onClick={() => { setCreating(true); setSwitcherOpen(false); setCollapsed(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors">
+                  <Plus className="w-4 h-4" /> New Project
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

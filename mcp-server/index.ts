@@ -7,7 +7,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { execSync } from "child_process";
 
-const BASE_URL = process.env.TRAKR_URL ?? "http://localhost:3100";
+const BASE_URL = process.env.TRAKR_URL ?? "https://trakr-five.vercel.app";
 let API_KEY = process.env.TRAKR_API_KEY;
 
 // Credential storage
@@ -129,7 +129,7 @@ server.tool(
   "List work items with optional filters",
   {
     projectId: z.number().optional().describe("Filter by project ID"),
-    type: z.enum(["epic", "feature", "story"]).optional(),
+    type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
     state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
     sprintId: z.number().optional(),
     parentId: z.number().optional(),
@@ -160,7 +160,7 @@ server.tool(
   {
     projectId: z.number().describe("Project ID"),
     title: z.string(),
-    type: z.enum(["epic", "feature", "story"]),
+    type: z.enum(["epic", "feature", "story", "bug", "task"]),
     description: z.string().optional(),
     parentId: z.number().optional().describe("Parent work item ID"),
     sprintId: z.number().optional(),
@@ -178,7 +178,7 @@ server.tool(
   {
     id: z.number(),
     title: z.string().optional(),
-    type: z.enum(["epic", "feature", "story"]).optional(),
+    type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
     state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
     description: z.string().optional(),
     parentId: z.number().nullable().optional(),
