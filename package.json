@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx tsx src/db/migrate.ts && next build",
+    "build": "drizzle-kit push && next build",
     "start": "next start",
     "lint": "eslint",
     "db:push": "drizzle-kit push",
