@@ -5,47 +5,48 @@ import { users, verificationTokens } from "@/db/schema";
 export async function GET() {
   const results: Record<string, unknown> = {};
 
+  // Show what URL the client is actually using
+  const rawUrl = process.env.TURSO_DATABASE_URL ?? "file:./local.db";
+  const isLocal = rawUrl.startsWith("file:");
+  const resolvedUrl = isLocal ? rawUrl : rawUrl.replace("libsql://", "https://");
+  results.rawUrl = rawUrl.slice(0, 40) + "...";
+  results.resolvedUrl = resolvedUrl.slice(0, 40) + "...";
+  results.isLocal = isLocal;
+  results.hasToken = !!process.env.TURSO_AUTH_TOKEN;
+
+  // Test raw fetch to Turso
+  if (!isLocal) {
+    try {
+      const r = await fetch(resolvedUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.TURSO_AUTH_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ statements: ["SELECT count(*) as cnt FROM user"] }),
+      });
+      const data = await r.json();
+      results.rawFetchStatus = r.status;
+      results.rawFetchData = data;
+    } catch (e: any) {
+      results.rawFetchError = e.message;
+    }
+  }
+
+  // Test via Drizzle
   try {
-    // Test basic DB connectivity
     const allUsers = await db.select().from(users);
-    results.userCount = allUsers.length;
-    results.dbConnected = true;
+    results.drizzleUserCount = allUsers.length;
+    results.drizzleWorks = true;
   } catch (e: any) {
-    results.dbError = e.message;
-    results.dbConnected = false;
+    results.drizzleError = e.message;
+    results.drizzleWorks = false;
+    results.drizzleCause = e.cause?.message;
   }
 
-  try {
-    // Test verification token insert (what the adapter does)
-    const testToken = {
-      identifier: "debug-test@test.com",
-      token: "debug-" + Date.now(),
-      expires: new Date(Date.now() + 600000),
-    };
-    await db.insert(verificationTokens).values(testToken);
-    results.insertWorks = true;
-
-    // Clean up
-    const { eq, and } = await import("drizzle-orm");
-    await db.delete(verificationTokens).where(
-      and(
-        eq(verificationTokens.identifier, testToken.identifier),
-        eq(verificationTokens.token, testToken.token)
-      )
-    );
-    results.deleteWorks = true;
-  } catch (e: any) {
-    results.insertError = e.message;
-    results.insertStack = e.stack?.split("\n").slice(0, 5);
-  }
-
-  // Check env vars (redacted)
   results.hasAuthSecret = !!process.env.AUTH_SECRET;
   results.hasResendKey = !!process.env.AUTH_RESEND_KEY;
-  results.hasGoogleId = !!process.env.AUTH_GOOGLE_ID;
   results.authUrl = process.env.AUTH_URL;
-  results.tursoUrl = process.env.TURSO_DATABASE_URL?.slice(0, 30) + "...";
-  results.hasTursoToken = !!process.env.TURSO_AUTH_TOKEN;
 
   return NextResponse.json(results, { headers: { "Cache-Control": "no-store" } });
 }
