@@ -4,12 +4,38 @@ import { runTraql, ExecutionError } from "@/lib/traql";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const schema = z.object({
-  query: z.string().min(1),
+  query: z.string().min(1).max(2000), // cap query length
   projectId: z.number().int().positive().optional(),
 });
 
+// Simple in-memory rate limiter: max 30 TraQL queries per minute per user/IP
+const rateLimit = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 30;
+const RATE_WINDOW = 60_000; // 1 minute
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimit.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimit.set(key, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   const user = await resolveApiUser(request);
+
+  // Rate limit by user ID or IP
+  const rateLimitKey = user?.id ?? request.headers.get("x-forwarded-for") ?? "anonymous";
+  if (!checkRateLimit(rateLimitKey)) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Max 30 queries per minute." },
+      { status: 429 }
+    );
+  }
 
   const body = await request.json();
   const parsed = schema.safeParse(body);

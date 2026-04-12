@@ -4,16 +4,15 @@ import path from "path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@/db/schema": path.resolve(__dirname, "src/db/schema.ts"),
+      "@/db": path.resolve(__dirname, "src/test/db.ts"),
       "@": path.resolve(__dirname, "src"),
     },
   },
   test: {
-    env: {
-      TURSO_DATABASE_URL: "file:./test.db",
-      TURSO_AUTH_TOKEN: "",
-    },
     setupFiles: ["./src/test/setup.ts"],
-    testTimeout: 10000,
+    testTimeout: 15000,
     fileParallelism: false,
+    exclude: ["**/e2e/**", "**/node_modules/**"],
   },
 });

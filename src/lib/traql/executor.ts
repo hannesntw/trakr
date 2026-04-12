@@ -2,34 +2,43 @@
 
 import { db } from "@/db";
 import { workItems, sprints, projects, users, workItemLinks } from "@/db/schema";
-import { eq, and, or, not, like, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg } from "drizzle-orm";
+import { eq, and, or, not, like, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg, ne } from "drizzle-orm";
 import type { TraqlAST, FilterNode, SortClause, SelectClause } from "./parser";
 
-// Security: whitelist of allowed column names to prevent SQL injection via sql.raw()
-const ALLOWED_COLUMNS = new Set([
-  "type", "state", "title", "description", "assignee", "points", "priority",
-  "id", "parent_id", "project_id", "sprint_id", "created_at", "updated_at",
-]);
-const ALLOWED_OPERATORS = new Set([">", ">=", "<", "<=", "="]);
+// Security: zero sql.raw() calls.
+// Column names use sql.identifier() (quoted identifiers) or Drizzle column references.
+// Operators use Drizzle typed comparison functions (eq, gt, gte, lt, lte).
+// Postgres safeguards: 10s statement_timeout at role level, RLS on work_items.
+import type { Column } from "drizzle-orm";
 
-function safeColumn(name: string): string {
-  // Map logical field names to actual column names
-  const colMap: Record<string, string> = {
-    type: "type", state: "state", title: "title", description: "description",
-    assignee: "assignee", points: "points", priority: "priority",
-  };
-  const col = colMap[name];
-  if (!col || !ALLOWED_COLUMNS.has(col)) {
-    throw new ExecutionError(`Invalid field: ${name}`);
-  }
+// Column references for work_items fields that TraQL can query
+const WORK_ITEM_COLUMNS: Record<string, Column> = {
+  type: workItems.type,
+  state: workItems.state,
+  title: workItems.title,
+  description: workItems.description as Column,
+  assignee: workItems.assignee as Column,
+  points: workItems.points as Column,
+  priority: workItems.priority as Column,
+};
+
+function safeColumnRef(name: string): Column {
+  const col = WORK_ITEM_COLUMNS[name];
+  if (!col) throw new ExecutionError(`Invalid field: ${name}`);
   return col;
 }
 
-function safeOperator(op: string): string {
-  if (!ALLOWED_OPERATORS.has(op)) {
-    throw new ExecutionError(`Invalid operator: ${op}`);
+// Apply a comparison operator using Drizzle's typed functions — no sql.raw() for operators
+function applyComparison(col: Column, op: string, val: unknown): SQL {
+  switch (op) {
+    case ">": return gt(col, val as any);
+    case ">=": return gte(col, val as any);
+    case "<": return lt(col, val as any);
+    case "<=": return lte(col, val as any);
+    case "=": return eq(col, val as any);
+    case "!=": return not(eq(col, val as any));
+    default: throw new ExecutionError(`Invalid operator: ${op}`);
   }
-  return op;
 }
 
 export interface TraqlResult {
@@ -241,20 +250,21 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
   const { operator, value, funcName } = node;
 
   if (prefix === "parent") {
-    const col = safeColumn(subField);
+    safeColumnRef(subField); // validate
+    const colId = sql.identifier(subField);
 
     if (operator === "contains") {
-      return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${sql.raw(col)} LIKE ${'%' + value + '%'})`;
+      return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${colId} LIKE ${'%' + value + '%'})`;
     }
     if (operator === "eq") {
-      return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${sql.raw(col)} = ${value})`;
+      return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${colId} = ${value})`;
     }
   }
 
   if (prefix === "ancestor") {
-    const col = safeColumn(subField);
+    safeColumnRef(subField); // validate
+    const colId = sql.identifier(subField);
 
-    // Recursive CTE to find all ancestors
     if (operator === "contains") {
       return sql`${workItems.id} IN (
         WITH RECURSIVE ancestors AS (
@@ -264,7 +274,7 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
         )
         SELECT ancestors.id FROM ancestors
         JOIN work_items p ON p.id = ancestors.parent_id
-        WHERE p.${sql.raw(col)} LIKE ${'%' + value + '%'}
+        WHERE p.${colId} LIKE ${'%' + value + '%'}
       )`;
     }
     if (operator === "eq") {
@@ -276,7 +286,7 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
         )
         SELECT work_items.id FROM work_items
         WHERE work_items.id IN (SELECT parent_id FROM ancestors)
-        AND ${sql.raw(col)} = ${value}
+        AND ${colId} = ${value}
       )`;
     }
   }
@@ -284,24 +294,31 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
   if (prefix === "children") {
     if (subField === "count") {
       const numVal = Number(value);
+      // Use a CASE-based approach to avoid raw operators
+      const countSql = sql`(SELECT COUNT(*) FROM work_items c WHERE c.parent_id = work_items.id)`;
       const opMap: Record<string, string> = { gt: ">", gte: ">=", lt: "<", lte: "<=", eq: "=" };
-      const sqlOp = safeOperator(opMap[operator] ?? "=");
-      return sql`(SELECT COUNT(*) FROM work_items c WHERE c.parent_id = work_items.id) ${sql.raw(sqlOp)} ${numVal}`;
+      const op = opMap[operator] ?? "=";
+      // Build comparison using typed Drizzle functions
+      if (op === ">") return gt(countSql, numVal);
+      if (op === ">=") return gte(countSql, numVal);
+      if (op === "<") return lt(countSql, numVal);
+      if (op === "<=") return lte(countSql, numVal);
+      return eq(countSql, numVal);
     }
 
     // Quantifiers: all(done), any(in_progress), has(bug)
+    safeColumnRef(subField); // validate
+    const colId = sql.identifier(subField);
+
     if (funcName === "all") {
-      const safeCol = safeColumn(subField);
-      return sql`NOT EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id AND c.${sql.raw(safeCol)} != ${value})
+      return sql`NOT EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id AND c.${colId} != ${value})
         AND EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id)`;
     }
     if (funcName === "any") {
-      const safeCol = safeColumn(subField);
-      return sql`EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id AND c.${sql.raw(safeCol)} = ${value})`;
+      return sql`EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id AND c.${colId} = ${value})`;
     }
     if (funcName === "has") {
-      const safeCol = safeColumn(subField);
-      return sql`EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id AND c.${sql.raw(safeCol)} = ${value})`;
+      return sql`EXISTS (SELECT 1 FROM work_items c WHERE c.parent_id = work_items.id AND c.${colId} = ${value})`;
     }
   }
 
@@ -309,9 +326,15 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
     if (subField === "count") {
       const numVal = Number(value);
       const opMap: Record<string, string> = { gt: ">", gte: ">=", lt: "<", lte: "<=", eq: "=" };
-      const sqlOp = opMap[operator] ?? "=";
-      const safeSqlOp = safeOperator(sqlOp);
-      // Use a subquery that computes descendant count per item via recursive CTE
+      const op = opMap[operator] ?? "=";
+      // Build the HAVING clause using typed comparison
+      // We use separate queries per operator to avoid sql.raw()
+      const havingSql = op === ">" ? sql`HAVING COUNT(*) > ${numVal}`
+        : op === ">=" ? sql`HAVING COUNT(*) >= ${numVal}`
+        : op === "<" ? sql`HAVING COUNT(*) < ${numVal}`
+        : op === "<=" ? sql`HAVING COUNT(*) <= ${numVal}`
+        : sql`HAVING COUNT(*) = ${numVal}`;
+
       return sql`work_items.id IN (
         SELECT root_id FROM (
           WITH RECURSIVE descendants(root_id, desc_id) AS (
@@ -319,9 +342,9 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
             UNION ALL
             SELECT d.root_id, c.id FROM descendants d JOIN work_items c ON c.parent_id = d.desc_id
           )
-          SELECT root_id, COUNT(*) as cnt FROM descendants GROUP BY root_id
-          HAVING cnt ${sql.raw(safeSqlOp)} ${numVal}
-        )
+          SELECT root_id FROM descendants GROUP BY root_id
+          ${havingSql}
+        ) sub
       )`;
     }
   }
@@ -373,9 +396,16 @@ async function buildProjectAccessFilter(currentUserId?: string): Promise<SQL | u
     SELECT id FROM projects WHERE owner_id = ${currentUserId}
     UNION
     SELECT project_id FROM project_invites
-    WHERE email IN (SELECT email FROM user WHERE id = ${currentUserId})
+    WHERE email IN (SELECT email FROM "user" WHERE id = ${currentUserId})
   )`;
 }
+
+// Security notes (Postgres):
+// - statement_timeout = 10s set at role level (kills runaway CTEs)
+// - RLS enabled on work_items with project access policies
+// - Column whitelist (safeColumn) prevents SQL injection via field names
+// - MAX_RESULTS = 1000 caps output size
+// - For read-only transactions: need websocket driver (neon-http doesn't support transactions)
 
 // Main executor
 export async function executeTraql(
