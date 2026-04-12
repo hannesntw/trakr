@@ -214,7 +214,7 @@ export function BacklogClient({
     fetchData();
   }, [fetchData]);
 
-  useRealtimeRefresh(fetchData);
+  const changedIds = useRealtimeRefresh(fetchData);
 
   // On first load, pre-select all non-done states to hide completed items
   useEffect(() => {
@@ -537,7 +537,8 @@ export function BacklogClient({
                         ? "bg-accent/10 border-accent/30"
                         : isDropTarget && !dropValid
                           ? "bg-red-50 border-red-200"
-                          : "border-border/50 hover:bg-surface"
+                          : "border-border/50 hover:bg-surface",
+                    changedIds.has(item.id) && "realtime-highlight"
                   )}
                 >
                   <td className="pl-2 py-2.5 w-8">

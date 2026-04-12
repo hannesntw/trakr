@@ -74,7 +74,7 @@ export function BoardClient({
     fetchData();
   }, [fetchData]);
 
-  useRealtimeRefresh(fetchData);
+  const changedIds = useRealtimeRefresh(fetchData);
 
   async function handleDrop(targetState: string) {
     if (!draggingId) return;
@@ -182,7 +182,8 @@ export function BoardClient({
                     onClick={() => setSelectedId(item.id)}
                     className={cn(
                       "cursor-grab active:cursor-grabbing",
-                      draggingId === item.id && "opacity-50"
+                      draggingId === item.id && "opacity-50",
+                      changedIds.has(item.id) && "realtime-highlight"
                     )}
                   >
                     <BoardCard

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { attachments, workItems, projects, projectInvites } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
+import { emit } from "@/lib/events";
 
 /**
  * Check whether a user has access to the project that owns a given attachment.
@@ -106,7 +107,9 @@ export async function DELETE(
     return new Response(authResult.message, { status: authResult.status });
   }
 
+  const row = authResult.row;
   await db.delete(attachments).where(eq(attachments.id, Number(id)));
+  emit({ type: "attachment", action: "deleted", id: Number(id), workItemId: row.workItemId });
 
   return Response.json({ deleted: true });
 }

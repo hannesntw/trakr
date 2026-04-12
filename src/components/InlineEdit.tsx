@@ -99,6 +99,7 @@ export function InlineTextarea({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -136,6 +137,49 @@ export function InlineTextarea({
     setPickerOpen(false);
   }
 
+  async function handlePasteImage(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items || !workItemId) return;
+
+    let imageFile: File | null = null;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        imageFile = items[i].getAsFile();
+        break;
+      }
+    }
+    if (!imageFile) return;
+
+    e.preventDefault();
+
+    // Remember cursor position before upload
+    const ta = textareaRef.current;
+    const cursorPos = ta ? ta.selectionStart : draft.length;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", imageFile, imageFile.name || "pasted-image.png");
+      const res = await fetch(`/api/work-items/${workItemId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const att = await res.json();
+
+      const imageMarkdown = `\n![${att.filename}](/api/attachments/${att.id})\n`;
+      const newDraft = draft.slice(0, cursorPos) + imageMarkdown + draft.slice(cursorPos);
+      setDraft(newDraft);
+
+      // Auto-save with the new content
+      onSave(newDraft);
+    } catch {
+      // Silently fail — user can retry
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const imageAttachments = attachments.filter((a) =>
     a.contentType.startsWith("image/")
   );
@@ -151,6 +195,7 @@ export function InlineTextarea({
             e.target.style.height = "auto";
             e.target.style.height = e.target.scrollHeight + "px";
           }}
+          onPaste={handlePasteImage}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setDraft(value);
@@ -163,6 +208,15 @@ export function InlineTextarea({
             className
           )}
         />
+        {uploading && (
+          <div className="flex items-center gap-1.5 mt-1 text-xs text-accent">
+            <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Uploading image...
+          </div>
+        )}
         <div className="flex items-center gap-2 mt-1.5">
           {workItemId && imageAttachments.length > 0 && (
             <div className="relative">
