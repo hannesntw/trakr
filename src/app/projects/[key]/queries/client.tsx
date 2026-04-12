@@ -18,6 +18,31 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkItemType, WorkflowState } from "@/lib/constants";
 
+// ---------- Example queries for placeholder rotation ----------
+
+const EXAMPLE_QUERIES = [
+  { query: "type:story is:open ORDER BY points DESC", label: "Open stories by points" },
+  { query: "SELECT count() GROUP BY state", label: "Items per state" },
+  { query: "children.state:all(done)", label: "Features with all stories done" },
+  { query: 'SELECT format("- [{title}]({url})") WHERE sprint:active', label: "Sprint standup list" },
+  { query: "SELECT count() GROUP BY sprint.health WHERE sprint:active", label: "Sprint health breakdown" },
+  { query: "sprint.health:spilled", label: "What spilled last sprint?" },
+  { query: "state WAS in_progress BEFORE 2026-01-01", label: "Was ever in progress before Jan" },
+  { query: "assignee:empty type:story is:open", label: "Unassigned open stories" },
+  { query: "links:blocked_by", label: "Blocked items" },
+  { query: "SELECT sum(points) GROUP BY assignee WHERE sprint:active", label: "Points per person this sprint" },
+  { query: "parent.type:epic state:in_progress", label: "In-progress features under epics" },
+  { query: "sprint:future", label: "Planned for future sprints" },
+  { query: "descendant.count:>10", label: "Epics with large subtrees" },
+  { query: 'SELECT format("| {id} | {title} | {state} |") WHERE type:story is:open', label: "Markdown table of open stories" },
+  { query: "updated:last(7d) is:open", label: "Recently active open items" },
+  { query: "points:>=8 is:open", label: "Large open stories (8+ pts)" },
+  { query: "type:bug", label: "All bugs" },
+  { query: "sprint:active sprint.health:incomplete", label: "At-risk items this sprint" },
+  { query: "state CHANGED FROM in_progress TO done", label: "Recently completed items" },
+  { query: "SELECT count() GROUP BY project WHERE is:open", label: "Open items per project" },
+];
+
 // ---------- Types ----------
 
 interface SavedQuery {
@@ -319,6 +344,9 @@ export function QueriesClient({
   const [saveName, setSaveName] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
+  const [exampleIdx] = useState(() => Math.floor(Math.random() * EXAMPLE_QUERIES.length));
+  const example = EXAMPLE_QUERIES[exampleIdx];
+  const [showPlaceholder, setShowPlaceholder] = useState(true);
 
   // Fetch workflow states
   useEffect(() => {
@@ -740,15 +768,39 @@ export function QueriesClient({
           {/* Editor area */}
           <div className="px-6 pt-4 pb-2">
             <div className="border border-border rounded-lg overflow-hidden bg-surface">
-              <textarea
-                ref={textareaRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder='Enter a TraQL query, e.g. type:bug AND state:active'
-                className="w-full px-4 py-3 text-sm font-mono bg-transparent text-text-primary placeholder:text-text-tertiary outline-none resize-none"
-                rows={4}
-                spellCheck={false}
-              />
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => setShowPlaceholder(false)}
+                  onBlur={() => { if (!query) setShowPlaceholder(true); }}
+                  aria-label="TraQL query editor"
+                  className={cn(
+                    "w-full px-4 py-3 text-sm font-mono bg-transparent text-text-primary outline-none resize-none",
+                    showPlaceholder && !query ? "text-transparent caret-transparent" : ""
+                  )}
+                  rows={4}
+                  spellCheck={false}
+                />
+                {/* Overlay placeholder with interactive "Try it" */}
+                {showPlaceholder && !query && (
+                  <div
+                    className="absolute inset-0 px-4 py-3 flex items-start gap-1.5"
+                    onClick={(e) => { e.preventDefault(); setShowPlaceholder(false); textareaRef.current?.focus(); }}
+                  >
+                    <span className="text-sm text-text-secondary/70">{example.label}:</span>
+                    <code className="text-sm text-text-secondary/60 font-mono">{example.query}</code>
+                    <span className="text-text-secondary/50 mx-1">&mdash;</span>
+                    <button
+                      className="text-sm text-accent hover:text-accent-hover font-medium pointer-events-auto"
+                      onClick={(e) => { e.stopPropagation(); setQuery(example.query); setShowPlaceholder(false); }}
+                    >
+                      Try it
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 bg-content-bg/50">
                 <a
                   href="/docs/traql"

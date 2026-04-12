@@ -25,6 +25,30 @@ interface SavedQuery {
   id: number; name: string; query: string; starred: boolean; shared: boolean;
 }
 
+// --- Example queries for placeholder rotation ---
+const EXAMPLE_QUERIES = [
+  { query: "type:story is:open ORDER BY points DESC", label: "Open stories by points" },
+  { query: "SELECT count() GROUP BY state", label: "Items per state" },
+  { query: "children.state:all(done)", label: "Features with all stories done" },
+  { query: 'SELECT format("- [{title}]({url})") WHERE sprint:active', label: "Sprint standup list" },
+  { query: "SELECT count() GROUP BY sprint.health WHERE sprint:active", label: "Sprint health breakdown" },
+  { query: "sprint.health:spilled", label: "What spilled last sprint?" },
+  { query: "state WAS in_progress BEFORE 2026-01-01", label: "Was ever in progress before Jan" },
+  { query: "assignee:empty type:story is:open", label: "Unassigned open stories" },
+  { query: "links:blocked_by", label: "Blocked items" },
+  { query: "SELECT sum(points) GROUP BY assignee WHERE sprint:active", label: "Points per person this sprint" },
+  { query: "parent.type:epic state:in_progress", label: "In-progress features under epics" },
+  { query: "sprint:future", label: "Planned for future sprints" },
+  { query: "descendant.count:>10", label: "Epics with large subtrees" },
+  { query: 'SELECT format("| {id} | {title} | {state} |") WHERE type:story is:open', label: "Markdown table of open stories" },
+  { query: "updated:last(7d) is:open", label: "Recently active open items" },
+  { query: "points:>=8 is:open", label: "Large open stories (8+ pts)" },
+  { query: "type:bug", label: "All bugs" },
+  { query: "sprint:active sprint.health:incomplete", label: "At-risk items this sprint" },
+  { query: "state CHANGED FROM in_progress TO done", label: "Recently completed items" },
+  { query: "SELECT count() GROUP BY project WHERE is:open", label: "Open items per project" },
+];
+
 // --- Mock data ---
 
 const mockWorkItems: WorkItemResult[] = [
@@ -94,8 +118,11 @@ export default function QueriesPage() {
 
   if (!config.features.queryPage) return null;
 
-  const [query, setQuery] = useState("type:story is:open ORDER BY points DESC");
+  const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState<string | null>(null);
+  const [exampleIdx] = useState(() => Math.floor(Math.random() * EXAMPLE_QUERIES.length));
+  const example = EXAMPLE_QUERIES[exampleIdx];
+  const [showPlaceholder, setShowPlaceholder] = useState(true);
   const [showRef, setShowRef] = useState(false);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
 
@@ -294,13 +321,34 @@ export default function QueriesPage() {
           {/* Query editor — action bar below textarea, both inside one border */}
           <div className="px-6 py-4 border-b border-border bg-surface">
             <div className="bg-content-bg border border-border rounded-lg focus-within:border-accent transition-colors">
-              <textarea
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); runQuery(); } }}
-                placeholder="Enter a TraQL query..."
-                className="w-full px-4 py-3 text-sm bg-transparent outline-none text-text-primary placeholder:text-text-tertiary font-mono resize-none min-h-[56px]"
-              />
+              <div className="relative">
+                <textarea
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); runQuery(); } }}
+                  onFocus={() => setShowPlaceholder(false)}
+                  onBlur={() => { if (!query) setShowPlaceholder(true); }}
+                  aria-label="TraQL query editor"
+                  className={`w-full px-4 py-3 text-sm bg-transparent outline-none text-text-primary font-mono resize-none min-h-[56px] ${showPlaceholder && !query ? "text-transparent caret-transparent" : ""}`}
+                />
+                {/* Overlay placeholder — looks like placeholder text but has interactive "Try it" */}
+                {showPlaceholder && !query && (
+                  <div
+                    className="absolute inset-0 px-4 py-3 flex items-start gap-1.5"
+                    onClick={(e) => { e.preventDefault(); setShowPlaceholder(false); }}
+                  >
+                    <span className="text-sm text-text-secondary/70">{example.label}:</span>
+                    <code className="text-sm text-text-secondary/60 font-mono">{example.query}</code>
+                    <span className="text-text-secondary/50 mx-1">—</span>
+                    <button
+                      className="text-sm text-accent hover:text-accent-hover font-medium pointer-events-auto"
+                      onClick={(e) => { e.stopPropagation(); setQuery(example.query); setShowPlaceholder(false); }}
+                    >
+                      Try it
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center px-3 py-2 border-t border-border/50">
                 <button
                   onClick={() => setShowRef(!showRef)}
@@ -369,12 +417,7 @@ export default function QueriesPage() {
           <div className="flex-1 overflow-auto">
             {!activeQuery ? (
               <div className="text-center py-20">
-                <p className="text-sm text-text-tertiary mb-1">Enter a TraQL query and press Run.</p>
-                <p className="text-xs text-text-tertiary">
-                  Try <button onClick={() => { setQuery("type:story is:open ORDER BY points DESC"); }} className="text-accent hover:text-accent-hover font-mono">type:story is:open</button>
-                  {" "}or{" "}
-                  <button onClick={() => { setQuery("SELECT count() GROUP BY state WHERE type:story"); }} className="text-accent hover:text-accent-hover font-mono">SELECT count() GROUP BY state</button>
-                </p>
+                <p className="text-sm text-text-tertiary">Enter a TraQL query and press Run.</p>
               </div>
             ) : isAggregate ? (
               <div className="px-6 py-6">
