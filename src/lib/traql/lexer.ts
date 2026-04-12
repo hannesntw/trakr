@@ -22,6 +22,13 @@ export type TokenType =
   | "DESC"
   | "COMMA"
   | "FUNC"         // count(), sum(), avg(), last(), format(), etc.
+  | "WAS"
+  | "CHANGED"
+  | "FROM"
+  | "TO"
+  | "BEFORE"
+  | "AFTER"
+  | "DURING"
   | "EOF";
 
 export interface Token {
@@ -41,6 +48,13 @@ const KEYWORDS: Record<string, TokenType> = {
   ORDER: "ORDER",
   ASC: "ASC",
   DESC: "DESC",
+  WAS: "WAS",
+  CHANGED: "CHANGED",
+  FROM: "FROM",
+  TO: "TO",
+  BEFORE: "BEFORE",
+  AFTER: "AFTER",
+  DURING: "DURING",
 };
 
 export class LexerError extends Error {

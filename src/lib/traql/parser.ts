@@ -8,15 +8,33 @@ export type FilterNode =
   | FieldFilter
   | LogicNode
   | NotNode
-  | ShortcutNode;
+  | ShortcutNode
+  | WasNode
+  | ChangedNode;
 
 export interface FieldFilter {
   kind: "field";
   field: string;          // e.g. "type", "parent.type", "children.state"
-  operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "contains" | "in" | "range" | "func";
+  operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "contains" | "in" | "range" | "func" | "empty" | "not_empty";
   value: string | string[];
   funcName?: string;      // for quantifiers: all, any, has
   rangeEnd?: string;      // for range: id:300..310
+}
+
+export interface WasNode {
+  kind: "was";
+  field: string;
+  value: string;
+  before?: string;        // BEFORE date
+  after?: string;         // AFTER date
+}
+
+export interface ChangedNode {
+  kind: "changed";
+  field: string;
+  fromValue?: string;     // FROM value
+  toValue?: string;       // TO value
+  during?: string;        // DURING range (e.g. sprint:active)
 }
 
 export interface LogicNode {
@@ -126,6 +144,8 @@ export function parse(tokens: Token[]): TraqlAST {
     while (!match("OR", "RPAREN", "ORDER", "EOF", "WHERE", "GROUP")) {
       if (match("AND")) advance(); // explicit AND, consume it
       if (match("OR", "RPAREN", "ORDER", "EOF", "WHERE", "GROUP")) break;
+      // Stop if we hit a history keyword that belongs to the previous primary
+      // (these are consumed inside parsePrimary, so if we reach here it's a new condition)
       const right = parseUnary();
       left = { kind: "logic", op: "AND", left, right };
     }
@@ -150,6 +170,44 @@ export function parse(tokens: Token[]): TraqlAST {
     const fieldToken = expect("FIELD");
     const field = fieldToken.value;
 
+    // History queries: field WAS value [BEFORE date] [AFTER date]
+    if (match("WAS")) {
+      advance(); // consume WAS
+      const value = parseValue();
+      let before: string | undefined;
+      let after: string | undefined;
+      if (match("BEFORE")) { advance(); before = parseValue(); }
+      if (match("AFTER")) { advance(); after = parseValue(); }
+      return { kind: "was", field, value, before, after };
+    }
+
+    // History queries: field CHANGED [FROM value TO value] [DURING range]
+    if (match("CHANGED")) {
+      advance(); // consume CHANGED
+      let fromValue: string | undefined;
+      let toValue: string | undefined;
+      let during: string | undefined;
+      if (match("FROM")) { advance(); fromValue = parseValue(); expect("TO"); toValue = parseValue(); }
+      if (match("DURING")) {
+        advance();
+        // DURING value can be sprint:active or a date range
+        // If it's a FIELD followed by COLON, consume as field:value
+        if (match("FIELD")) {
+          const durField = advance().value;
+          if (match("COLON")) {
+            advance();
+            const durVal = parseValue();
+            during = `${durField}:${durVal}`;
+          } else {
+            during = durField;
+          }
+        } else {
+          during = parseValue();
+        }
+      }
+      return { kind: "changed", field, fromValue, toValue, during };
+    }
+
     // Check for shortcuts like is:open, my:items
     if (match("COLON")) {
       advance();
@@ -157,8 +215,12 @@ export function parse(tokens: Token[]): TraqlAST {
       // Negation operator
       if (match("OPERATOR") && peek().value === "!") {
         advance();
-        const val = parseValue();
-        return { kind: "field", field, operator: "neq", value: val };
+        // Check for !empty (not_empty)
+        const nextVal = parseValue();
+        if (nextVal === "empty") {
+          return { kind: "field", field, operator: "not_empty", value: "empty" };
+        }
+        return { kind: "field", field, operator: "neq", value: nextVal };
       }
 
       // Contains operator ~
@@ -195,6 +257,11 @@ export function parse(tokens: Token[]): TraqlAST {
 
       // Regular value, possibly with pipes (OR) or range (..)
       const val = parseValue();
+
+      // Check for empty/not_empty
+      if (val === "empty") {
+        return { kind: "field", field, operator: "empty", value: "empty" };
+      }
 
       // Range: 300..310
       if (match("RANGE")) {

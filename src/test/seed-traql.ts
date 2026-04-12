@@ -1,7 +1,7 @@
 // Deterministic seed script for TraQL integration tests
 // Uses a seeded PRNG — no randomness, fully reproducible
 
-import { projects, workItems, sprints, workflowStates, workItemLinks } from "@/db/schema";
+import { projects, workItems, sprints, workflowStates, workItemLinks, statusHistory, workItemSnapshots } from "@/db/schema";
 
 // Seeded PRNG (mulberry32)
 function mulberry32(seed: number) {
@@ -225,9 +225,75 @@ export async function seedTestData(db: any) {
   for (let i = 0; i < 5; i++) {
     linkValues.push({ sourceId: alphaItems[i * 10 + 5]?.id ?? 5, targetId: betaItems[i * 10]?.id ?? 2000, type: "relates_to" as const, createdAt: now });
   }
+
+  // Add "blocks" links within Alpha project for link traversal tests
+  // Item 3 blocks item 4, item 5 blocks item 6
+  linkValues.push({ sourceId: 3, targetId: 4, type: "blocks" as const, createdAt: now });
+  linkValues.push({ sourceId: 5, targetId: 6, type: "blocks" as const, createdAt: now });
+  // Item 7 blocks item 8 (item 7 is in_progress based on seed)
+  linkValues.push({ sourceId: 7, targetId: 8, type: "blocks" as const, createdAt: now });
+
   if (linkValues.length > 0) {
     await db.insert(workItemLinks).values(linkValues);
   }
+
+  // --- Status history for history query tests ---
+  // Item 3: new -> ready -> in_progress -> done
+  await db.insert(statusHistory).values([
+    { workItemId: 3, fromState: "new", toState: "ready", changedAt: "2026-01-06T10:00:00Z" },
+    { workItemId: 3, fromState: "ready", toState: "in_progress", changedAt: "2026-01-10T10:00:00Z" },
+    { workItemId: 3, fromState: "in_progress", toState: "done", changedAt: "2026-01-15T10:00:00Z" },
+  ]);
+
+  // Item 5: new -> in_progress (during active sprint: 2026-03-30 to 2026-04-12)
+  await db.insert(statusHistory).values([
+    { workItemId: 5, fromState: "new", toState: "in_progress", changedAt: "2026-04-02T10:00:00Z" },
+  ]);
+
+  // Item 10: new -> ready -> in_progress (assignee changes for CHANGED tests)
+  await db.insert(statusHistory).values([
+    { workItemId: 10, fromState: "new", toState: "ready", changedAt: "2026-01-08T10:00:00Z" },
+    { workItemId: 10, fromState: "ready", toState: "in_progress", changedAt: "2026-01-12T10:00:00Z" },
+  ]);
+
+  // --- Work item snapshots for assignee CHANGED / WAS tests ---
+  // Item 10: assignee changed from Alice to Bob
+  await db.insert(workItemSnapshots).values([
+    {
+      workItemId: 10, version: 1,
+      snapshot: JSON.stringify({ id: 10, assignee: "Alice", state: "new" }),
+      changedBy: "test-user", channel: "api",
+      createdAt: "2026-01-06T10:00:00Z",
+    },
+    {
+      workItemId: 10, version: 2,
+      snapshot: JSON.stringify({ id: 10, assignee: "Bob", state: "ready" }),
+      changedBy: "test-user", channel: "api",
+      createdAt: "2026-01-08T10:00:00Z",
+    },
+    {
+      workItemId: 10, version: 3,
+      snapshot: JSON.stringify({ id: 10, assignee: "Bob", state: "in_progress" }),
+      changedBy: "test-user", channel: "api",
+      createdAt: "2026-01-12T10:00:00Z",
+    },
+  ]);
+
+  // Item 3: snapshots for sprint history (was in closed sprint 1)
+  await db.insert(workItemSnapshots).values([
+    {
+      workItemId: 3, version: 1,
+      snapshot: JSON.stringify({ id: 3, assignee: "Alice", state: "new", sprintId: 1 }),
+      changedBy: "test-user", channel: "api",
+      createdAt: "2026-01-06T10:00:00Z",
+    },
+    {
+      workItemId: 3, version: 2,
+      snapshot: JSON.stringify({ id: 3, assignee: "Alice", state: "done", sprintId: 1 }),
+      changedBy: "test-user", channel: "api",
+      createdAt: "2026-01-15T10:00:00Z",
+    },
+  ]);
 }
 
 // Export counts for test assertions
@@ -236,5 +302,15 @@ export const EXPECTED = {
   BETA_PROJECT_ID: 2,
   ACTIVE_SPRINT_ALP: 3,
   ACTIVE_SPRINT_BET: 5,
+  CLOSED_SPRINT_ALP_1: 1,
+  CLOSED_SPRINT_ALP_2: 2,
+  PLANNING_SPRINT_ALP: 4,
   FROZEN_DATE: "2026-04-11T12:00:00Z",
+  // Items with specific history for tests
+  ITEM_WITH_FULL_HISTORY: 3,  // new->ready->in_progress->done
+  ITEM_WITH_ACTIVE_CHANGE: 5, // state changed during active sprint
+  ITEM_WITH_ASSIGNEE_CHANGE: 10, // assignee: Alice -> Bob
+  // Items with blocks links
+  BLOCKER_ITEM: 3,  // blocks item 4
+  BLOCKED_ITEM: 4,  // blocked by item 3
 };

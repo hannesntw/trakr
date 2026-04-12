@@ -1,9 +1,9 @@
 // TraQL Executor — compiles AST to SQL and executes against the database
 
 import { db } from "@/db";
-import { workItems, sprints, projects, users, workItemLinks } from "@/db/schema";
-import { eq, and, or, not, like, ilike, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg, ne } from "drizzle-orm";
-import type { TraqlAST, FilterNode, SortClause, SelectClause } from "./parser";
+import { workItems, sprints, projects, users, workItemLinks, statusHistory, workItemSnapshots } from "@/db/schema";
+import { eq, and, or, not, like, ilike, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg, ne, isNull } from "drizzle-orm";
+import type { TraqlAST, FilterNode, SortClause, SelectClause, WasNode, ChangedNode } from "./parser";
 
 // Security: zero sql.raw() calls.
 // Column names use sql.identifier() (quoted identifiers) or Drizzle column references.
@@ -74,6 +74,7 @@ function expandShortcuts(node: FilterNode): FilterNode {
   if (node.kind === "not") {
     return { ...node, child: expandShortcuts(node.child) };
   }
+  // WAS and CHANGED nodes pass through unchanged
   return node;
 }
 
@@ -140,6 +141,16 @@ function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?:
     return child ? not(child) : undefined;
   }
 
+  // History queries: WAS
+  if (expanded.kind === "was") {
+    return buildWasFilter(expanded);
+  }
+
+  // History queries: CHANGED
+  if (expanded.kind === "changed") {
+    return buildChangedFilter(expanded);
+  }
+
   if (expanded.kind !== "field") return undefined;
 
   const { field, operator, value } = expanded;
@@ -189,11 +200,52 @@ function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?:
 
   // Sprint special values
   if (field === "sprint") {
-    if (value === "none") return sql`${workItems.sprintId} IS NULL`;
-    if (value === "active") return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'active')`;
-    if (typeof value === "string" && !["none", "active"].includes(value)) {
+    if (operator === "empty") return sql`${workItems.sprintId} IS NULL`;
+    if (operator === "not_empty") return sql`${workItems.sprintId} IS NOT NULL`;
+    if (value === "none" || value === "empty") return sql`${workItems.sprintId} IS NULL`;
+    if (value === "active" || value === "current") return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'active')`;
+    if (value === "open") return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state != 'closed')`;
+    if (value === "future") return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'planning')`;
+    if (value === "closed") return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'closed')`;
+    if (value === "last") return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'closed' ORDER BY end_date DESC LIMIT 1)`;
+    if (typeof value === "string" && !["none", "active", "current", "open", "future", "closed", "last"].includes(value)) {
       return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE name = ${value})`;
     }
+  }
+
+  // Link traversal
+  if (field === "links") {
+    if (value === "any") return sql`EXISTS (SELECT 1 FROM work_item_links WHERE source_id = ${workItems.id} OR target_id = ${workItems.id})`;
+    if (value === "none") return sql`NOT EXISTS (SELECT 1 FROM work_item_links WHERE source_id = ${workItems.id} OR target_id = ${workItems.id})`;
+    if (value === "blocks") return sql`EXISTS (SELECT 1 FROM work_item_links WHERE source_id = ${workItems.id} AND type = 'blocks')`;
+    if (value === "blocked_by") return sql`EXISTS (SELECT 1 FROM work_item_links WHERE target_id = ${workItems.id} AND type = 'blocks')`;
+    // Generic link type
+    if (typeof value === "string") return sql`EXISTS (SELECT 1 FROM work_item_links WHERE (source_id = ${workItems.id} OR target_id = ${workItems.id}) AND type = ${value})`;
+  }
+
+  // blocked_by:state — items blocked by an item in a specific state
+  if (field === "blocked_by") {
+    return sql`EXISTS (SELECT 1 FROM work_item_links wil JOIN work_items blocker ON blocker.id = wil.source_id WHERE wil.target_id = ${workItems.id} AND wil.type = 'blocks' AND blocker.state = ${value})`;
+  }
+
+  // Null/empty checks
+  if (operator === "empty") {
+    const emptyCol = columnMap[field]?.();
+    if (!emptyCol) return undefined;
+    // Text fields: IS NULL OR = ''
+    if (["title", "description", "assignee"].includes(field)) {
+      return sql`(${emptyCol} IS NULL OR ${emptyCol} = '')`;
+    }
+    // Numeric/FK fields: IS NULL
+    return sql`${emptyCol} IS NULL`;
+  }
+  if (operator === "not_empty") {
+    const neCol = columnMap[field]?.();
+    if (!neCol) return undefined;
+    if (["title", "description", "assignee"].includes(field)) {
+      return sql`(${neCol} IS NOT NULL AND ${neCol} != '')`;
+    }
+    return sql`${neCol} IS NOT NULL`;
   }
 
   const col = columnMap[field]?.();
@@ -352,11 +404,64 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
 }
 
 function buildSprintFilter(node: FilterNode & { kind: "field" }): SQL | undefined {
-  const subField = node.field.split(".")[1];
+  const parts = node.field.split(".");
+  const subField = parts[1];
+
   if (subField === "state") {
     return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = ${node.value})`;
   }
+
+  if (subField === "name") {
+    return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE name = ${node.value})`;
+  }
+
+  // Sprint health analysis
+  if (subField === "health") {
+    return buildSprintHealthFilter(node.value as string);
+  }
+
   return undefined;
+}
+
+function buildSprintHealthFilter(healthType: string): SQL | undefined {
+  switch (healthType) {
+    case "clean":
+      // Item in a sprint AND item state is in done-category
+      // Simplified: sprint exists (closed or active) and item is done
+      return sql`${workItems.sprintId} IS NOT NULL
+        AND ${workItems.state} IN (SELECT slug FROM workflow_states WHERE project_id = ${workItems.projectId} AND category = 'done')
+        AND ${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'closed')`;
+
+    case "incomplete":
+      // In active sprint, state NOT in done-category
+      return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'active')
+        AND ${workItems.state} NOT IN (SELECT slug FROM workflow_states WHERE project_id = ${workItems.projectId} AND category = 'done')`;
+
+    case "added_late":
+      // Item created after its sprint's start_date (simple proxy)
+      return sql`${workItems.sprintId} IS NOT NULL
+        AND ${workItems.createdAt} > (SELECT start_date FROM sprints WHERE id = ${workItems.sprintId})`;
+
+    case "spilled":
+      // In a closed sprint but state NOT in done-category
+      return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state = 'closed')
+        AND ${workItems.state} NOT IN (SELECT slug FROM workflow_states WHERE project_id = ${workItems.projectId} AND category = 'done')`;
+
+    case "carried":
+      // Item in active/planning sprint AND has status_history entries during a closed sprint's date range
+      return sql`${workItems.sprintId} IN (SELECT id FROM sprints WHERE state IN ('active', 'planning'))
+        AND EXISTS (
+          SELECT 1 FROM status_history sh
+          JOIN sprints cs ON cs.state = 'closed'
+            AND cs.project_id = (SELECT project_id FROM sprints WHERE id = ${workItems.sprintId})
+            AND sh.changed_at >= cs.start_date
+            AND sh.changed_at <= cs.end_date
+          WHERE sh.work_item_id = ${workItems.id}
+        )`;
+
+    default:
+      return undefined;
+  }
 }
 
 // Build ORDER BY
@@ -479,6 +584,13 @@ async function executeSelect(
       for (const p of projs) projectMap.set(p.id, p.key);
     }
 
+    // Pre-compute sprint health if template uses {sprint.health}
+    const needsHealth = template.includes("{sprint.health}");
+    let healthMap = new Map<number, string>();
+    if (needsHealth) {
+      healthMap = await computeSprintHealthMap(items);
+    }
+
     const lines = items.map(item => {
       let line = template;
       line = line.replace(/\{(\w+(?:\.\w+)?)\}/g, (_, key: string) => {
@@ -487,6 +599,7 @@ async function executeSelect(
           return `/projects/${pkey}/work-items/${item.id}`;
         }
         if (key === "project") return projectMap.get(item.projectId) ?? String(item.projectId);
+        if (key === "sprint.health") return healthMap.get(item.id) ?? "";
         return String((item as any)[key] ?? "");
       });
       return line;
@@ -514,6 +627,12 @@ async function executeSelect(
   // Aggregate functions
   if (selectClause.groupBy) {
     const groupCol = selectClause.groupBy;
+
+    // Special handling for sprint.health — computed virtual field
+    if (groupCol === "sprint.health") {
+      return groupBySprintHealth(funcName, funcArg, where);
+    }
+
     // Special handling for 'project' — group by project key via subquery
     const groupColRef = groupCol === "project"
       ? sql`(SELECT key FROM projects WHERE projects.id = work_items.project_id)`
@@ -555,8 +674,164 @@ async function executeSelect(
   return { type: "scalar", value: Number(row?.value) || 0 };
 }
 
+// Compute sprint health classification for a set of items (for format output)
+async function computeSprintHealthMap(items: any[]): Promise<Map<number, string>> {
+  const result = new Map<number, string>();
+  const itemIds = items.map(i => i.id);
+  if (itemIds.length === 0) return result;
+
+  // Fetch sprints for all items
+  const sprintIds = [...new Set(items.map(i => i.sprintId).filter(Boolean))];
+  const sprintMap = new Map<number, any>();
+  if (sprintIds.length > 0) {
+    const sprintRows = await db.select().from(sprints).where(inArray(sprints.id, sprintIds));
+    for (const s of sprintRows) sprintMap.set(s.id, s);
+  }
+
+  // Fetch done-category states per project
+  const projectIds = [...new Set(items.map(i => i.projectId))];
+  const doneStates = new Map<number, Set<string>>();
+  if (projectIds.length > 0) {
+    const wfRows = await db.execute(
+      sql`SELECT project_id, slug FROM workflow_states WHERE project_id IN (${sql.join(projectIds.map(id => sql`${id}`), sql`, `)}) AND category = 'done'`
+    );
+    for (const r of wfRows.rows as any[]) {
+      if (!doneStates.has(r.project_id)) doneStates.set(r.project_id, new Set());
+      doneStates.get(r.project_id)!.add(r.slug);
+    }
+  }
+
+  for (const item of items) {
+    if (!item.sprintId) { result.set(item.id, ""); continue; }
+    const sprint = sprintMap.get(item.sprintId);
+    if (!sprint) { result.set(item.id, ""); continue; }
+
+    const isDone = doneStates.get(item.projectId)?.has(item.state) ?? false;
+
+    if (sprint.state === "closed" && isDone) {
+      result.set(item.id, "clean");
+    } else if (sprint.state === "closed" && !isDone) {
+      result.set(item.id, "spilled");
+    } else if (sprint.state === "active" && !isDone) {
+      // Check if added late
+      if (sprint.startDate && item.createdAt > sprint.startDate) {
+        result.set(item.id, "added_late");
+      } else {
+        result.set(item.id, "incomplete");
+      }
+    } else if (sprint.state === "active" && isDone) {
+      result.set(item.id, "clean");
+    } else {
+      result.set(item.id, "");
+    }
+  }
+
+  return result;
+}
+
+// GROUP BY sprint.health — compute health classification for each item and group
+async function groupBySprintHealth(funcName: string, funcArg: string, where: SQL | undefined): Promise<TraqlResult> {
+  const healthTypes = ["clean", "incomplete", "added_late", "spilled", "carried"] as const;
+  const groups: Array<{ key: string; value: number }> = [];
+
+  for (const ht of healthTypes) {
+    const healthFilter = buildSprintHealthFilter(ht);
+    if (!healthFilter) continue;
+
+    const combined = where ? and(where, healthFilter) : healthFilter;
+    let selectExpr;
+    if (funcName === "count") selectExpr = count();
+    else if (funcName === "sum") selectExpr = sum((workItems as any)[funcArg]);
+    else if (funcName === "avg") selectExpr = avg((workItems as any)[funcArg]);
+    else throw new ExecutionError(`Unknown function: ${funcName}`);
+
+    const [row] = await db
+      .select({ value: selectExpr })
+      .from(workItems)
+      .where(combined ?? undefined);
+
+    const val = Number(row?.value) || 0;
+    if (val > 0) groups.push({ key: ht, value: val });
+  }
+
+  return { type: "grouped", groups };
+}
+
+// History query: field WAS value [BEFORE date] [AFTER date]
+function buildWasFilter(node: WasNode): SQL | undefined {
+  const { field, value, before, after } = node;
+
+  if (field === "state") {
+    // Check status_history for to_state matching the value
+    const conditions = [sql`sh.work_item_id = ${workItems.id}`, sql`sh.to_state = ${value}`];
+    if (before) conditions.push(sql`sh.changed_at < ${before}`);
+    if (after) conditions.push(sql`sh.changed_at > ${after}`);
+    const whereClause = conditions.reduce((a, b) => sql`${a} AND ${b}`);
+    return sql`EXISTS (SELECT 1 FROM status_history sh WHERE ${whereClause})`;
+  }
+
+  if (field === "assignee") {
+    // Check work_item_snapshots for assignee value in snapshot JSON
+    const conditions = [sql`ws.work_item_id = ${workItems.id}`, sql`ws.snapshot::jsonb->>'assignee' = ${value}`];
+    if (before) conditions.push(sql`ws.created_at < ${before}`);
+    if (after) conditions.push(sql`ws.created_at > ${after}`);
+    const whereClause = conditions.reduce((a, b) => sql`${a} AND ${b}`);
+    return sql`EXISTS (SELECT 1 FROM work_item_snapshots ws WHERE ${whereClause})`;
+  }
+
+  return undefined;
+}
+
+// History query: field CHANGED [FROM value TO value] [DURING range]
+function buildChangedFilter(node: ChangedNode): SQL | undefined {
+  const { field, fromValue, toValue, during } = node;
+
+  if (field === "state") {
+    const conditions: SQL[] = [sql`sh.work_item_id = ${workItems.id}`];
+    if (fromValue) conditions.push(sql`sh.from_state = ${fromValue}`);
+    if (toValue) conditions.push(sql`sh.to_state = ${toValue}`);
+
+    if (during) {
+      // Parse during value: sprint:active, sprint:closed, or date range
+      const sprintMatch = during.match(/^sprint:(\w+)$/);
+      if (sprintMatch) {
+        const sprintState = sprintMatch[1];
+        if (sprintState === "active") {
+          conditions.push(sql`sh.changed_at >= (SELECT start_date FROM sprints WHERE state = 'active' LIMIT 1)`);
+          conditions.push(sql`sh.changed_at <= (SELECT end_date FROM sprints WHERE state = 'active' LIMIT 1)`);
+        } else {
+          conditions.push(sql`sh.changed_at >= (SELECT start_date FROM sprints WHERE state = ${sprintState} ORDER BY end_date DESC LIMIT 1)`);
+          conditions.push(sql`sh.changed_at <= (SELECT end_date FROM sprints WHERE state = ${sprintState} ORDER BY end_date DESC LIMIT 1)`);
+        }
+      }
+    }
+
+    const whereClause = conditions.reduce((a, b) => sql`${a} AND ${b}`);
+    return sql`EXISTS (SELECT 1 FROM status_history sh WHERE ${whereClause})`;
+  }
+
+  if (field === "assignee") {
+    if (fromValue && toValue) {
+      // Check consecutive snapshots for assignee change from X to Y
+      return sql`EXISTS (
+        SELECT 1 FROM work_item_snapshots ws1
+        JOIN work_item_snapshots ws2 ON ws2.work_item_id = ws1.work_item_id AND ws2.version = ws1.version + 1
+        WHERE ws1.work_item_id = ${workItems.id}
+          AND ws1.snapshot::jsonb->>'assignee' = ${fromValue}
+          AND ws2.snapshot::jsonb->>'assignee' = ${toValue}
+      )`;
+    }
+    // assignee CHANGED — check if more than one distinct assignee value in snapshots
+    return sql`(SELECT COUNT(DISTINCT ws.snapshot::jsonb->>'assignee') FROM work_item_snapshots ws WHERE ws.work_item_id = ${workItems.id}) > 1`;
+  }
+
+  return undefined;
+}
+
 function containsField(node: FilterNode, fieldName: string): boolean {
   if (node.kind === "field") return node.field === fieldName;
+  if (node.kind === "was") return node.field === fieldName;
+  if (node.kind === "changed") return node.field === fieldName;
   if (node.kind === "logic") return containsField(node.left, fieldName) || containsField(node.right, fieldName);
   if (node.kind === "not") return containsField(node.child, fieldName);
   return false;

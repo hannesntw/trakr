@@ -62,12 +62,69 @@ const sections: Section[] = [
   },
   {
     title: "Sprint Queries",
-    description: "Filter by sprint assignment, name, or state.",
+    description: "Filter by sprint assignment, name, or state. Sprint functions go beyond simple name matching to query by sprint lifecycle state.",
     examples: [
       { query: 'sprint:"Sprint 9"', note: "In a specific sprint (quote names with spaces)" },
       { query: "sprint:active", note: "In the currently active sprint" },
+      { query: "sprint:current", note: "Alias for sprint:active" },
       { query: "sprint:none", note: "Not in any sprint (backlog)" },
-      { query: "sprint.state:closed", note: "In a closed sprint" },
+      { query: "sprint:open", note: "In any non-closed sprint (active or planning)" },
+      { query: "sprint:future", note: "In a sprint with state 'planning'" },
+      { query: "sprint:closed", note: "In a closed sprint" },
+      { query: "sprint:last", note: "In the most recently closed sprint" },
+      { query: "sprint.state:closed", note: "In a closed sprint (explicit state filter)" },
+    ],
+  },
+  {
+    title: "Null / Empty Checks",
+    description: "Check if a field is null or has a value. Works with any field. Text fields treat both null and empty string as 'empty'.",
+    examples: [
+      { query: "assignee:empty", note: "Assignee is null" },
+      { query: "assignee:!empty", note: "Assignee has a value" },
+      { query: "description:empty", note: "Description is null or empty string" },
+      { query: "points:empty", note: "No points set" },
+      { query: "sprint:empty", note: "Not in any sprint (alias for sprint:none)" },
+      { query: "sprint:!empty", note: "In any sprint" },
+    ],
+  },
+  {
+    title: "Link Traversal",
+    description: "Query items based on their relationships to other items via work item links. Check for the existence of links, filter by link type, or inspect the state of linked items.",
+    examples: [
+      { query: "links:any", note: "Has at least one link (any type)" },
+      { query: "links:none", note: "Has no links at all" },
+      { query: "links:blocks", note: "Blocks at least one other item" },
+      { query: "links:blocked_by", note: "Is blocked by at least one item" },
+      { query: "blocked_by:in_progress", note: "Is blocked by an item that's in_progress" },
+      { query: "links:relates_to", note: "Has a 'relates to' link" },
+    ],
+  },
+  {
+    title: "History Queries",
+    description: "Query items based on their past state using WAS and CHANGED operators. WAS checks if a field ever had a value. CHANGED checks if a field was modified, optionally with FROM/TO values and DURING time ranges.",
+    examples: [
+      { query: "state WAS in_progress", note: "Was ever in_progress" },
+      { query: "state WAS in_progress BEFORE 2026-01-01", note: "Was in_progress before a date" },
+      { query: "state CHANGED", note: "State was changed at any point" },
+      { query: "state CHANGED FROM in_progress TO done", note: "Specific state transition" },
+      { query: "assignee CHANGED", note: "Assignee was changed at any point" },
+      { query: "assignee CHANGED FROM Alice TO Bob", note: "Specific reassignment" },
+      { query: "state CHANGED DURING sprint:active", note: "State changed during the active sprint" },
+    ],
+  },
+  {
+    title: "Sprint Health Analysis",
+    description: "Analyze whether stories were properly planned or had problems. Sprint health is a computed virtual field derived from sprint dates, status history, and item state. Use it to power sprint retrospectives.",
+    examples: [
+      { query: "sprint.health:clean", note: "Completed within a closed sprint (well-executed)" },
+      { query: "sprint.health:incomplete", note: "In active sprint but not done yet (at risk)" },
+      { query: "sprint.health:added_late", note: "Added to sprint after it started (scope creep)" },
+      { query: "sprint.health:spilled", note: "In a closed sprint but not done (spilled over)" },
+      { query: "sprint.health:carried", note: "Moved from a closed sprint to a later sprint" },
+      { query: "sprint:active sprint.health:incomplete", note: "At-risk items in current sprint" },
+      { query: "sprint:closed sprint.health:spilled", note: "What spilled last sprint?" },
+      { query: "SELECT count() GROUP BY sprint.health WHERE sprint:active", note: "Health breakdown of current sprint" },
+      { query: 'SELECT format("| {id} | {title} | {sprint.health} |") WHERE sprint:last ORDER BY sprint.health', note: "Sprint retrospective table" },
     ],
   },
   {
@@ -143,7 +200,7 @@ const sections: Section[] = [
 
 // Syntax highlighting
 function Highlight({ query }: { query: string }) {
-  const keywords = new Set(["AND", "OR", "NOT", "ORDER", "BY", "SELECT", "WHERE", "GROUP", "ASC", "DESC"]);
+  const keywords = new Set(["AND", "OR", "NOT", "ORDER", "BY", "SELECT", "WHERE", "GROUP", "ASC", "DESC", "WAS", "CHANGED", "FROM", "TO", "BEFORE", "AFTER", "DURING"]);
   const parts = query.split(/(\s+|[():,])/);
   return (
     <code className="text-[13px]">
@@ -304,18 +361,26 @@ export default function TraqlReferencePage() {
           | SELECT func [GROUP BY field] [WHERE filter] [ORDER BY sort_list]
 
 filter    = condition { (AND | OR) condition }
-condition = NOT condition | "(" filter ")" | field_expr
+condition = NOT condition | "(" filter ")" | field_expr | was_expr | changed_expr
 field_expr= field ":" [operator] value
 
-field     = word { "." word }        # e.g. parent.type, children.state
+# History queries
+was_expr     = field WAS value [BEFORE date] [AFTER date]
+changed_expr = field CHANGED [FROM value TO value] [DURING range]
+
+field     = word { "." word }        # e.g. parent.type, children.state, sprint.health
 operator  = "!" | "~" | ">" | ">=" | "<" | "<="
 value     = word | quoted_string | word "|" word  | word ".." word | func
+          | "empty"                  # null/empty check
 
 func      = word "(" [args] ")"      # count(), sum(points), all(done), last(7d)
 sort_list = field [ASC|DESC] { "," field [ASC|DESC] }
 
 # Shortcuts: is:open, is:closed, is:unassigned, is:stale, my:items
-# Special values: none, me, active, all, today()`}</pre>
+# Special values: none, me, active, current, open, future, closed, last, empty, all, today()
+# Sprint health: clean, incomplete, added_late, spilled, carried
+# Link values: any, none, blocks, blocked_by
+# Keywords: WAS, CHANGED, FROM, TO, BEFORE, AFTER, DURING`}</pre>
         </div>
 
         <div className="mt-6 text-center text-xs text-text-tertiary">

@@ -70,9 +70,9 @@ export function Combobox({
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "w-full flex items-center gap-2 px-2 py-1 text-sm rounded-md border border-transparent transition-colors text-left",
-          "hover:border-border hover:bg-content-bg cursor-pointer",
-          open && "border-border bg-content-bg"
+          "w-full h-8 flex items-center gap-2 px-2.5 text-xs rounded-md border border-border transition-colors text-left",
+          "hover:bg-content-bg cursor-pointer",
+          open && "border-accent bg-content-bg"
         )}
       >
         {selected ? (
