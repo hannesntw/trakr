@@ -4,7 +4,7 @@ import { comments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
-import { auth } from "@/auth";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
   author: z.string().min(1).optional(),
@@ -38,11 +38,11 @@ export async function POST(
     );
   }
 
-  // Use session user name if author not provided (MCP can still pass author explicitly)
+  // Use session/API user name if author not provided
   let author = parsed.data.author;
   if (!author) {
-    const session = await auth();
-    author = session?.user?.name ?? "Anonymous";
+    const user = await resolveApiUser(request);
+    author = user?.name ?? "Anonymous";
   }
 
   const [row] = await db

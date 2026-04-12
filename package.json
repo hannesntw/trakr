@@ -15,7 +15,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:traql": "vitest run src/lib/traql",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "load-test": "k6 run load-tests/scenarios/audience-demo.js",
+    "load-test:traql": "k6 run load-tests/scenarios/traql-stress.js",
+    "load-test:smoke": "k6 run load-tests/scenarios/smoke.js"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",

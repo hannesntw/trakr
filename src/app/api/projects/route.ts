@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { z } from "zod";
-import { auth } from "@/auth";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -30,14 +30,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Set owner from session if available, default to private
-  const session = await auth();
+  // Set owner from API user (works for both session and API key auth)
+  const user = await resolveApiUser(request);
   const [row] = await db
     .insert(projects)
     .values({
       ...parsed.data,
       visibility: parsed.data.visibility ?? "private",
-      ownerId: session?.user?.id ?? null,
+      ownerId: user?.id ?? null,
     })
     .returning();
   return NextResponse.json(row, { status: 201 });
