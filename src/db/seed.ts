@@ -1,14 +1,10 @@
-import { drizzle } from "drizzle-orm/libsql";
-import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import { projects, workItems, sprints, comments } from "./schema";
 import { eq } from "drizzle-orm";
 
-const client = createClient({
-  url: process.env.TURSO_DATABASE_URL ?? "file:./local.db",
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
-
-const db = drizzle(client);
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
 
 // Track per-project sequence counters for displayId generation
 const sequenceCounters = new Map<number, { key: string; seq: number }>();
