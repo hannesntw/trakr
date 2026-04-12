@@ -5,6 +5,7 @@ import { useVariant } from "@/components/VariantContext";
 import { useStateOverride } from "@/components/StateOverrideContext";
 import { MockDetailPanel } from "@/components/MockDetailPanel";
 import { Bug, CheckSquare, Square } from "lucide-react";
+import { PointsBadge } from "@/components/PointsBadge";
 
 const states = [
   { key: "new", label: "New", color: "text-gray-600 bg-gray-50 border-gray-200" },
@@ -27,31 +28,31 @@ interface Card {
   state: string;
   assignee: string | null;
   parentTitle: string | null;
-  tasks?: Task[]; // child tasks for stories
+  points?: number | null;
+  tasks?: Task[];
 }
 
 const mockCards: Card[] = [
-  { id: 7, title: "Add and View Comments", type: "story", state: "new", assignee: "Morgan L.", parentTitle: null, tasks: [] },
-  { id: 8, title: "Board cards misaligned on Safari", type: "bug", state: "active", assignee: "Sam T.", parentTitle: "Work Item Management" },
-  { id: 6, title: "Create and Manage Sprints", type: "story", state: "ready", assignee: "Sam T.", parentTitle: null, tasks: [
+  { id: 7, title: "Add and View Comments", type: "story", state: "new", assignee: "Hannes", parentTitle: null, points: 3, tasks: [] },
+  { id: 8, title: "Board cards misaligned on Safari", type: "bug", state: "active", assignee: "Hannes", parentTitle: "Work Item Management", points: 2 },
+  { id: 6, title: "Create and Manage Sprints", type: "story", state: "ready", assignee: "Hannes", parentTitle: null, points: 8, tasks: [
     { id: 11, title: "Update API docs", done: false },
   ]},
-  { id: 4, title: "View Work Item Detail", type: "story", state: "in_progress", assignee: "Sam T.", parentTitle: null, tasks: [
+  { id: 4, title: "View Work Item Detail", type: "story", state: "in_progress", assignee: "Hannes", parentTitle: null, points: 13, tasks: [
     { id: 14, title: "Add markdown preview", done: true },
     { id: 15, title: "Wire up inline editing", done: false },
     { id: 16, title: "Connect attachment gallery", done: false },
   ]},
-  { id: 5, title: "Plan Sprint", type: "story", state: "in_progress", assignee: "Morgan L.", parentTitle: null, tasks: [
+  { id: 5, title: "Plan Sprint", type: "story", state: "in_progress", assignee: "Hannes", parentTitle: null, points: 5, tasks: [
     { id: 10, title: "Write unit tests for drag-and-drop", done: false },
     { id: 17, title: "Add capacity bar to sprint header", done: true },
   ]},
-  { id: 9, title: "Sprint dates off by one day", type: "bug", state: "in_progress", assignee: "Morgan L.", parentTitle: "Sprint Planning" },
-  // Standalone tasks (no parent story)
-  { id: 12, title: "Review PR #47", type: "task", state: "new", assignee: "Morgan L.", parentTitle: null },
-  { id: 13, title: "Set up staging environment", type: "task", state: "done", assignee: "Sam T.", parentTitle: null },
-  { id: 1, title: "Create Work Item", type: "story", state: "done", assignee: "Sam T.", parentTitle: null, tasks: [] },
-  { id: 2, title: "View Sprint Board", type: "story", state: "done", assignee: "Sam T.", parentTitle: null, tasks: [] },
-  { id: 3, title: "View Backlog Table", type: "story", state: "done", assignee: "Morgan L.", parentTitle: null, tasks: [] },
+  { id: 9, title: "Sprint dates off by one day", type: "bug", state: "in_progress", assignee: "Hannes", parentTitle: "Sprint Planning", points: 1 },
+  { id: 12, title: "Review PR #47", type: "task", state: "new", assignee: "Hannes", parentTitle: null },
+  { id: 13, title: "Set up staging environment", type: "task", state: "done", assignee: "Hannes", parentTitle: null },
+  { id: 1, title: "Create Work Item", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 3, tasks: [] },
+  { id: 2, title: "View Sprint Board", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 5, tasks: [] },
+  { id: 3, title: "View Backlog Table", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 3, tasks: [] },
 ];
 
 const typeDot: Record<string, string> = { story: "bg-emerald-500", bug: "bg-red-500", task: "bg-slate-400" };
@@ -124,6 +125,9 @@ export default function BoardPage() {
                             {typeLabel[item.type]}
                           </span>
                           <span className="text-xs text-text-tertiary ml-auto">#{item.id}</span>
+                          {variant.features.storyPoints && item.points != null && (
+                            <PointsBadge points={item.points} />
+                          )}
                         </div>
 
                         {/* Title */}

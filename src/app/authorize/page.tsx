@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { deviceCodes, apiKeys } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { FolderKanban, Cpu, Check } from "lucide-react";
+import { Cpu, Check } from "lucide-react";
 import { createHash, randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -90,7 +90,12 @@ export default async function AuthorizePage({
     <div className="min-h-screen flex items-center justify-center bg-content-bg">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-6">
-          <FolderKanban className="w-10 h-10 text-accent mb-3" />
+          <svg width="40" height="40" viewBox="0 0 32 32" className="mb-3">
+            <rect width="32" height="32" rx="6" fill="#6366F1"/>
+            <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9"/>
+            <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
+            <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
+          </svg>
           <h1 className="text-xl font-bold text-text-primary">Authorize Claude Code</h1>
         </div>
         <div className="bg-surface border border-border rounded-xl p-6">

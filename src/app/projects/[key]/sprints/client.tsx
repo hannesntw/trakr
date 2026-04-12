@@ -10,7 +10,7 @@ import {
   Circle, CircleDot, CircleCheck, Play,
   Pencil, Check, X, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
-import type { WorkItemState } from "@/lib/constants";
+import type { WorkflowState } from "@/lib/constants";
 
 interface WorkItem {
   id: number;
@@ -31,16 +31,17 @@ interface Sprint {
   state: string;
 }
 
-// State icon (inline)
-function StateIcon({ state }: { state: string }) {
-  const map: Record<string, { icon: typeof Circle; color: string }> = {
-    new: { icon: Circle, color: "text-gray-400" },
-    active: { icon: CircleDot, color: "text-blue-500" },
-    ready: { icon: CircleDot, color: "text-amber-500" },
-    in_progress: { icon: Play, color: "text-indigo-500" },
-    done: { icon: CircleCheck, color: "text-emerald-500" },
-  };
-  const cfg = map[state] ?? map.new;
+// State icon (category-based)
+const CATEGORY_ICON_MAP: Record<string, { icon: typeof Circle; color: string }> = {
+  todo: { icon: Circle, color: "text-gray-400" },
+  in_progress: { icon: Play, color: "text-indigo-500" },
+  done: { icon: CircleCheck, color: "text-emerald-500" },
+};
+
+function StateIcon({ state, workflowStates }: { state: string; workflowStates?: WorkflowState[] }) {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  const category = ws?.category ?? "todo";
+  const cfg = CATEGORY_ICON_MAP[category] ?? CATEGORY_ICON_MAP.todo;
   const Icon = cfg.icon;
   return <Icon className={`w-3.5 h-3.5 ${cfg.color} shrink-0`} />;
 }
@@ -107,6 +108,7 @@ interface SprintsClientProps {
 export function SprintsClient({ projectId, projectKey, projectName }: SprintsClientProps) {
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [items, setItems] = useState<WorkItem[]>([]);
+  const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [backlogCollapsed, setBacklogCollapsed] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
@@ -117,12 +119,14 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
   const anchorVisualTop = useRef<number | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [sprintsRes, itemsRes] = await Promise.all([
+    const [sprintsRes, itemsRes, wfRes] = await Promise.all([
       fetch(`/api/sprints?projectId=${projectId}`),
       fetch(`/api/work-items?projectId=${projectId}`),
+      fetch(`/api/projects/${projectId}/workflow`),
     ]);
     setSprints(await sprintsRes.json());
     setItems(await itemsRes.json());
+    if (wfRes.ok) setWorkflowStates(await wfRes.json());
   }, [projectId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -262,6 +266,32 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
     fetchData();
   }
 
+  // Save sprint goal (materialize if virtual)
+  async function handleGoalSave(block: typeof sprintBlocks[0], goal: string) {
+    let sprintId = block.id;
+    if (!sprintId) {
+      // Materialize virtual sprint first
+      const res = await fetch("/api/sprints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          name: block.name,
+          startDate: block.isoStart,
+          endDate: block.isoEnd,
+        }),
+      });
+      const newSprint = await res.json();
+      sprintId = newSprint.id;
+    }
+    await fetch(`/api/sprints/${sprintId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal }),
+    });
+    fetchData();
+  }
+
   return (
     <>
       <Header
@@ -273,7 +303,8 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
             .filter(b => b.id)
             .map(b => {
               const stories = getSprintStories(b.id);
-              const pts = stories.filter(s => s.state === "done").reduce((sum, s) => sum + (s.points ?? 0), 0);
+              const doneSlugs = new Set(workflowStates.filter(w => w.category === "done").map(w => w.slug));
+              const pts = stories.filter(s => doneSlugs.has(s.state)).reduce((sum, s) => sum + (s.points ?? 0), 0);
               return pts;
             })
             .filter(pts => pts > 0);
@@ -320,7 +351,7 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
                   onClick={() => setSelectedId(item.id)}
                   className={cn("flex items-center gap-2 px-3 py-2 bg-surface border border-border rounded-lg text-sm cursor-grab active:cursor-grabbing hover:border-border-hover transition-colors", draggingItemId === item.id && "opacity-50")}
                 >
-                  <StateIcon state={item.state} />
+                  <StateIcon state={item.state} workflowStates={workflowStates} />
                   <span className="flex-1 truncate">{item.title}</span>
                   <IdBadge id={item.id} />
                 </div>
@@ -348,13 +379,13 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
             {showClosed && closedBlocks.map(block => (
               <SprintBlock key={block.virtualKey} block={block} stories={getSprintStories(block.id)}
                 onStoryClick={setSelectedId} draggingItemId={draggingItemId} setDraggingItemId={setDraggingItemId}
-                dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDrop={handleDrop} />
+                dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDrop={handleDrop} onGoalSave={handleGoalSave} workflowStates={workflowStates} />
             ))}
             {visibleBlocks.map(block => (
               <div key={block.virtualKey} ref={block.state === "active" ? activeRef : undefined}>
                 <SprintBlock block={block} stories={getSprintStories(block.id)}
                   onStoryClick={setSelectedId} draggingItemId={draggingItemId} setDraggingItemId={setDraggingItemId}
-                  dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDrop={handleDrop} />
+                  dragOverTarget={dragOverTarget} setDragOverTarget={setDragOverTarget} onDrop={handleDrop} onGoalSave={handleGoalSave} workflowStates={workflowStates} />
               </div>
             ))}
           </div>
@@ -364,6 +395,7 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
       <DetailPanel
         workItemId={selectedId}
         projectKey={projectKey}
+        projectId={projectId}
         onClose={() => setSelectedId(null)}
         onUpdated={fetchData}
       />
@@ -374,7 +406,7 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
 // Sprint block component
 function SprintBlock({
   block, stories, onStoryClick,
-  draggingItemId, setDraggingItemId, dragOverTarget, setDragOverTarget, onDrop,
+  draggingItemId, setDraggingItemId, dragOverTarget, setDragOverTarget, onDrop, onGoalSave, workflowStates,
 }: {
   block: ReturnType<typeof generateVirtualSprints>[0];
   stories: WorkItem[];
@@ -384,6 +416,8 @@ function SprintBlock({
   dragOverTarget: string | null;
   setDragOverTarget: (t: string | null) => void;
   onDrop: (virtualKey: string) => void;
+  onGoalSave: (block: ReturnType<typeof generateVirtualSprints>[0], goal: string) => Promise<void>;
+  workflowStates?: WorkflowState[];
 }) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState(block.goal);
@@ -439,7 +473,7 @@ function SprintBlock({
             <div className="flex items-center gap-1.5">
               <input autoFocus value={goalDraft} onChange={(e) => setGoalDraft(e.target.value)}
                 className="flex-1 text-xs bg-transparent border-b border-accent outline-none py-0.5" placeholder="Sprint goal..." />
-              <button onClick={() => setEditingGoal(false)} className="p-0.5 text-accent"><Check className="w-3.5 h-3.5" /></button>
+              <button onClick={async () => { await onGoalSave(block, goalDraft); setEditingGoal(false); }} className="p-0.5 text-accent"><Check className="w-3.5 h-3.5" /></button>
               <button onClick={() => { setGoalDraft(block.goal); setEditingGoal(false); }} className="p-0.5 text-text-tertiary"><X className="w-3.5 h-3.5" /></button>
             </div>
           ) : (
@@ -462,7 +496,7 @@ function SprintBlock({
             onDragEnd={() => { setDraggingItemId(null); setDragOverTarget(null); }}
             onClick={() => onStoryClick(story.id)}
             className={cn("flex items-center gap-2 px-2 py-1.5 rounded border border-border/50 hover:border-border hover:bg-content-bg transition-colors cursor-grab active:cursor-grabbing text-xs", draggingItemId === story.id && "opacity-50")}>
-            <StateIcon state={story.state} />
+            <StateIcon state={story.state} workflowStates={workflowStates} />
             <span className="flex-1 truncate text-text-primary">{story.title}</span>
             <span className="text-text-tertiary">#{story.id}</span>
           </div>
@@ -480,7 +514,8 @@ function SprintBlock({
 
       {/* Velocity: delivered points on closed sprints */}
       {block.state === "closed" && stories.length > 0 && (() => {
-        const delivered = stories.filter(s => s.state === "done").reduce((sum, s) => sum + (s.points ?? 0), 0);
+        const doneSlugs = new Set((workflowStates ?? []).filter(w => w.category === "done").map(w => w.slug));
+        const delivered = stories.filter(s => doneSlugs.has(s.state)).reduce((sum, s) => sum + (s.points ?? 0), 0);
         return delivered > 0 ? (
           <div className="px-4 pb-2 text-[11px] text-text-tertiary">
             Delivered: <span className="text-text-primary font-medium">{delivered} pts</span>

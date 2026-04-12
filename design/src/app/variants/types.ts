@@ -12,6 +12,16 @@ export interface VariantConfig {
     collapsibleSidebar: boolean;
     storyTimeline: boolean;
     changeHistory: boolean;
+    timelineMarkers: boolean;
+    timelineLinks: boolean;
+    timelineDrag: boolean;
+    backlogFilters: boolean;
+    queryPage: boolean;
+    assigneeCombobox: boolean;
+    workItemLinks: boolean;
+    reparent: boolean;
+    configurableWorkflow: boolean;
+    storyPoints: boolean;
   };
   tabs: Array<{ slug: string; label: string }>;
 }

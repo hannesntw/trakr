@@ -8,12 +8,14 @@ import { emit } from "@/lib/events";
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
   type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
-  state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
+  state: z.string().optional(),
   description: z.string().optional(),
   parentId: z.number().int().positive().nullable().optional(),
   sprintId: z.number().int().positive().nullable().optional(),
   assignee: z.string().nullable().optional(),
-  points: z.number().int().nullable().optional(),
+  points: z.number().int().refine((v) => [1, 2, 3, 5, 8, 13].includes(v), {
+    message: "Points must be one of: 1, 2, 3, 5, 8, 13",
+  }).nullable().optional(),
   priority: z.number().int().optional(),
 });
 

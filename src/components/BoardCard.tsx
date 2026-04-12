@@ -1,6 +1,7 @@
 "use client";
 
 import { TypeBadge, IdBadge } from "@/components/Badge";
+import { PointsBadge } from "@/components/PointsBadge";
 import type { WorkItemType } from "@/lib/constants";
 
 interface BoardCardProps {
@@ -10,6 +11,7 @@ interface BoardCardProps {
   assignee: string | null;
   projectKey: string;
   parentTitle?: string;
+  points?: number | null;
 }
 
 export function BoardCard({
@@ -18,12 +20,18 @@ export function BoardCard({
   type,
   assignee,
   parentTitle,
+  points,
 }: BoardCardProps) {
   return (
     <div className="bg-surface border border-border rounded-lg p-3 hover:border-border-hover hover:shadow-sm transition-all group">
       <div className="flex items-start justify-between gap-2 mb-2">
         <TypeBadge type={type} />
-        <IdBadge id={id} />
+        <div className="flex items-center gap-1.5">
+          <IdBadge id={id} />
+          {(type === "story" || type === "bug") && points != null && (
+            <PointsBadge points={points} />
+          )}
+        </div>
       </div>
       <p className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2">
         {title}

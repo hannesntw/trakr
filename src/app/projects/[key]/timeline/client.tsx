@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { DetailPanel } from "@/components/DetailPanel";
+import type { WorkflowState } from "@/lib/constants";
 import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle, Circle, CircleDot, CircleCheck, Play } from "lucide-react";
 
 // --- Types ---
@@ -43,7 +44,7 @@ const TOTAL_WEEKS = 16;
 const BASE_DATE = new Date("2026-03-30");
 
 const typeColors: Record<string, string> = { epic: "bg-purple-500", feature: "bg-blue-500", story: "bg-emerald-500" };
-const stateOpacity: Record<string, string> = { done: "opacity-40", active: "opacity-100", in_progress: "opacity-100", ready: "opacity-80", new: "opacity-60" };
+const categoryOpacity: Record<string, string> = { done: "opacity-40", in_progress: "opacity-100", todo: "opacity-60" };
 
 function weekFromDate(dateStr: string): number {
   return (new Date(dateStr).getTime() - BASE_DATE.getTime()) / (7 * 24 * 60 * 60 * 1000);
@@ -57,15 +58,16 @@ function weekLabel(weekOffset: number): string {
 
 // --- State Icon ---
 
-function StateIcon({ state }: { state: string }) {
-  const map: Record<string, { icon: typeof Circle; color: string }> = {
-    new: { icon: Circle, color: "text-gray-400" },
-    active: { icon: CircleDot, color: "text-blue-500" },
-    ready: { icon: CircleDot, color: "text-amber-500" },
-    in_progress: { icon: Play, color: "text-indigo-500" },
-    done: { icon: CircleCheck, color: "text-emerald-500" },
-  };
-  const cfg = map[state] ?? map.new;
+const CATEGORY_ICON_MAP: Record<string, { icon: typeof Circle; color: string }> = {
+  todo: { icon: Circle, color: "text-gray-400" },
+  in_progress: { icon: Play, color: "text-indigo-500" },
+  done: { icon: CircleCheck, color: "text-emerald-500" },
+};
+
+function StateIcon({ state, workflowStates }: { state: string; workflowStates?: WorkflowState[] }) {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  const category = ws?.category ?? "todo";
+  const cfg = CATEGORY_ICON_MAP[category] ?? CATEGORY_ICON_MAP.todo;
   const Icon = cfg.icon;
   return <Icon className={`w-3.5 h-3.5 ${cfg.color} shrink-0`} />;
 }
@@ -82,6 +84,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   const [hierarchy, setHierarchy] = useState<WorkItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [historyMap, setHistoryMap] = useState<Map<number, StatusTransition[]>>(new Map());
+  const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [zoomIdx, setZoomIdx] = useState(1);
@@ -91,14 +94,16 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   const totalWidth = TOTAL_WEEKS * weekWidth;
 
   const fetchData = useCallback(async () => {
-    const [hierRes, sprintRes] = await Promise.all([
+    const [hierRes, sprintRes, wfRes] = await Promise.all([
       fetch(`/api/hierarchy?projectId=${projectId}`),
       fetch(`/api/sprints?projectId=${projectId}`),
+      fetch(`/api/projects/${projectId}/workflow`),
     ]);
     const hier: WorkItem[] = await hierRes.json();
     const sprintData: Sprint[] = await sprintRes.json();
     setHierarchy(hier);
     setSprints(sprintData);
+    if (wfRes.ok) setWorkflowStates(await wfRes.json());
 
     // Auto-expand epics
     setExpanded((prev) => {
@@ -233,9 +238,12 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   function getRetroBars(itemId: number) {
     const hist = historyMap.get(itemId);
     if (!hist || hist.length === 0) return null;
-    const activeAt = hist.find(h => h.toState === "active");
-    const inProgressAt = hist.find(h => h.toState === "in_progress");
-    const doneAt = hist.find(h => h.toState === "done");
+    const inProgressSlugs = new Set(workflowStates.filter(w => w.category === "in_progress").map(w => w.slug));
+    const doneSlugs = new Set(workflowStates.filter(w => w.category === "done").map(w => w.slug));
+    // "active" = first transition to any non-todo category
+    const activeAt = hist.find(h => inProgressSlugs.has(h.toState) || doneSlugs.has(h.toState));
+    const inProgressAt = hist.find(h => inProgressSlugs.has(h.toState));
+    const doneAt = hist.find(h => doneSlugs.has(h.toState));
     return {
       leadStart: activeAt ? weekFromDate(activeAt.changedAt) : null,
       leadEnd: inProgressAt ? weekFromDate(inProgressAt.changedAt) : (doneAt ? weekFromDate(doneAt.changedAt) : null),
@@ -281,7 +289,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
                   onClick={() => hasChildren && toggleExpand(item.id)}
                 >
                   {hasChildren ? (isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-text-tertiary mr-1.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-text-tertiary mr-1.5 shrink-0" />) : <span className="w-3.5 mr-1.5 shrink-0" />}
-                  <StateIcon state={item.state} />
+                  <StateIcon state={item.state} workflowStates={workflowStates} />
                   <span className="text-xs text-text-primary truncate ml-1.5">{item.title}</span>
                   <span className="text-[10px] text-text-tertiary ml-auto mr-2 shrink-0">#{item.id}</span>
                 </div>
@@ -364,7 +372,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
                   {/* Planned bar (hidden for stories with retro data) */}
                   {!hasRetro && (
                     <div onClick={() => setSelectedId(item.id)}
-                      className={`absolute top-2 h-6 rounded cursor-pointer hover:ring-2 hover:ring-white/40 ${typeColors[item.type] ?? "bg-gray-400"} ${stateOpacity[item.state] ?? "opacity-60"} transition-all`}
+                      className={`absolute top-2 h-6 rounded cursor-pointer hover:ring-2 hover:ring-white/40 ${typeColors[item.type] ?? "bg-gray-400"} ${categoryOpacity[workflowStates.find(w => w.slug === item.state)?.category ?? "todo"] ?? "opacity-60"} transition-all`}
                       style={{ left: bar.start * weekWidth + 2, width: Math.max(bar.duration * weekWidth - 4, 12) }}>
                       {bar.duration * weekWidth > 60 && (
                         <span className="absolute inset-0 flex items-center px-2 text-white text-[10px] font-medium truncate">{item.title}</span>
@@ -381,6 +389,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
       <DetailPanel
         workItemId={selectedId}
         projectKey={projectKey}
+        projectId={projectId}
         onClose={() => setSelectedId(null)}
         onUpdated={fetchData}
       />

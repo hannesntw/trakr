@@ -9,12 +9,14 @@ const createSchema = z.object({
   projectId: z.number().int().positive(),
   title: z.string().min(1),
   type: z.enum(["epic", "feature", "story", "bug", "task"]),
-  state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
+  state: z.string().optional(),
   description: z.string().optional(),
   parentId: z.number().int().positive().nullable().optional(),
   sprintId: z.number().int().positive().nullable().optional(),
   assignee: z.string().nullable().optional(),
-  points: z.number().int().nullable().optional(),
+  points: z.number().int().refine((v) => [1, 2, 3, 5, 8, 13].includes(v), {
+    message: "Points must be one of: 1, 2, 3, 5, 8, 13",
+  }).nullable().optional(),
   priority: z.number().int().optional(),
 });
 
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (type) conditions.push(eq(workItems.type, type as "epic" | "feature" | "story"));
 
   const state = url.get("state");
-  if (state) conditions.push(eq(workItems.state, state as "new" | "active" | "ready" | "in_progress" | "done"));
+  if (state) conditions.push(eq(workItems.state, state));
 
   const sprintId = url.get("sprintId");
   if (sprintId) conditions.push(eq(workItems.sprintId, Number(sprintId)));

@@ -1,6 +1,7 @@
 "use client";
 
 import { Circle, CircleDot, CircleCheck, Play, Globe, Terminal, Cpu } from "lucide-react";
+import type { WorkflowState } from "@/lib/constants";
 
 interface StatusChange {
   id: number;
@@ -9,18 +10,22 @@ interface StatusChange {
   changedAt: string;
 }
 
-const stateLabels: Record<string, string> = { new: "New", active: "Active", ready: "Ready", in_progress: "In Progress", done: "Done" };
-const stateColors: Record<string, string> = { new: "bg-gray-100 border-gray-300", active: "bg-blue-50 border-blue-300", ready: "bg-amber-50 border-amber-300", in_progress: "bg-indigo-50 border-indigo-300", done: "bg-emerald-50 border-emerald-300" };
+const CATEGORY_COLORS: Record<string, string> = {
+  todo: "bg-gray-100 border-gray-300",
+  in_progress: "bg-indigo-50 border-indigo-300",
+  done: "bg-emerald-50 border-emerald-300",
+};
 
-function StateIcon({ state, size = 18 }: { state: string; size?: number }) {
-  const map: Record<string, { icon: typeof Circle; color: string }> = {
-    new: { icon: Circle, color: "text-gray-400" },
-    active: { icon: CircleDot, color: "text-blue-500" },
-    ready: { icon: CircleDot, color: "text-amber-500" },
-    in_progress: { icon: Play, color: "text-indigo-500" },
-    done: { icon: CircleCheck, color: "text-emerald-500" },
-  };
-  const cfg = map[state] ?? map.new;
+const CATEGORY_ICONS: Record<string, { icon: typeof Circle; color: string }> = {
+  todo: { icon: Circle, color: "text-gray-400" },
+  in_progress: { icon: Play, color: "text-indigo-500" },
+  done: { icon: CircleCheck, color: "text-emerald-500" },
+};
+
+function StateIcon({ state, workflowStates, size = 18 }: { state: string; workflowStates?: WorkflowState[]; size?: number }) {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  const category = ws?.category ?? "todo";
+  const cfg = CATEGORY_ICONS[category] ?? CATEGORY_ICONS.todo;
   const Icon = cfg.icon;
   return <Icon style={{ width: size, height: size }} className={`${cfg.color} shrink-0`} />;
 }
@@ -37,7 +42,23 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-export function StatusTimeline({ changes }: { changes: StatusChange[] }) {
+function getStateLabel(state: string, workflowStates?: WorkflowState[]): string {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  return ws?.displayName ?? state;
+}
+
+function getStateColor(state: string, workflowStates?: WorkflowState[]): string {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  const category = ws?.category ?? "todo";
+  return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.todo;
+}
+
+function getStatePosition(state: string, workflowStates?: WorkflowState[]): number {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  return ws?.position ?? 0;
+}
+
+export function StatusTimeline({ changes, workflowStates }: { changes: StatusChange[]; workflowStates?: WorkflowState[] }) {
   if (changes.length === 0) return null;
 
   // Compute durations between changes
@@ -50,19 +71,26 @@ export function StatusTimeline({ changes }: { changes: StatusChange[] }) {
 
   // Stats
   const totalChanges = changes.length;
-  const regressions = changes.filter((c, i) => {
-    const stateOrder = ["new", "active", "ready", "in_progress", "done"];
-    return stateOrder.indexOf(c.toState) < stateOrder.indexOf(c.fromState);
+  const regressions = changes.filter((c) => {
+    return getStatePosition(c.toState, workflowStates) < getStatePosition(c.fromState, workflowStates);
   }).length;
 
-  const firstActive = changes.find(c => c.toState === "active" || c.toState === "in_progress");
-  const lastDone = [...changes].reverse().find(c => c.toState === "done");
+  // Lead time: first non-todo to last done
+  const firstActive = changes.find(c => {
+    const ws = workflowStates?.find(w => w.slug === c.toState);
+    return ws?.category === "in_progress";
+  });
+  const lastDone = [...changes].reverse().find(c => {
+    const ws = workflowStates?.find(w => w.slug === c.toState);
+    return ws?.category === "done";
+  });
   const leadTimeMs = firstActive && lastDone ? new Date(lastDone.changedAt).getTime() - new Date(firstActive.changedAt).getTime() : null;
 
-  // Cycle time: sum of time in in_progress
+  // Cycle time: sum of time in in_progress category
   let cycleTimeMs = 0;
   for (let i = 0; i < changes.length; i++) {
-    if (changes[i].toState === "in_progress") {
+    const ws = workflowStates?.find(w => w.slug === changes[i].toState);
+    if (ws?.category === "in_progress") {
       const end = changes[i + 1] ? new Date(changes[i + 1].changedAt).getTime() : Date.now();
       cycleTimeMs += end - new Date(changes[i].changedAt).getTime();
     }
@@ -83,15 +111,14 @@ export function StatusTimeline({ changes }: { changes: StatusChange[] }) {
           {/* Row 1: icons + connectors */}
           {changes.map((change, i) => {
             const isLast = i === changes.length - 1;
-            const isRegression = i < changes.length - 1 && (() => {
-              const order = ["new", "active", "ready", "in_progress", "done"];
-              return order.indexOf(changes[i + 1].toState) < order.indexOf(change.toState);
-            })();
+            const isRegression = i < changes.length - 1 && (
+              getStatePosition(changes[i + 1].toState, workflowStates) < getStatePosition(change.toState, workflowStates)
+            );
             return (
               <div key={`icon-${i}`} className="contents">
                 <div className="flex justify-center">
-                  <div className={`w-9 h-9 rounded-full border-2 ${stateColors[change.toState] ?? stateColors.new} flex items-center justify-center`}>
-                    <StateIcon state={change.toState} />
+                  <div className={`w-9 h-9 rounded-full border-2 ${getStateColor(change.toState, workflowStates)} flex items-center justify-center`}>
+                    <StateIcon state={change.toState} workflowStates={workflowStates} />
                   </div>
                 </div>
                 {!isLast && (
@@ -108,7 +135,7 @@ export function StatusTimeline({ changes }: { changes: StatusChange[] }) {
             return (
               <div key={`label-${i}`} className="contents">
                 <div className="text-center pt-2">
-                  <p className="text-[11px] font-medium text-text-primary">{stateLabels[change.toState] ?? change.toState}</p>
+                  <p className="text-[11px] font-medium text-text-primary">{getStateLabel(change.toState, workflowStates)}</p>
                   <p className="text-[10px] text-text-tertiary">{formatTime(change.changedAt)}</p>
                 </div>
                 {!isLast && (

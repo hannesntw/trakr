@@ -3,12 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useVariant } from "./VariantContext";
-import { LayoutDashboard, List, CalendarRange, GanttChart, FolderKanban, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings } from "lucide-react";
+import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2 } from "lucide-react";
 
 const mockProjects = [
   { key: "PIC", name: "Pictura", owned: false },
   { key: "TRK", name: "Trakr", owned: false },
 ];
+
+// Shared layout: all rows align icons at 16px from sidebar left edge.
+// Container px-2 (8px) + row pl-2 (8px) = 16px to icon left edge.
+// Labels fade via opacity, never change layout → no jump on collapse.
 
 export function SidebarNav({ variant }: { variant: string }) {
   const config = useVariant();
@@ -52,6 +56,7 @@ export function SidebarNav({ variant }: { variant: string }) {
   const navItems = [
     { href: `/${variant}/board`, icon: LayoutDashboard, label: "Board", show: true },
     { href: `/${variant}/backlog`, icon: List, label: "Backlog", show: true },
+    { href: `/${variant}/queries`, icon: Code2, label: "Queries", show: config.features.queryPage },
     { href: `/${variant}/sprints`, icon: CalendarRange, label: "Sprints", show: true },
     { href: `/${variant}/timeline`, icon: GanttChart, label: "Timeline", show: config.features.timelinePlanning },
     { href: `/${variant}/settings`, icon: Settings, label: "Settings", show: isOwned },
@@ -63,129 +68,100 @@ export function SidebarNav({ variant }: { variant: string }) {
       style={{ width: isCollapsed ? 56 : 240 }}
     >
       {/* Logo */}
-      <div className="h-14 flex items-center border-b border-sidebar-border pl-[15px]">
-        <FolderKanban className="w-5 h-5 text-accent shrink-0" />
-        <span className={`font-semibold text-sidebar-text-active text-sm ml-2 whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
-          Trakr
-        </span>
+      <div className="h-14 flex items-center border-b border-sidebar-border px-2">
+        <div className="flex items-center gap-2.5 pl-2">
+          <svg width="20" height="20" viewBox="0 0 32 32" className="shrink-0">
+            <rect width="32" height="32" rx="6" fill="#6366F1"/>
+            <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9"/>
+            <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
+            <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
+          </svg>
+          <span className={`font-semibold text-sidebar-text-active text-sm tracking-tight whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
+            Trakr
+          </span>
+        </div>
       </div>
 
-      {/* Project Switcher */}
-      {!isCollapsed && (
-        <div className="px-2 py-3" ref={switcherRef}>
-          <div className="relative">
-            <button
-              onClick={() => { setSwitcherOpen(!switcherOpen); setCreating(false); }}
-              className="w-full flex items-center gap-2 pl-2 py-1.5 rounded-md hover:bg-sidebar-hover transition-colors text-sm"
-            >
-              <span className="w-6 h-6 rounded bg-accent/20 text-accent text-xs font-bold flex items-center justify-center shrink-0">
-                {currentProject?.key.charAt(0)}
-              </span>
-              <span className="text-sidebar-text-active font-medium truncate flex-1 text-left">
-                {currentProject?.name}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-sidebar-text shrink-0" />
-            </button>
+      {/* Project Switcher — single component, icon stays put, label fades */}
+      <div className="px-2 py-2 relative" ref={switcherRef}>
+        <button
+          onClick={() => { setSwitcherOpen(!switcherOpen); setCreating(false); }}
+          className="w-full flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-md hover:bg-sidebar-hover transition-colors text-sm"
+        >
+          <span className="w-5 h-5 rounded bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center shrink-0">
+            {currentProject?.key.charAt(0)}
+          </span>
+          <span className={`text-sidebar-text-active font-medium truncate flex-1 text-left whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
+            {currentProject?.name}
+          </span>
+          <ChevronDown className={`w-3.5 h-3.5 text-sidebar-text shrink-0 transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`} />
+        </button>
 
-            {switcherOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-sidebar-bg border border-sidebar-border rounded-md shadow-lg z-50">
-                {projects.map(p => (
-                  <button
-                    key={p.key}
-                    onClick={() => { setCurrentKey(p.key); setSwitcherOpen(false); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-sidebar-hover transition-colors ${p.key === currentKey ? "text-sidebar-text-active bg-sidebar-hover" : ""}`}
-                  >
-                    <span className="w-5 h-5 rounded bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center">
-                      {p.key.charAt(0)}
-                    </span>
-                    <span className="truncate">{p.name}</span>
-                    <span className="text-sidebar-text text-xs ml-auto">{p.key}</span>
-                  </button>
-                ))}
-
-                <div className="border-t border-sidebar-border">
-                  {creating ? (
-                    <div className="p-3 space-y-2">
-                      <input
-                        autoFocus
-                        value={newName}
-                        onChange={e => {
-                          setNewName(e.target.value);
-                          if (!newKey || newKey === newName.slice(0, 3).toUpperCase()) {
-                            setNewKey(e.target.value.slice(0, 3).toUpperCase());
-                          }
-                        }}
-                        placeholder="Project name"
-                        className="w-full px-2 py-1 text-xs bg-sidebar-hover border border-sidebar-border rounded text-sidebar-text-active outline-none focus:border-accent"
-                      />
-                      <div className="flex gap-2">
-                        <input
-                          value={newKey}
-                          onChange={e => setNewKey(e.target.value.toUpperCase().slice(0, 5))}
-                          placeholder="KEY"
-                          className="w-16 px-2 py-1 text-xs bg-sidebar-hover border border-sidebar-border rounded text-sidebar-text-active outline-none focus:border-accent font-mono"
-                        />
-                        <button onClick={handleCreate} disabled={!newName.trim() || !newKey.trim()} className="flex-1 px-2 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs rounded flex items-center justify-center gap-1">
-                          <Check className="w-3 h-3" /> Create
-                        </button>
-                        <button onClick={() => { setCreating(false); setNewName(""); setNewKey(""); }} className="px-2 py-1 text-xs text-sidebar-text hover:text-sidebar-text-active">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setCreating(true)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      New Project
+        {switcherOpen && (
+          <div className={
+            isCollapsed
+              ? "absolute left-full top-0 ml-2 bg-sidebar-bg border border-sidebar-border rounded-md shadow-xl z-50 min-w-[200px]"
+              : "absolute top-full left-2 right-2 mt-1 bg-sidebar-bg border border-sidebar-border rounded-md shadow-lg z-50"
+          }>
+            {projects.map(p => (
+              <button
+                key={p.key}
+                onClick={() => { setCurrentKey(p.key); setSwitcherOpen(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-sidebar-hover transition-colors ${p.key === currentKey ? "text-sidebar-text-active bg-sidebar-hover" : ""}`}
+              >
+                <span className="w-5 h-5 rounded bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center">
+                  {p.key.charAt(0)}
+                </span>
+                <span className="truncate">{p.name}</span>
+                <span className="text-sidebar-text text-xs ml-auto">{p.key}</span>
+              </button>
+            ))}
+            <div className="border-t border-sidebar-border">
+              {creating ? (
+                <div className="p-3 space-y-2">
+                  <input
+                    autoFocus
+                    value={newName}
+                    onChange={e => {
+                      setNewName(e.target.value);
+                      if (!newKey || newKey === newName.slice(0, 3).toUpperCase()) {
+                        setNewKey(e.target.value.slice(0, 3).toUpperCase());
+                      }
+                    }}
+                    placeholder="Project name"
+                    className="w-full px-2 py-1 text-xs bg-sidebar-hover border border-sidebar-border rounded text-sidebar-text-active outline-none focus:border-accent"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      value={newKey}
+                      onChange={e => setNewKey(e.target.value.toUpperCase().slice(0, 5))}
+                      placeholder="KEY"
+                      className="w-16 px-2 py-1 text-xs bg-sidebar-hover border border-sidebar-border rounded text-sidebar-text-active outline-none focus:border-accent font-mono"
+                    />
+                    <button onClick={handleCreate} disabled={!newName.trim() || !newKey.trim()} className="flex-1 px-2 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs rounded flex items-center justify-center gap-1">
+                      <Check className="w-3 h-3" /> Create
                     </button>
-                  )}
+                    <button onClick={() => { setCreating(false); setNewName(""); setNewKey(""); }} className="px-2 py-1 text-xs text-sidebar-text hover:text-sidebar-text-active">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Collapsed: project initial with floating dropdown */}
-      {isCollapsed && (
-        <div className="py-3 px-2 relative" ref={switcherRef}>
-          <button onClick={() => { setSwitcherOpen(!switcherOpen); setCreating(false); }} className="w-full flex justify-center">
-            <span className="w-8 h-8 rounded bg-accent/20 text-accent text-xs font-bold flex items-center justify-center hover:bg-accent/30 transition-colors cursor-pointer">
-              {currentProject?.key.charAt(0)}
-            </span>
-          </button>
-
-          {switcherOpen && (
-            <div className="absolute left-full top-0 ml-2 bg-sidebar-bg border border-sidebar-border rounded-md shadow-xl z-50 min-w-[200px]">
-              {projects.map(p => (
+              ) : (
                 <button
-                  key={p.key}
-                  onClick={() => { setCurrentKey(p.key); setSwitcherOpen(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-sidebar-hover transition-colors ${p.key === currentKey ? "text-sidebar-text-active bg-sidebar-hover" : "text-sidebar-text"}`}
+                  onClick={() => setCreating(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors"
                 >
-                  <span className="w-5 h-5 rounded bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center">
-                    {p.key.charAt(0)}
-                  </span>
-                  <span className="truncate">{p.name}</span>
-                  <span className="text-sidebar-text text-xs ml-auto">{p.key}</span>
+                  <Plus className="w-4 h-4" />
+                  New Project
                 </button>
-              ))}
-              <div className="border-t border-sidebar-border">
-                <button onClick={() => { setCreating(true); setSwitcherOpen(false); setCollapsed(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors">
-                  <Plus className="w-4 h-4" /> New Project
-                </button>
-              </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-3 px-2 space-y-0.5">
+      <nav className="flex-1 px-2 space-y-0.5">
         {navItems.filter(n => n.show).map(item => (
           <Link
             key={item.label}
@@ -203,8 +179,8 @@ export function SidebarNav({ variant }: { variant: string }) {
 
       {/* User (mock) */}
       <div className="border-t border-sidebar-border py-2 px-2">
-        <Link href={`/${variant}/account`} className="flex items-center gap-2.5 pl-1 py-1.5 rounded-md group hover:bg-sidebar-hover transition-colors">
-          <span className="w-6 h-6 rounded-full bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center shrink-0">
+        <Link href={`/${variant}/account`} className="flex items-center gap-2.5 pl-2 py-1.5 rounded-md group hover:bg-sidebar-hover transition-colors">
+          <span className="w-5 h-5 rounded-full bg-accent/20 text-accent text-[10px] font-bold flex items-center justify-center shrink-0">
             H
           </span>
           <span className={`text-xs text-sidebar-text-active truncate whitespace-nowrap transition-opacity duration-150 flex-1 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>

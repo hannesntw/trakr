@@ -5,12 +5,7 @@ import { Header, CreateButton } from "@/components/Header";
 import { BoardCard } from "@/components/BoardCard";
 import { DetailPanel } from "@/components/DetailPanel";
 import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
-import {
-  WORK_ITEM_STATES,
-  STATE_LABELS,
-  STATE_COLORS,
-  type WorkItemState,
-} from "@/lib/constants";
+import type { WorkflowState } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
@@ -23,6 +18,7 @@ interface WorkItem {
   parentId: number | null;
   sprintId: number | null;
   priority: number | null;
+  points: number | null;
 }
 
 interface Sprint {
@@ -45,19 +41,22 @@ export function BoardClient({
   const [items, setItems] = useState<WorkItem[]>([]);
   const [parentMap, setParentMap] = useState<Map<number, string>>(new Map());
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
+  const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [dragOverState, setDragOverState] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [sprintsRes, allItemsRes] = await Promise.all([
+    const [sprintsRes, allItemsRes, wfRes] = await Promise.all([
       fetch(`/api/sprints?projectId=${projectId}&state=active`),
       fetch(`/api/work-items?projectId=${projectId}`),
+      fetch(`/api/projects/${projectId}/workflow`),
     ]);
 
     const sprintsData: Sprint[] = await sprintsRes.json();
     const allItems: WorkItem[] = await allItemsRes.json();
+    if (wfRes.ok) setWorkflowStates(await wfRes.json());
     const sprint = sprintsData[0] ?? null;
     setActiveSprint(sprint);
 
@@ -95,10 +94,18 @@ export function BoardClient({
     fetchData();
   }
 
-  const columns = WORK_ITEM_STATES.map((state) => ({
-    state,
-    label: STATE_LABELS[state],
-    items: items.filter((i) => i.state === state),
+  /** Category-based colors for column headers */
+  const CATEGORY_COLORS: Record<string, string> = {
+    todo: "text-gray-600 bg-gray-50 border-gray-200",
+    in_progress: "text-indigo-600 bg-indigo-50 border-indigo-200",
+    done: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  };
+
+  const columns = workflowStates.map((ws) => ({
+    state: ws.slug,
+    label: ws.displayName,
+    color: CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200",
+    items: items.filter((i) => i.state === ws.slug),
   }));
 
   return (
@@ -142,7 +149,7 @@ export function BoardClient({
                 <span
                   className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
-                    STATE_COLORS[col.state as WorkItemState]
+                    col.color
                   )}
                 >
                   {col.label}
@@ -188,6 +195,7 @@ export function BoardClient({
                           ? parentMap.get(item.parentId)
                           : undefined
                       }
+                      points={item.points}
                     />
                   </div>
                 ))}
@@ -207,6 +215,7 @@ export function BoardClient({
       <DetailPanel
         workItemId={selectedId}
         projectKey={projectKey}
+        projectId={projectId}
         onClose={() => setSelectedId(null)}
         onUpdated={fetchData}
       />

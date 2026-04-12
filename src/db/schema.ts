@@ -87,6 +87,21 @@ export const projectInvites = sqliteTable("project_invites", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+export const workflowStates = sqliteTable("workflow_states", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  slug: text("slug").notNull(),
+  displayName: text("display_name").notNull(),
+  position: integer("position").notNull().default(0),
+  category: text("category", { enum: ["todo", "in_progress", "done"] }).notNull(),
+  color: text("color").notNull().default("#9CA3AF"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 export const workItems = sqliteTable("work_items", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   projectId: integer("project_id")
@@ -94,9 +109,7 @@ export const workItems = sqliteTable("work_items", {
     .references(() => projects.id),
   title: text("title").notNull(),
   type: text("type", { enum: ["epic", "feature", "story", "bug", "task"] }).notNull(),
-  state: text("state", {
-    enum: ["new", "active", "ready", "in_progress", "done"],
-  })
+  state: text("state")
     .notNull()
     .default("new"),
   description: text("description").default(""),
@@ -165,6 +178,37 @@ export const statusHistory = sqliteTable("status_history", {
   fromState: text("from_state").notNull(),
   toState: text("to_state").notNull(),
   changedAt: text("changed_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const workItemLinks = sqliteTable("work_item_links", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  sourceId: integer("source_id")
+    .notNull()
+    .references(() => workItems.id, { onDelete: "cascade" }),
+  targetId: integer("target_id")
+    .notNull()
+    .references(() => workItems.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["blocks", "blocked_by", "relates_to", "duplicates"] }).notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const savedQueries = sqliteTable("saved_queries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  query: text("query").notNull(),
+  starred: integer("starred", { mode: "boolean" }).notNull().default(false),
+  shared: integer("shared", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });

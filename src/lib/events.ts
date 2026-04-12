@@ -4,7 +4,7 @@
 type Listener = (event: ChangeEvent) => void;
 
 export interface ChangeEvent {
-  type: "work-item" | "sprint" | "comment" | "attachment";
+  type: "work-item" | "sprint" | "comment" | "attachment" | "link";
   action: "created" | "updated" | "deleted";
   id: number;
   workItemId?: number; // for comments/attachments

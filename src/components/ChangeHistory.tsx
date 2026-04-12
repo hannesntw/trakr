@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, RotateCcw, Globe, Terminal, Cpu } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
+import type { WorkflowState } from "@/lib/constants";
 
 interface Snapshot {
   id: number;
@@ -22,7 +23,10 @@ interface FieldChange {
   diffLines?: Array<{ type: "context" | "added" | "removed"; line: string }>;
 }
 
-const stateLabels: Record<string, string> = { new: "New", active: "Active", ready: "Ready", in_progress: "In Progress", done: "Done" };
+function getStateLabel(state: string, workflowStates?: WorkflowState[]): string {
+  const ws = workflowStates?.find((w) => w.slug === state);
+  return ws?.displayName ?? state;
+}
 
 function ChannelIcon({ channel }: { channel: string | null }) {
   const map: Record<string, { icon: typeof Globe; label: string; color: string }> = {
@@ -98,13 +102,21 @@ function diffSnapshots(prev: Record<string, unknown> | null, curr: Record<string
   return changes;
 }
 
-function formatFieldValue(field: string, value: unknown): string {
+function formatFieldValue(field: string, value: unknown, workflowStates?: WorkflowState[]): string {
   if (value === null || value === undefined) return "—";
-  if (field === "state") return stateLabels[value as string] ?? (value as string);
+  if (field === "state") return getStateLabel(value as string, workflowStates);
   return String(value);
 }
 
-export function ChangeHistory({ versions, onRestore }: { versions: Snapshot[]; onRestore: (version: number) => void }) {
+function isStateRegression(oldState: string, newState: string, workflowStates?: WorkflowState[]): boolean {
+  if (!workflowStates) return false;
+  const oldWs = workflowStates.find(w => w.slug === oldState);
+  const newWs = workflowStates.find(w => w.slug === newState);
+  if (!oldWs || !newWs) return false;
+  return newWs.position < oldWs.position;
+}
+
+export function ChangeHistory({ versions, onRestore, workflowStates }: { versions: Snapshot[]; onRestore: (version: number) => void; workflowStates?: WorkflowState[] }) {
   const [open, setOpen] = useState(false);
 
   if (versions.length === 0) return null;
@@ -170,13 +182,13 @@ export function ChangeHistory({ versions, onRestore }: { versions: Snapshot[]; o
                         <div className="text-xs font-mono">
                           <span className="text-text-tertiary">{c.field}:</span>
                           {c.old === null || c.old === undefined ? (
-                            <span className="ml-2 text-emerald-600 bg-emerald-50 px-1 rounded">{formatFieldValue(c.field, c.new)}</span>
+                            <span className="ml-2 text-emerald-600 bg-emerald-50 px-1 rounded">{formatFieldValue(c.field, c.new, workflowStates)}</span>
                           ) : (
                             <>
-                              <span className="ml-2 line-through text-red-400 bg-red-50 px-1 rounded">{formatFieldValue(c.field, c.old)}</span>
+                              <span className="ml-2 line-through text-red-400 bg-red-50 px-1 rounded">{formatFieldValue(c.field, c.old, workflowStates)}</span>
                               <span className="mx-1 text-text-tertiary">→</span>
-                              <span className="text-emerald-600 bg-emerald-50 px-1 rounded">{formatFieldValue(c.field, c.new)}</span>
-                              {c.field === "state" && c.old === "done" && (
+                              <span className="text-emerald-600 bg-emerald-50 px-1 rounded">{formatFieldValue(c.field, c.new, workflowStates)}</span>
+                              {c.field === "state" && isStateRegression(c.old as string, c.new as string, workflowStates) && (
                                 <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-200">regression</span>
                               )}
                             </>

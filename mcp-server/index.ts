@@ -1,3 +1,4 @@
+#!/usr/bin/env npx tsx
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -130,7 +131,7 @@ server.tool(
   {
     projectId: z.number().optional().describe("Filter by project ID"),
     type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
-    state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
+    state: z.string().optional().describe("Workflow state slug"),
     sprintId: z.number().optional(),
     parentId: z.number().optional(),
     query: z.string().optional().describe("Search title"),
@@ -165,7 +166,7 @@ server.tool(
     parentId: z.number().optional().describe("Parent work item ID"),
     sprintId: z.number().optional(),
     assignee: z.string().optional(),
-    state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
+    state: z.string().optional().describe("Workflow state slug"),
     points: z.number().nullable().optional().describe("Story points (fibonacci: 1,2,3,5,8,13)"),
     priority: z.number().optional(),
   },
@@ -179,7 +180,7 @@ server.tool(
     id: z.number(),
     title: z.string().optional(),
     type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
-    state: z.enum(["new", "active", "ready", "in_progress", "done"]).optional(),
+    state: z.string().optional().describe("Workflow state slug"),
     description: z.string().optional(),
     parentId: z.number().nullable().optional(),
     sprintId: z.number().nullable().optional(),
@@ -319,6 +320,87 @@ server.tool(
     endDate: z.string().nullable().optional(),
   },
   async ({ id, ...data }) => textResult(await api(`/api/sprints/${id}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+// --- TraQL ---
+
+server.tool(
+  "run_traql",
+  "Run a TraQL query. Returns work items, aggregates, or formatted text. Examples: 'type:story is:open', 'SELECT count() GROUP BY state', 'SELECT format(\"- {title}\") WHERE sprint:active'",
+  {
+    query: z.string().describe("TraQL query string"),
+    projectId: z.number().optional().describe("Scope to a project ID. Omit for cross-project queries using project: field."),
+  },
+  async (params) => textResult(await api("/api/traql", { method: "POST", body: JSON.stringify(params) }))
+);
+
+// --- Workflow ---
+
+server.tool(
+  "get_workflow",
+  "Get the workflow states for a project, ordered by position",
+  { projectId: z.number() },
+  async ({ projectId }) => textResult(await api(`/api/projects/${projectId}/workflow`))
+);
+
+server.tool(
+  "add_workflow_state",
+  "Add a new state to a project's workflow",
+  { projectId: z.number(), displayName: z.string(), category: z.enum(["todo", "in_progress", "done"]), color: z.string().optional() },
+  async ({ projectId, ...data }) => textResult(await api(`/api/projects/${projectId}/workflow`, { method: "POST", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "update_workflow_state",
+  "Update a workflow state (display name, category, or color — slug is immutable)",
+  { projectId: z.number(), stateId: z.number(), displayName: z.string().optional(), category: z.enum(["todo", "in_progress", "done"]).optional(), color: z.string().optional() },
+  async ({ projectId, stateId, ...data }) => textResult(await api(`/api/projects/${projectId}/workflow/${stateId}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "delete_workflow_state",
+  "Delete a workflow state. Cannot delete the last state in a category. If items exist in this state, provide migrateToSlug.",
+  { projectId: z.number(), stateId: z.number(), migrateToSlug: z.string().optional() },
+  async ({ projectId, stateId, ...data }) => textResult(await api(`/api/projects/${projectId}/workflow/${stateId}`, { method: "DELETE", body: JSON.stringify(data) }))
+);
+
+// --- Links ---
+
+server.tool(
+  "list_links",
+  "List all links for a work item",
+  { workItemId: z.number() },
+  async ({ workItemId }) => textResult(await api(`/api/work-items/${workItemId}/links`))
+);
+
+server.tool(
+  "create_link",
+  "Create a link between two work items. Inverse link is created automatically.",
+  { workItemId: z.number(), targetId: z.number(), type: z.enum(["blocks", "blocked_by", "relates_to", "duplicates"]) },
+  async ({ workItemId, ...data }) => textResult(await api(`/api/work-items/${workItemId}/links`, { method: "POST", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "delete_link",
+  "Delete a work item link and its inverse",
+  { workItemId: z.number(), linkId: z.number() },
+  async ({ workItemId, linkId }) => textResult(await api(`/api/work-items/${workItemId}/links/${linkId}`, { method: "DELETE" }))
+);
+
+// --- Saved Queries ---
+
+server.tool(
+  "list_saved_queries",
+  "List saved TraQL queries for a project",
+  { projectId: z.number() },
+  async ({ projectId }) => textResult(await api(`/api/saved-queries?projectId=${projectId}`))
+);
+
+server.tool(
+  "save_query",
+  "Save a TraQL query",
+  { projectId: z.number(), name: z.string(), query: z.string() },
+  async (params) => textResult(await api("/api/saved-queries", { method: "POST", body: JSON.stringify(params) }))
 );
 
 // --- Start ---

@@ -23,6 +23,7 @@ export function AttachmentGallery({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -45,8 +46,40 @@ export function AttachmentGallery({
 
   const images = attachments.filter((a) => a.contentType.startsWith("image/"));
 
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+    setDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOver(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        handleUpload(files[i]);
+      }
+    }
+  }
+
   return (
-    <div>
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={dragOver ? "ring-2 ring-accent/40 rounded-lg bg-accent/5 transition-colors" : "transition-colors"}
+    >
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">
           Attachments ({images.length})

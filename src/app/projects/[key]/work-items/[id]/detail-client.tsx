@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { TypeBadge, StateBadge, IdBadge } from "@/components/Badge";
@@ -9,8 +9,11 @@ import { StateSelect } from "@/components/StateSelect";
 import { AttachmentGallery } from "@/components/AttachmentGallery";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { ChangeHistory } from "@/components/ChangeHistory";
+import { Combobox, type ComboboxOption } from "@/components/Combobox";
+import { WorkItemLinks } from "@/components/WorkItemLinks";
+import { PointsPicker } from "@/components/PointsBadge";
 import { formatRelativeTime } from "@/lib/utils";
-import type { WorkItemType, WorkItemState } from "@/lib/constants";
+import { TYPE_LABELS, type WorkItemType, type WorkflowState } from "@/lib/constants";
 
 interface WorkItem {
   id: number;
@@ -21,6 +24,7 @@ interface WorkItem {
   parentId: number | null;
   sprintId: number | null;
   assignee: string | null;
+  points: number | null;
   createdAt: string;
   children?: WorkItem[];
 }
@@ -35,6 +39,19 @@ interface Comment {
 interface Sprint {
   id: number;
   name: string;
+}
+
+interface Member {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+}
+
+interface ParentCandidate {
+  id: number;
+  title: string;
+  type: string;
 }
 
 export function WorkItemDetailFull({
@@ -55,15 +72,32 @@ export function WorkItemDetailFull({
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [statusChanges, setStatusChanges] = useState<{id: number; fromState: string; toState: string; changedAt: string}[]>([]);
   const [versions, setVersions] = useState<any[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [parentCandidates, setParentCandidates] = useState<ParentCandidate[]>([]);
+  const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [pageDragOver, setPageDragOver] = useState(false);
+
+  async function handleFileUpload(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    await fetch(`/api/work-items/${workItemId}/attachments`, {
+      method: "POST",
+      body: formData,
+    });
+    fetchData();
+  }
 
   const fetchData = useCallback(async () => {
-    const [itemRes, commentsRes, attachRes, sprintsRes, historyRes] = await Promise.all([
+    const [itemRes, commentsRes, attachRes, sprintsRes, historyRes, membersRes, parentCandidatesRes, wfRes] = await Promise.all([
       fetch(`/api/work-items/${workItemId}`),
       fetch(`/api/work-items/${workItemId}/comments`),
       fetch(`/api/work-items/${workItemId}/attachments`),
       fetch(`/api/sprints?projectId=${projectId}`),
       fetch(`/api/work-items/${workItemId}/history`),
+      fetch(`/api/projects/${projectId}/members`),
+      fetch(`/api/work-items?projectId=${projectId}&type=epic`),
+      fetch(`/api/projects/${projectId}/workflow`),
     ]);
     const itemData = await itemRes.json();
     setItem(itemData);
@@ -71,12 +105,23 @@ export function WorkItemDetailFull({
     if (attachRes.ok) setAttachmentList(await attachRes.json());
     setSprints(await sprintsRes.json());
     if (historyRes.ok) setStatusChanges(await historyRes.json());
+    if (membersRes.ok) setMembers(await membersRes.json());
+    if (wfRes.ok) setWorkflowStates(await wfRes.json());
+
+    // Combine epics and features as parent candidates
+    const epics: ParentCandidate[] = parentCandidatesRes.ok ? await parentCandidatesRes.json() : [];
+    const featureRes = await fetch(`/api/work-items?projectId=${projectId}&type=feature`);
+    const features: ParentCandidate[] = featureRes.ok ? await featureRes.json() : [];
+    setParentCandidates([...epics, ...features].filter((c) => c.id !== workItemId));
+
     const versionsRes = await fetch(`/api/work-items/${workItemId}/versions`);
     if (versionsRes.ok) setVersions(await versionsRes.json());
 
     if (itemData.parentId) {
       const parentRes = await fetch(`/api/work-items/${itemData.parentId}`);
       if (parentRes.ok) setParent(await parentRes.json());
+    } else {
+      setParent(null);
     }
   }, [workItemId, projectId]);
 
@@ -109,6 +154,34 @@ export function WorkItemDetailFull({
     }
   }
 
+  const memberOptions: ComboboxOption[] = useMemo(
+    () =>
+      members.map((m) => ({
+        value: m.name ?? m.email ?? m.id,
+        label: m.name ?? "Unknown",
+        secondary: m.email ?? undefined,
+        icon: (
+          <span className="w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-semibold flex items-center justify-center shrink-0">
+            {(m.name ?? "?")
+              .split(" ")
+              .map((n) => n[0])
+              .join("")}
+          </span>
+        ),
+      })),
+    [members]
+  );
+
+  const parentOptions: ComboboxOption[] = useMemo(
+    () =>
+      parentCandidates.map((c) => ({
+        value: String(c.id),
+        label: c.title,
+        secondary: `#${c.id} · ${TYPE_LABELS[c.type as keyof typeof TYPE_LABELS] ?? c.type}`,
+      })),
+    [parentCandidates]
+  );
+
   if (!item) {
     return (
       <>
@@ -127,7 +200,12 @@ export function WorkItemDetailFull({
   return (
     <>
       <Header title={projectName} subtitle={`#${item.id} ${item.title}`} />
-      <div className="flex-1 overflow-auto">
+      <div
+        className={`flex-1 overflow-auto${pageDragOver ? " ring-2 ring-inset ring-accent/30 bg-accent/5" : ""}`}
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; setPageDragOver(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPageDragOver(false); }}
+        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setPageDragOver(false); const files = e.dataTransfer.files; for (let i = 0; i < files.length; i++) { handleFileUpload(files[i]); } }}
+      >
         <div className="max-w-5xl mx-auto p-6">
           <div className="grid grid-cols-[1fr_280px] gap-6">
             {/* Main Content */}
@@ -174,7 +252,7 @@ export function WorkItemDetailFull({
                         <span className="text-sm text-text-primary group-hover:text-accent transition-colors flex-1">
                           {child.title}
                         </span>
-                        <StateBadge state={child.state as WorkItemState} />
+                        <StateBadge state={child.state} workflowStates={workflowStates} />
                         <IdBadge id={child.id} />
                       </Link>
                     ))}
@@ -184,13 +262,14 @@ export function WorkItemDetailFull({
 
               {/* Status Timeline */}
               {statusChanges.length > 0 && (
-                <StatusTimeline changes={statusChanges} />
+                <StatusTimeline changes={statusChanges} workflowStates={workflowStates} />
               )}
 
               {/* Change History */}
               {versions.length > 0 && (
                 <ChangeHistory
                   versions={versions}
+                  workflowStates={workflowStates}
                   onRestore={async (version) => {
                     await fetch(`/api/work-items/${workItemId}/restore`, {
                       method: "POST",
@@ -266,8 +345,9 @@ export function WorkItemDetailFull({
                     State
                   </span>
                   <StateSelect
-                    value={item.state as WorkItemState}
+                    value={item.state}
                     onChange={(s) => updateField("state", s)}
+                    workflowStates={workflowStates}
                     size="md"
                   />
                 </div>
@@ -279,19 +359,19 @@ export function WorkItemDetailFull({
                   <TypeBadge type={item.type as WorkItemType} />
                 </div>
 
-                {parent && (
-                  <div>
-                    <span className="text-xs text-text-tertiary block mb-1">
-                      Parent
-                    </span>
-                    <Link
-                      href={`/projects/${projectKey}/work-items/${parent.id}`}
-                      className="text-sm text-accent hover:underline"
-                    >
-                      #{parent.id} {parent.title}
-                    </Link>
-                  </div>
-                )}
+                <div>
+                  <span className="text-xs text-text-tertiary block mb-1">
+                    Parent
+                  </span>
+                  <Combobox
+                    options={parentOptions}
+                    value={item.parentId ? String(item.parentId) : null}
+                    onChange={(val) => updateField("parentId", val ? Number(val) : null)}
+                    placeholder="No parent"
+                    searchPlaceholder="Search epics & features..."
+                    clearLabel="Remove parent"
+                  />
+                </div>
 
                 <div>
                   <span className="text-xs text-text-tertiary block mb-1">
@@ -302,15 +382,35 @@ export function WorkItemDetailFull({
                   </span>
                 </div>
 
+                {(item.type === "story" || item.type === "bug") && (
+                  <div>
+                    <span className="text-xs text-text-tertiary block mb-1">
+                      Points
+                    </span>
+                    <PointsPicker
+                      value={item.points}
+                      onChange={(v) => updateField("points", v)}
+                    />
+                  </div>
+                )}
+
                 <div>
                   <span className="text-xs text-text-tertiary block mb-1">
                     Assignee
                   </span>
-                  <InlineEdit
-                    value={item.assignee ?? ""}
-                    onSave={(val) => updateField("assignee", val || null)}
+                  <Combobox
+                    options={memberOptions}
+                    value={item.assignee}
+                    onChange={(val) => updateField("assignee", val)}
                     placeholder="Unassigned"
-                    className="text-sm text-text-primary"
+                    searchPlaceholder="Search members..."
+                    clearLabel="Unassign"
+                    renderSelected={(opt) => (
+                      <span className="flex items-center gap-2">
+                        {opt.icon}
+                        <span className="text-text-primary text-sm truncate">{opt.label}</span>
+                      </span>
+                    )}
                   />
                 </div>
 
@@ -336,6 +436,14 @@ export function WorkItemDetailFull({
                   onChanged={fetchData}
                 />
               </div>
+
+              {/* Work Item Links */}
+              <WorkItemLinks
+                workItemId={item.id}
+                projectId={projectId}
+                projectKey={projectKey}
+                workflowStates={workflowStates}
+              />
             </div>
           </div>
         </div>

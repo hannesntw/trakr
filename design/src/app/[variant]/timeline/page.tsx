@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useVariant } from "@/components/VariantContext";
 import { MockDetailPanel } from "@/components/MockDetailPanel";
-import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { StateIcon } from "@/components/StateIcon";
 import { redirect } from "next/navigation";
 
@@ -91,6 +91,30 @@ const sprints = [
   { name: "Sprint 6", startWeek: 10, durationWeeks: 2 },
 ];
 
+// --- Milestones / date markers ---
+const BASE_DATE = new Date("2026-03-30");
+function weekToDate(week: number): string {
+  const d = new Date(BASE_DATE);
+  d.setDate(d.getDate() + week * 7);
+  return d.toISOString().slice(0, 10);
+}
+function dateToWeek(dateStr: string): number {
+  return (new Date(dateStr).getTime() - BASE_DATE.getTime()) / (7 * 24 * 60 * 60 * 1000);
+}
+
+const milestones = [
+  { label: "Alpha Release", week: 4, color: "#F59E0B" },
+  { label: "v1.0 Launch", week: 9, color: "#10B981" },
+  { label: "Demo Day", week: 12, color: "#8B5CF6" },
+];
+
+// --- Dependency links ---
+const links = [
+  { sourceId: 301, targetId: 306, type: "blocks" as const }, // Work Item Mgmt blocks Sprint Planning
+  { sourceId: 312, targetId: 315, type: "blocks" as const }, // Timeline View blocks Roadmap Export
+  { sourceId: 309, targetId: 312, type: "relates" as const }, // Comments relates to Timeline View
+];
+
 const typeColors: Record<string, string> = {
   epic: "bg-purple-500",
   feature: "bg-blue-500",
@@ -176,8 +200,20 @@ export default function TimelinePage() {
   const [zoomIdx, setZoomIdx] = useState(1);
   const [expanded, setExpanded] = useState<Set<number>>(new Set([300]));
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [showLinks, setShowLinks] = useState(true);
+  const [showMarkerPanel, setShowMarkerPanel] = useState(false);
+  const [showToday, setShowToday] = useState(true);
+  const [markerList, setMarkerList] = useState(milestones);
+  const [newMarkerLabel, setNewMarkerLabel] = useState("");
+  const [newMarkerDate, setNewMarkerDate] = useState("2026-05-25");
+  const [editingMarker, setEditingMarker] = useState<number | null>(null);
+  const markerColors = ["#6366F1", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899"];
+  const [dragging, setDragging] = useState<{ id: number; edge: "start" | "end"; origWeek: number } | null>(null);
 
   const advanced = variant.features.advancedPlanning;
+  const hasMarkers = variant.features.timelineMarkers;
+  const hasLinks = variant.features.timelineLinks;
+  const hasDrag = variant.features.timelineDrag;
 
   // Fictional "today" at week 5.2 (~mid Sprint 3) so the mock data makes sense
   const todayOffset = 5.2;
@@ -292,33 +328,108 @@ export default function TimelinePage() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setZoomIdx(Math.max(0, zoomIdx - 1))}
-            disabled={zoomIdx === 0}
-            className="p-1.5 rounded hover:bg-content-bg disabled:opacity-30 transition-colors"
-          >
-            <ZoomOut className="w-4 h-4 text-text-secondary" />
-          </button>
-          <span className="text-xs text-text-tertiary w-8 text-center">
-            {Math.round((ZOOM_LEVELS[zoomIdx] / ZOOM_LEVELS[1]) * 100)}%
-          </span>
-          <button
-            onClick={() => setZoomIdx(Math.min(ZOOM_LEVELS.length - 1, zoomIdx + 1))}
-            disabled={zoomIdx === ZOOM_LEVELS.length - 1}
-            className="p-1.5 rounded hover:bg-content-bg disabled:opacity-30 transition-colors"
-          >
-            <ZoomIn className="w-4 h-4 text-text-secondary" />
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Markers panel */}
+          {hasMarkers && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMarkerPanel(!showMarkerPanel)}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${showMarkerPanel ? "border-accent text-accent bg-accent-light" : "border-border text-text-tertiary"}`}
+              >
+                Markers ({markerList.length})
+              </button>
+              {showMarkerPanel && (
+                <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-xl z-50 w-80 p-3" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+                    <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Today line</span>
+                    <button onClick={() => setShowToday(!showToday)}
+                      className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${showToday ? "border-red-300 text-red-500 bg-red-50" : "border-border text-text-tertiary"}`}>
+                      {showToday ? "On" : "Off"}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-2">Date Markers</p>
+                  <div className="space-y-1 mb-3">
+                    {markerList.map((m, i) => (
+                      editingMarker === i ? (
+                        <div key={i} className="bg-content-bg rounded p-2 space-y-1.5">
+                          <div className="flex gap-1.5">
+                            <input value={m.label} onChange={e => setMarkerList(markerList.map((mk, j) => j === i ? { ...mk, label: e.target.value } : mk))}
+                              className="flex-1 px-2 py-1 text-xs border border-border rounded bg-surface" />
+                          </div>
+                          <div className="flex gap-1.5 items-center">
+                            <input type="date" value={weekToDate(m.week)} onChange={e => setMarkerList(markerList.map((mk, j) => j === i ? { ...mk, week: dateToWeek(e.target.value) } : mk))}
+                              className="flex-1 px-2 py-1 text-xs border border-border rounded bg-surface" />
+                            <div className="flex gap-1">
+                              {markerColors.map(c => (
+                                <button key={c} onClick={() => setMarkerList(markerList.map((mk, j) => j === i ? { ...mk, color: c } : mk))}
+                                  className={`w-4 h-4 rounded-full ${m.color === c ? "ring-2 ring-offset-1 ring-accent" : ""}`} style={{ backgroundColor: c }} />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <button onClick={() => setEditingMarker(null)} className="text-xs text-accent">Done</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={i} className="flex items-center gap-2 text-xs px-1.5 py-2 rounded hover:bg-content-bg group">
+                          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
+                          <span className="flex-1 text-text-primary">{m.label}</span>
+                          <span className="text-text-tertiary text-[10px]">{weekToDate(m.week)}</span>
+                          <button onClick={() => setEditingMarker(i)} title="Edit"
+                            className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-accent transition-opacity p-0.5">
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button onClick={() => { setMarkerList(markerList.filter((_, j) => j !== i)); if (editingMarker === i) setEditingMarker(null); }} title="Delete"
+                            className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-500 transition-opacity p-0.5">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                  <div className="border-t border-border pt-2 space-y-1.5">
+                    <div className="flex gap-1.5">
+                      <input value={newMarkerLabel} onChange={e => setNewMarkerLabel(e.target.value)} placeholder="Label" className="flex-1 px-2 py-1 text-xs border border-border rounded bg-content-bg" />
+                      <input type="date" value={newMarkerDate} onChange={e => setNewMarkerDate(e.target.value)} className="px-2 py-1 text-xs border border-border rounded bg-content-bg" />
+                    </div>
+                    <button onClick={() => { if (newMarkerLabel.trim()) { setMarkerList([...markerList, { label: newMarkerLabel.trim(), week: dateToWeek(newMarkerDate), color: markerColors[markerList.length % markerColors.length] }]); setNewMarkerLabel(""); } }}
+                      disabled={!newMarkerLabel.trim()} className="w-full px-2 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs rounded">Add Marker</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {hasLinks && (
+            <button
+              onClick={() => setShowLinks(!showLinks)}
+              className={`text-xs px-2 py-1 rounded border transition-colors ${showLinks ? "border-accent text-accent bg-accent-light" : "border-border text-text-tertiary"}`}
+            >
+              Dependencies
+            </button>
+          )}
+          <div className="flex items-center gap-1">
+            <button onClick={() => setZoomIdx(Math.max(0, zoomIdx - 1))} disabled={zoomIdx === 0}
+              className="p-1.5 rounded hover:bg-content-bg disabled:opacity-30 transition-colors">
+              <ZoomOut className="w-4 h-4 text-text-secondary" />
+            </button>
+            <span className="text-xs text-text-tertiary w-8 text-center">
+              {Math.round((ZOOM_LEVELS[zoomIdx] / ZOOM_LEVELS[1]) * 100)}%
+            </span>
+            <button onClick={() => setZoomIdx(Math.min(ZOOM_LEVELS.length - 1, zoomIdx + 1))} disabled={zoomIdx === ZOOM_LEVELS.length - 1}
+              className="p-1.5 rounded hover:bg-content-bg disabled:opacity-30 transition-colors">
+              <ZoomIn className="w-4 h-4 text-text-secondary" />
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="flex-1 overflow-auto">
         <div className="flex min-h-full">
           {/* Left panel: item names */}
-          <div className="w-64 shrink-0 border-r border-border bg-surface sticky left-0 z-10">
+          <div className="w-64 shrink-0 border-r border-border bg-surface sticky left-0 z-10 min-h-full">
             <div className="h-10 border-b border-border" />
             <div className="h-8 border-b border-border flex items-center justify-end gap-0.5 px-2">
+
               <button
                 onClick={collapseOneLevel}
                 disabled={currentExpandDepth() < 0}
@@ -336,6 +447,8 @@ export default function TimelinePage() {
                 <Plus className="w-3.5 h-3.5 text-text-secondary" />
               </button>
             </div>
+            {/* Label row spacer — matches the right panel's milestone/today label row */}
+            <div className="h-5 border-b border-border/30" />
             {rows.map((row) => {
               const { item, depth } = row;
               const hasChildren = item.children && item.children.length > 0;
@@ -368,42 +481,43 @@ export default function TimelinePage() {
           </div>
 
           {/* Right panel: timeline */}
-          <div style={{ width: totalWidth }} className="relative">
-            {/* Sprint overlay */}
+          <div style={{ width: totalWidth }}>
+            {/* === Header rows === */}
             <div className="h-10 flex border-b border-border relative">
               {sprints.map((sprint, i) => (
-                <div
-                  key={sprint.name}
-                  className="absolute top-0 h-full flex items-center justify-center border-r border-border/30"
-                  style={{
-                    left: sprint.startWeek * weekWidth,
-                    width: sprint.durationWeeks * weekWidth,
-                  }}
-                >
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                    i < 2 ? "bg-emerald-100 text-emerald-700" : i < 3 ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
-                  }`}>
+                <div key={sprint.name} className="absolute top-0 h-full flex items-center justify-center border-r border-border/30"
+                  style={{ left: sprint.startWeek * weekWidth, width: sprint.durationWeeks * weekWidth }}>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${i < 2 ? "bg-emerald-100 text-emerald-700" : i < 3 ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}>
                     {sprint.name}
                   </span>
                 </div>
               ))}
             </div>
-
-            {/* Week headers */}
             <div className="h-8 flex border-b border-border">
               {Array.from({ length: TOTAL_WEEKS }).map((_, i) => (
-                <div
-                  key={i}
-                  className="border-r border-border/30 flex items-center justify-center"
-                  style={{ width: weekWidth }}
-                >
+                <div key={i} className="border-r border-border/30 flex items-center justify-center" style={{ width: weekWidth }}>
                   <span className="text-[10px] text-text-tertiary">{weekLabel(i)}</span>
                 </div>
               ))}
             </div>
+            {/* Label row for milestones + today */}
+            <div className="h-5 relative border-b border-border/30">
+              {showToday && (
+                <div className="absolute top-0 h-full flex items-center" style={{ left: todayOffset * weekWidth }}>
+                  <span className="text-[9px] font-semibold whitespace-nowrap -translate-x-1/2 px-1 text-red-500">Today</span>
+                </div>
+              )}
+              {hasMarkers && markerList.map(m => (
+                <div key={m.label} className="absolute top-0 h-full flex items-center" style={{ left: m.week * weekWidth }}>
+                  <span className="text-[9px] font-semibold whitespace-nowrap -translate-x-1/2 px-1" style={{ color: m.color }}>{m.label}</span>
+                </div>
+              ))}
+            </div>
 
-            {/* Grid lines */}
-            <div className="absolute top-[72px] left-0 right-0 bottom-0 pointer-events-none">
+            {/* === Body: bars + overlays (all positioned relative to this div) === */}
+            <div className="relative min-h-[calc(100vh-200px)]">
+              {/* Grid lines, today, milestones — all cover the full body */}
+              <div className="absolute inset-0 pointer-events-none">
               {Array.from({ length: TOTAL_WEEKS }).map((_, i) => (
                 <div
                   key={i}
@@ -411,14 +525,15 @@ export default function TimelinePage() {
                   style={{ left: i * weekWidth }}
                 />
               ))}
-              <div
+              {showToday && <div
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500"
                 style={{ left: todayOffset * weekWidth }}
-              >
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] font-medium px-1.5 py-0.5 rounded whitespace-nowrap">
-                  Today
-                </div>
-              </div>
+              />}
+
+              {/* Milestone marker lines (labels are in the dedicated row above) */}
+              {hasMarkers && markerList.map(m => (
+                <div key={m.label} className="absolute top-0 bottom-0 w-0.5 border-l-2 border-dashed" style={{ left: m.week * weekWidth, borderColor: m.color, opacity: 0.5 }} />
+              ))}
             </div>
 
             {/* Timeline bars */}
@@ -496,24 +611,34 @@ export default function TimelinePage() {
                   )}
 
                   {/* The planned bar — only shown when no actual history exists */}
-                  {!hist && (
-                    <div
-                      onClick={() => setSelectedId(item.id)}
-                      className={`absolute top-2 h-6 rounded cursor-pointer hover:ring-2 hover:ring-white/40 ${typeColors[item.type]} ${stateOpacity[item.state] ?? "opacity-60"} transition-all ${
-                        bar.error ? "ring-2 ring-red-400 ring-offset-1" : ""
-                      }`}
-                      style={{
-                        left: bar.startWeek * weekWidth + 2,
-                        width: Math.max(bar.durationWeeks * weekWidth - 4, 12),
-                      }}
-                    >
-                      {bar.durationWeeks * weekWidth > 60 && (
-                        <span className="absolute inset-0 flex items-center px-2 text-white text-[10px] font-medium truncate">
-                          {item.title}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {!hist && (() => {
+                    const canDrag = hasDrag && item.state !== "done" && (item.type === "epic" || item.type === "feature");
+                    return (
+                      <div
+                        onClick={() => setSelectedId(item.id)}
+                        className={`absolute top-2 h-6 rounded hover:ring-2 hover:ring-white/40 ${typeColors[item.type]} ${stateOpacity[item.state] ?? "opacity-60"} transition-all group/bar ${
+                          bar.error ? "ring-2 ring-red-400 ring-offset-1" : ""
+                        } ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+                        style={{
+                          left: bar.startWeek * weekWidth + 2,
+                          width: Math.max(bar.durationWeeks * weekWidth - 4, 12),
+                        }}
+                      >
+                        {bar.durationWeeks * weekWidth > 60 && (
+                          <span className="absolute inset-0 flex items-center px-2 text-white text-[10px] font-medium truncate">
+                            {item.title}
+                          </span>
+                        )}
+                        {/* Drag handles */}
+                        {canDrag && (
+                          <>
+                            <div className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize opacity-0 group-hover/bar:opacity-100 bg-white/30 rounded-l transition-opacity" title="Drag to change start date" />
+                            <div className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize opacity-0 group-hover/bar:opacity-100 bg-white/30 rounded-r transition-opacity" title="Drag to change end date" />
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Label on retrospective bar if it has history */}
                   {hist && cycleStart != null && (
@@ -530,7 +655,55 @@ export default function TimelinePage() {
                 </div>
               );
             })}
-          </div>
+            {/* Dependency arrows overlay */}
+            {hasLinks && showLinks && (
+              <svg className="absolute top-0 left-0 pointer-events-none" style={{ width: totalWidth, height: rows.length * 40 }} overflow="visible">
+                {links.filter(l => l.type === "blocks").map(link => {
+                  const sourceRow = rows.findIndex(r => r.item.id === link.sourceId);
+                  const targetRow = rows.findIndex(r => r.item.id === link.targetId);
+                  if (sourceRow === -1 || targetRow === -1) return null;
+                  const sourceBar = getBar(rows[sourceRow]);
+                  const targetBar = getBar(rows[targetRow]);
+                  if (!sourceBar || !targetBar) return null;
+
+                  const sourceEndX = (sourceBar.startWeek + sourceBar.durationWeeks) * weekWidth;
+                  const targetStartX = targetBar.startWeek * weekWidth;
+                  const sourceY = sourceRow * 40 + 20;
+                  const targetY = targetRow * 40 + 20;
+                  const isConflict = targetBar.startWeek < sourceBar.startWeek + sourceBar.durationWeeks;
+                  const color = isConflict ? "#EF4444" : "#6366F1";
+
+                  // Arrow always arrives at target from the left, pointing into the bar
+                  const arrowTip = targetStartX;
+                  const arrowBase = targetStartX - 8;
+                  const gap = targetStartX - sourceEndX;
+                  let path: string;
+
+                  if (gap > 20) {
+                    // Normal: smooth bezier with midpoint control
+                    const midX = (sourceEndX + arrowBase) / 2;
+                    path = `M ${sourceEndX} ${sourceY} C ${midX} ${sourceY}, ${midX} ${targetY}, ${arrowBase} ${targetY}`;
+                  } else {
+                    // Same-X or conflict: S-curve that swings right then approaches from left
+                    const swingOut = Math.max(40, Math.abs(gap) + 40);
+                    path = `M ${sourceEndX} ${sourceY} C ${sourceEndX + swingOut} ${sourceY}, ${arrowBase - swingOut} ${targetY}, ${arrowBase} ${targetY}`;
+                  }
+
+                  return (
+                    <g key={`${link.sourceId}-${link.targetId}`}>
+                      <path d={path} fill="none" stroke={color} strokeWidth={2}
+                        strokeDasharray={isConflict ? "4 3" : "none"} opacity={0.7} strokeLinejoin="round" />
+                      <polygon
+                        points={`${arrowBase},${targetY - 4} ${arrowBase},${targetY + 4} ${arrowTip},${targetY}`}
+                        fill={color} opacity={0.7}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
+            </div>{/* end body */}
+          </div>{/* end right panel */}
         </div>
       </div>
 
