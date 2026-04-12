@@ -29,5 +29,5 @@
     ".next/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "design", "mcp-server"]
+  "exclude": ["node_modules", "design", "mcp-server", "src/test", "src/**/__tests__", "src/e2e", "scripts"]
 }
