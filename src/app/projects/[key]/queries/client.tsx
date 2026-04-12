@@ -16,7 +16,7 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { WorkItemType } from "@/lib/constants";
+import type { WorkItemType, WorkflowState } from "@/lib/constants";
 
 // ---------- Types ----------
 
@@ -318,6 +318,12 @@ export function QueriesClient({
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saveName, setSaveName] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
+
+  // Fetch workflow states
+  useEffect(() => {
+    fetch(`/api/projects/${projectId}/workflow`).then(r => r.ok ? r.json() : []).then(setWorkflowStates);
+  }, [projectId]);
 
   // Fetch saved queries
   const fetchSaved = useCallback(async () => {
@@ -504,6 +510,7 @@ export function QueriesClient({
                   {item.state ? (
                     <StateBadge
                       state={String(item.state)}
+                      workflowStates={workflowStates}
                     />
                   ) : null}
                 </td>
