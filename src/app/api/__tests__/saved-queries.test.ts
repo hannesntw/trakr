@@ -26,8 +26,9 @@ describe("Saved queries API", () => {
 
   beforeAll(async () => {
     // Ensure the test user exists in the user table (needed for the LEFT JOIN in GET)
-    await db.run(
-      sql`INSERT OR IGNORE INTO "user" (id, name, email) VALUES ('test-user-sq', 'Test User', 'test@example.com')`
+    // Use Postgres ON CONFLICT syntax (not SQLite INSERT OR IGNORE)
+    await db.execute(
+      sql`INSERT INTO "user" (id, name, email) VALUES ('test-user-sq', 'Test User SQ', 'test-sq@example.com') ON CONFLICT (id) DO NOTHING`
     );
   });
 

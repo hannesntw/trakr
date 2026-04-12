@@ -58,7 +58,6 @@ const sections: Section[] = [
       { query: "updated:last(2w)", note: "Updated in last 2 weeks" },
       { query: "created:2026-01..2026-03", note: "Created in Q1" },
       { query: "created:within(sprint:active)", note: "Created during the active sprint" },
-      { query: "end:<today()", note: "Past end date (overdue)" },
     ],
   },
   {
@@ -103,7 +102,6 @@ const sections: Section[] = [
       { query: "is:open", note: "→ state:!done" },
       { query: "is:closed", note: "→ state:done" },
       { query: "is:unassigned", note: "→ assignee:none" },
-      { query: "is:overdue", note: "→ end:<today()" },
       { query: "is:stale", note: "→ updated:last(14d) AND state:!done" },
       { query: "my:items", note: "→ assignee:me (current user)" },
     ],
@@ -316,7 +314,7 @@ value     = word | quoted_string | word "|" word  | word ".." word | func
 func      = word "(" [args] ")"      # count(), sum(points), all(done), last(7d)
 sort_list = field [ASC|DESC] { "," field [ASC|DESC] }
 
-# Shortcuts: is:open, is:closed, is:unassigned, is:overdue, is:stale, my:items
+# Shortcuts: is:open, is:closed, is:unassigned, is:stale, my:items
 # Special values: none, me, active, all, today()`}</pre>
         </div>
 

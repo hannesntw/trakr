@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { workItems, sprints, projects, users, workItemLinks } from "@/db/schema";
-import { eq, and, or, not, like, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg, ne } from "drizzle-orm";
+import { eq, and, or, not, like, ilike, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg, ne } from "drizzle-orm";
 import type { TraqlAST, FilterNode, SortClause, SelectClause } from "./parser";
 
 // Security: zero sql.raw() calls.
@@ -62,7 +62,6 @@ function expandShortcuts(node: FilterNode): FilterNode {
   if (node.kind === "shortcut") {
     const simple: Record<string, FilterNode> = {
       "is:unassigned": { kind: "field", field: "assignee", operator: "eq", value: "none" },
-      "is:overdue": { kind: "field", field: "end", operator: "lt", value: "today()" },
       "my:items": { kind: "field", field: "assignee", operator: "eq", value: "me" },
     };
     // is:open, is:closed, is:stale are handled dynamically in buildWhere
@@ -209,7 +208,7 @@ function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?:
     case "gte": return gte(col, isDateField(field) ? resolveDate(v) as any : Number(v) as any);
     case "lt": return lt(col, isDateField(field) ? resolveDate(v) as any : Number(v) as any);
     case "lte": return lte(col, isDateField(field) ? resolveDate(v) as any : Number(v) as any);
-    case "contains": return like(col, `%${v}%` as any);
+    case "contains": return ilike(col, `%${v}%` as any);
     case "in": {
       const vals = Array.isArray(value) ? value : [v];
       return inArray(col, vals as any);
@@ -254,7 +253,7 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
     const colId = sql.identifier(subField);
 
     if (operator === "contains") {
-      return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${colId} LIKE ${'%' + value + '%'})`;
+      return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${colId} ILIKE ${'%' + value + '%'})`;
     }
     if (operator === "eq") {
       return sql`${workItems.parentId} IN (SELECT id FROM work_items WHERE ${colId} = ${value})`;
@@ -274,7 +273,7 @@ function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProje
         )
         SELECT ancestors.id FROM ancestors
         JOIN work_items p ON p.id = ancestors.parent_id
-        WHERE p.${colId} LIKE ${'%' + value + '%'}
+        WHERE p.${colId} ILIKE ${'%' + value + '%'}
       )`;
     }
     if (operator === "eq") {
