@@ -14,11 +14,13 @@
     "db:migrate-workflows": "npx tsx src/db/migrate-workflows.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:traql": "vitest run src/lib/traql"
+    "test:traql": "vitest run src/lib/traql",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.1",
     "@libsql/client": "^0.17.2",
+    "@neondatabase/serverless": "^1.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -34,6 +36,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

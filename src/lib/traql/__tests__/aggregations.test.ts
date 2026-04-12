@@ -26,15 +26,15 @@ describe("TraQL aggregations", () => {
     expect(avgResult.value).toBeCloseTo(manualAvg, 1);
   });
 
-  it("SELECT count() GROUP BY state — groups sum to total", async () => {
+  it("SELECT count() GROUP BY state — groups sum to total count", async () => {
     const grouped = await query("SELECT count() GROUP BY state");
-    const all = await query("type:story OR type:feature OR type:epic OR type:bug OR type:task");
+    const total = await query("SELECT count()");
     expect(grouped.type).toBe("grouped");
     expect(grouped.groups!.length).toBeGreaterThan(0);
 
-    // Sum of all groups should equal total items in project
+    // Sum of all groups should equal total count (not capped by MAX_RESULTS)
     const groupTotal = grouped.groups!.reduce((s, g) => s + g.value, 0);
-    expect(groupTotal).toBe(all.items!.length);
+    expect(groupTotal).toBe(total.value);
 
     // Each known state should appear
     const keys = grouped.groups!.map(g => g.key);

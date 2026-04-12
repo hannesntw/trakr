@@ -1,16 +1,20 @@
-import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, serial, boolean, timestamp, customType } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer }>({
+  dataType() { return "bytea"; },
+});
 
 // --- Auth.js tables ---
 
-export const users = sqliteTable("user", {
+export const users = pgTable("user", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name"),
   email: text("email").unique(),
-  emailVerified: integer("emailVerified", { mode: "timestamp" }),
+  emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
 });
 
-export const accounts = sqliteTable("account", {
+export const accounts = pgTable("account", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
@@ -25,26 +29,26 @@ export const accounts = sqliteTable("account", {
   session_state: text("session_state"),
 });
 
-export const sessions = sqliteTable("session", {
+export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-  expires: integer("expires", { mode: "timestamp" }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
-export const verificationTokens = sqliteTable("verificationToken", {
+export const verificationTokens = pgTable("verificationToken", {
   identifier: text("identifier").notNull(),
   token: text("token").notNull().unique(),
-  expires: integer("expires", { mode: "timestamp" }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
 // --- App tables ---
 
-export const projects = sqliteTable("projects", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   key: text("key").notNull().unique(),
   description: text("description").default(""),
-  visibility: text("visibility", { enum: ["public", "private"] }).notNull().default("public"),
+  visibility: text("visibility").notNull().default("public"),
   ownerId: text("owner_id"),
   createdAt: text("created_at")
     .notNull()
@@ -54,11 +58,11 @@ export const projects = sqliteTable("projects", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const apiKeys = sqliteTable("api_keys", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   keyHash: text("key_hash").notNull().unique(),
-  keyPrefix: text("key_prefix").notNull(), // first 8 chars for display
+  keyPrefix: text("key_prefix").notNull(),
   label: text("label").notNull(),
   lastUsedAt: text("last_used_at"),
   createdAt: text("created_at")
@@ -66,20 +70,20 @@ export const apiKeys = sqliteTable("api_keys", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const deviceCodes = sqliteTable("device_codes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const deviceCodes = pgTable("device_codes", {
+  id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),
   userId: text("user_id"),
-  apiKey: text("api_key"), // raw key stored temporarily until polled once
-  status: text("status", { enum: ["pending", "authorized", "expired"] }).notNull().default("pending"),
+  apiKey: text("api_key"),
+  status: text("status").notNull().default("pending"),
   expiresAt: text("expires_at").notNull(),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const projectInvites = sqliteTable("project_invites", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projectInvites = pgTable("project_invites", {
+  id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   email: text("email").notNull(),
   createdAt: text("created_at")
@@ -87,28 +91,28 @@ export const projectInvites = sqliteTable("project_invites", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const workflowStates = sqliteTable("workflow_states", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const workflowStates = pgTable("workflow_states", {
+  id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   slug: text("slug").notNull(),
   displayName: text("display_name").notNull(),
   position: integer("position").notNull().default(0),
-  category: text("category", { enum: ["todo", "in_progress", "done"] }).notNull(),
+  category: text("category").notNull(),
   color: text("color").notNull().default("#9CA3AF"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const workItems = sqliteTable("work_items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const workItems = pgTable("work_items", {
+  id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id),
   title: text("title").notNull(),
-  type: text("type", { enum: ["epic", "feature", "story", "bug", "task"] }).notNull(),
+  type: text("type").notNull(),
   state: text("state")
     .notNull()
     .default("new"),
@@ -126,22 +130,22 @@ export const workItems = sqliteTable("work_items", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const workItemSnapshots = sqliteTable("work_item_snapshots", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const workItemSnapshots = pgTable("work_item_snapshots", {
+  id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
     .references(() => workItems.id),
   version: integer("version").notNull(),
-  snapshot: text("snapshot").notNull(), // JSON blob of all fields
+  snapshot: text("snapshot").notNull(),
   changedBy: text("changed_by"),
-  channel: text("channel", { enum: ["web", "api", "mcp"] }).default("api"),
+  channel: text("channel").default("api"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const sprints = sqliteTable("sprints", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const sprints = pgTable("sprints", {
+  id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id),
@@ -149,7 +153,7 @@ export const sprints = sqliteTable("sprints", {
   goal: text("goal"),
   startDate: text("start_date"),
   endDate: text("end_date"),
-  state: text("state", { enum: ["planning", "active", "closed"] })
+  state: text("state")
     .notNull()
     .default("planning"),
   createdAt: text("created_at")
@@ -157,21 +161,21 @@ export const sprints = sqliteTable("sprints", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const attachments = sqliteTable("attachments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const attachments = pgTable("attachments", {
+  id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
     .references(() => workItems.id),
   filename: text("filename").notNull(),
   contentType: text("content_type").notNull(),
-  data: blob("data", { mode: "buffer" }).notNull(),
+  data: bytea("data").notNull(),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const statusHistory = sqliteTable("status_history", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const statusHistory = pgTable("status_history", {
+  id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
     .references(() => workItems.id),
@@ -182,22 +186,22 @@ export const statusHistory = sqliteTable("status_history", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const workItemLinks = sqliteTable("work_item_links", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const workItemLinks = pgTable("work_item_links", {
+  id: serial("id").primaryKey(),
   sourceId: integer("source_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
   targetId: integer("target_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["blocks", "blocked_by", "relates_to", "duplicates"] }).notNull(),
+  type: text("type").notNull(),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const savedQueries = sqliteTable("saved_queries", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const savedQueries = pgTable("saved_queries", {
+  id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id),
@@ -206,15 +210,15 @@ export const savedQueries = sqliteTable("saved_queries", {
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   query: text("query").notNull(),
-  starred: integer("starred", { mode: "boolean" }).notNull().default(false),
-  shared: integer("shared", { mode: "boolean" }).notNull().default(false),
+  starred: boolean("starred").notNull().default(false),
+  shared: boolean("shared").notNull().default(false),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const comments = sqliteTable("comments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
     .references(() => workItems.id),

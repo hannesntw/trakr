@@ -72,6 +72,22 @@ beforeAll(async () => {
       "type" text NOT NULL,
       "created_at" text NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS "status_history" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "work_item_id" integer NOT NULL,
+      "from_state" text NOT NULL,
+      "to_state" text NOT NULL,
+      "changed_at" text NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS "work_item_snapshots" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "work_item_id" integer NOT NULL,
+      "version" integer NOT NULL,
+      "snapshot" text NOT NULL,
+      "changed_by" text,
+      "channel" text DEFAULT 'api',
+      "created_at" text NOT NULL DEFAULT (datetime('now'))
+    );
     CREATE TABLE IF NOT EXISTS "saved_queries" (
       "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
       "project_id" integer NOT NULL,
@@ -88,6 +104,30 @@ beforeAll(async () => {
       "email" text NOT NULL,
       "created_at" text NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS "comments" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "work_item_id" integer NOT NULL,
+      "author" text NOT NULL,
+      "body" text NOT NULL,
+      "created_at" text NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS "attachments" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "work_item_id" integer NOT NULL,
+      "filename" text NOT NULL,
+      "content_type" text NOT NULL,
+      "data" blob NOT NULL,
+      "created_at" text NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS "api_keys" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "user_id" text NOT NULL,
+      "key_hash" text NOT NULL UNIQUE,
+      "key_prefix" text NOT NULL,
+      "label" text NOT NULL,
+      "last_used_at" text,
+      "created_at" text NOT NULL DEFAULT (datetime('now'))
+    );
   `;
 
   // Execute DDL statements one by one
@@ -99,6 +139,12 @@ beforeAll(async () => {
   const [row] = await db.all(sql`SELECT COUNT(*) as cnt FROM projects`);
   if ((row as any).cnt === 0) {
     await seedTestData(db);
+  }
+
+  // Ensure a test user exists (needed by members and auth-related tests)
+  const [userExists] = await db.all(sql`SELECT COUNT(*) as cnt FROM "user" WHERE id = 'test-user'`);
+  if ((userExists as any).cnt === 0) {
+    await db.run(sql`INSERT INTO "user" ("id", "name", "email") VALUES ('test-user', 'Test User', 'test@example.com')`);
   }
 
   seeded = true;
