@@ -7,7 +7,7 @@ import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
 import { TypeBadge, StateBadge, IdBadge } from "@/components/Badge";
 import { PointsBadge } from "@/components/PointsBadge";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
-import { Search, ChevronDown, X, Circle, ArrowUpCircle, CheckCircle2, Loader2, Timer, User, Eye, EyeOff } from "lucide-react";
+import { Search, ChevronDown, X, Circle, ArrowUpCircle, CheckCircle2, Loader2, Timer, User, Eye, EyeOff, GripVertical } from "lucide-react";
 import { Combobox, type ComboboxOption } from "@/components/Combobox";
 import { cn } from "@/lib/utils";
 import {
@@ -174,6 +174,11 @@ export function BacklogClient({
   const [showCompleted, setShowCompleted] = useState(false);
   const [initialFilterApplied, setInitialFilterApplied] = useState(false);
 
+  // Drag-to-reparent state
+  const [dragId, setDragId] = useState<number | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<number | null>(null);
+  const [dropValid, setDropValid] = useState(false);
+
   const fetchData = useCallback(async () => {
     const [itemsRes, sprintsRes, membersRes, wfRes] = await Promise.all([
       fetch(`/api/work-items?projectId=${projectId}`),
@@ -290,6 +295,15 @@ export function BacklogClient({
     setter(next);
   }
 
+  // Valid parent types for drag-to-reparent
+  const VALID_PARENTS: Record<string, string[]> = {
+    feature: ["epic"],
+    story: ["feature"],
+    bug: ["feature"],
+    task: ["story", "bug"],
+    epic: [],
+  };
+
   // Sort items hierarchically
   const itemMap = new Map(filteredItems.map((i) => [i.id, i]));
   const allItemMap = new Map(items.map((i) => [i.id, i]));
@@ -323,6 +337,64 @@ export function BacklogClient({
       walk(root);
     }
     return result;
+  }
+
+  function canBeParent(dragItem: WorkItem, targetItem: WorkItem): boolean {
+    const validTypes = VALID_PARENTS[dragItem.type] ?? [];
+    if (!validTypes.includes(targetItem.type)) return false;
+    // Prevent circular reference: can't drop on own descendant
+    let current: WorkItem | undefined = targetItem;
+    while (current) {
+      if (current.id === dragItem.id) return false;
+      current = current.parentId ? allItemMap.get(current.parentId) : undefined;
+    }
+    return true;
+  }
+
+  function handleDragStart(e: React.DragEvent, id: number) {
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent, targetItem: WorkItem) {
+    e.preventDefault();
+    if (dragId === null || dragId === targetItem.id) return;
+    const dragItem = allItemMap.get(dragId);
+    if (!dragItem) return;
+    const valid = canBeParent(dragItem, targetItem);
+    setDropTargetId(targetItem.id);
+    setDropValid(valid);
+  }
+
+  async function handleDrop(targetItem: WorkItem) {
+    if (dragId === null) return;
+    const dragItem = allItemMap.get(dragId);
+    if (!dragItem || !canBeParent(dragItem, targetItem)) {
+      setDragId(null);
+      setDropTargetId(null);
+      setDropValid(false);
+      return;
+    }
+    // Optimistically update local state
+    setItems((prev) =>
+      prev.map((i) => (i.id === dragId ? { ...i, parentId: targetItem.id } : i))
+    );
+    setDragId(null);
+    setDropTargetId(null);
+    setDropValid(false);
+    // Persist via API
+    await fetch(`/api/work-items/${dragId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parentId: targetItem.id }),
+    });
+    fetchData();
+  }
+
+  function handleDragEnd() {
+    setDragId(null);
+    setDropTargetId(null);
+    setDropValid(false);
   }
 
   const sortedItems = sortHierarchically(filteredItems);
@@ -417,6 +489,7 @@ export function BacklogClient({
         <table className="w-full">
           <thead className="sticky top-0 bg-content-bg z-10">
             <tr className="border-b border-border text-left">
+              <th className="w-8" />
               <th className="px-6 py-2.5 text-xs font-medium text-text-tertiary uppercase tracking-wider w-16">
                 ID
               </th>
@@ -443,12 +516,35 @@ export function BacklogClient({
           <tbody>
             {sortedItems.map((item) => {
               const depth = getDepth(item);
+              const isDragging = dragId === item.id;
+              const isDropTarget = dropTargetId === item.id && dragId !== null;
+              const canDrag = item.type !== "epic";
               return (
                 <tr
                   key={item.id}
                   onClick={() => setSelectedId(item.id)}
-                  className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer group"
+                  draggable={canDrag}
+                  onDragStart={(e) => canDrag && handleDragStart(e, item.id)}
+                  onDragOver={(e) => handleDragOver(e, item)}
+                  onDragLeave={() => { setDropTargetId(null); setDropValid(false); }}
+                  onDrop={() => handleDrop(item)}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    "border-b transition-colors cursor-pointer group",
+                    isDragging
+                      ? "opacity-40 border-border/50"
+                      : isDropTarget && dropValid
+                        ? "bg-accent/10 border-accent/30"
+                        : isDropTarget && !dropValid
+                          ? "bg-red-50 border-red-200"
+                          : "border-border/50 hover:bg-surface"
+                  )}
                 >
+                  <td className="pl-2 py-2.5 w-8">
+                    {canDrag && (
+                      <GripVertical className="w-3.5 h-3.5 text-text-tertiary/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
+                    )}
+                  </td>
                   <td className="px-6 py-2.5">
                     <IdBadge id={item.id} displayId={item.displayId} />
                   </td>
@@ -460,6 +556,12 @@ export function BacklogClient({
                       className="text-sm text-text-primary group-hover:text-accent transition-colors block truncate"
                       style={{ paddingLeft: `${depth * 20}px` }}
                     >
+                      {isDropTarget && dropValid && (
+                        <span className="text-[10px] text-accent mr-2">+ Move here</span>
+                      )}
+                      {isDropTarget && !dropValid && (
+                        <span className="text-[10px] text-red-500 mr-2">Invalid parent</span>
+                      )}
                       {item.title}
                     </span>
                   </td>
