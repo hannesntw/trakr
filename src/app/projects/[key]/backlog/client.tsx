@@ -7,7 +7,7 @@ import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
 import { TypeBadge, StateBadge, IdBadge } from "@/components/Badge";
 import { PointsBadge } from "@/components/PointsBadge";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
-import { Search, ChevronDown, X, Circle, ArrowUpCircle, CheckCircle2, Loader2, Timer, User } from "lucide-react";
+import { Search, ChevronDown, X, Circle, ArrowUpCircle, CheckCircle2, Loader2, Timer, User, Eye, EyeOff } from "lucide-react";
 import { Combobox, type ComboboxOption } from "@/components/Combobox";
 import { cn } from "@/lib/utils";
 import {
@@ -170,6 +170,8 @@ export function BacklogClient({
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [members, setMembers] = useState<ComboboxOption[]>([]);
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [initialFilterApplied, setInitialFilterApplied] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [itemsRes, sprintsRes, membersRes, wfRes] = await Promise.all([
@@ -208,6 +210,17 @@ export function BacklogClient({
 
   useRealtimeRefresh(fetchData);
 
+  // On first load, pre-select all non-done states to hide completed items
+  useEffect(() => {
+    if (workflowStates.length > 0 && !initialFilterApplied) {
+      const nonDoneSlugs = workflowStates
+        .filter((ws) => ws.category !== "done")
+        .map((ws) => ws.slug);
+      setStateFilter(new Set(nonDoneSlugs));
+      setInitialFilterApplied(true);
+    }
+  }, [workflowStates, initialFilterApplied]);
+
   // Members are fetched in fetchData and stored in `members` state
 
   // Apply filters
@@ -236,14 +249,37 @@ export function BacklogClient({
   const hasActiveFilters =
     searchQuery.length > 0 ||
     typeFilter.size > 0 ||
-    stateFilter.size > 0 ||
+    (showCompleted ? stateFilter.size > 0 : false) ||
     assigneeFilter !== null;
 
   function clearAllFilters() {
     setSearchQuery("");
     setTypeFilter(new Set());
-    setStateFilter(new Set());
+    if (showCompleted) {
+      setStateFilter(new Set());
+    } else {
+      // Re-apply the default non-done filter
+      const nonDoneSlugs = workflowStates
+        .filter((ws) => ws.category !== "done")
+        .map((ws) => ws.slug);
+      setStateFilter(new Set(nonDoneSlugs));
+    }
     setAssigneeFilter(null);
+  }
+
+  function toggleShowCompleted() {
+    if (showCompleted) {
+      // Hiding completed: set filter to non-done states
+      const nonDoneSlugs = workflowStates
+        .filter((ws) => ws.category !== "done")
+        .map((ws) => ws.slug);
+      setStateFilter(new Set(nonDoneSlugs));
+      setShowCompleted(false);
+    } else {
+      // Showing completed: clear state filter
+      setStateFilter(new Set());
+      setShowCompleted(true);
+    }
   }
 
   function toggleInSet<T>(set: Set<T>, value: T, setter: (s: Set<T>) => void) {
@@ -351,6 +387,19 @@ export function BacklogClient({
             />
           </div>
         )}
+
+        <button
+          onClick={toggleShowCompleted}
+          className={cn(
+            "h-8 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer",
+            showCompleted
+              ? "border border-accent bg-accent-light text-accent"
+              : "border border-border bg-surface text-text-secondary hover:border-border-hover"
+          )}
+        >
+          {showCompleted ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          {showCompleted ? "Hide completed" : "Show completed"}
+        </button>
 
         {hasActiveFilters && (
           <button

@@ -12,6 +12,8 @@ import { ChangeHistory } from "@/components/ChangeHistory";
 import { Combobox, type ComboboxOption } from "@/components/Combobox";
 import { WorkItemLinks } from "@/components/WorkItemLinks";
 import { PointsPicker } from "@/components/PointsBadge";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { formatRelativeTime } from "@/lib/utils";
 import { TYPE_LABELS, type WorkItemType, type WorkflowState } from "@/lib/constants";
 
@@ -308,9 +310,11 @@ export function WorkItemDetailFull({
                             {formatRelativeTime(c.createdAt)}
                           </span>
                         </div>
-                        <p className="text-sm text-text-secondary leading-relaxed">
-                          {c.body}
-                        </p>
+                        <div className="text-sm text-text-secondary leading-relaxed prose prose-sm">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {c.body}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -9,6 +9,8 @@ import { InlineEdit, InlineTextarea } from "@/components/InlineEdit";
 import { StateSelect } from "@/components/StateSelect";
 import { AttachmentGallery } from "@/components/AttachmentGallery";
 import { Combobox, type ComboboxOption } from "@/components/Combobox";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { formatRelativeTime } from "@/lib/utils";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import type { WorkItemType, WorkflowState } from "@/lib/constants";
@@ -296,9 +298,11 @@ export function DetailPanel({
                           {formatRelativeTime(c.createdAt)}
                         </span>
                       </div>
-                      <p className="text-xs text-text-secondary leading-relaxed">
-                        {c.body}
-                      </p>
+                      <div className="text-xs text-text-secondary leading-relaxed prose prose-xs">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {c.body}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   ))}
                 </div>
