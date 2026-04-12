@@ -69,6 +69,6 @@ export function StateBadge({
 
 export function IdBadge({ id, displayId }: { id: number; displayId?: string | null }) {
   return (
-    <span className="text-xs text-text-tertiary font-mono">{displayId ?? `#${id}`}</span>
+    <span className="text-xs text-text-tertiary font-mono whitespace-nowrap">{displayId ?? `#${id}`}</span>
   );
 }
