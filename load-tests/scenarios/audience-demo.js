@@ -23,8 +23,9 @@ export const options = {
 };
 
 export default function () {
-  const uniqueId = `${__VU}-${__ITER}-${Date.now()}`;
-  const projectKey = `K${__VU}`.substring(0, 5).toUpperCase();
+  const ts = Date.now().toString(36).slice(-4).toUpperCase();
+  const uniqueId = `${__VU}-${__ITER}-${ts}`;
+  const projectKey = `T${ts}${__VU}`.substring(0, 5).toUpperCase();
   let projectId;
   let epicId;
   const featureIds = [];

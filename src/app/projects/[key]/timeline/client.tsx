@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { DetailPanel } from "@/components/DetailPanel";
 import type { WorkflowState } from "@/lib/constants";
-import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle, Circle, CircleDot, CircleCheck, Play } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle, Circle, CircleDot, CircleCheck, Play, Pencil, Trash2 } from "lucide-react";
 
 // --- Types ---
 
@@ -37,6 +37,19 @@ interface TreeNode {
   parentFeature: WorkItem | null;
 }
 
+interface Marker {
+  label: string;
+  week: number;
+  color: string;
+}
+
+interface WorkItemLink {
+  id: number;
+  sourceId: number;
+  targetId: number;
+  type: string;
+}
+
 // --- Constants ---
 
 const ZOOM_LEVELS = [60, 80, 110, 150];
@@ -55,6 +68,18 @@ function weekLabel(weekOffset: number): string {
   d.setDate(d.getDate() + weekOffset * 7);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+function weekToDate(week: number): string {
+  const d = new Date(BASE_DATE);
+  d.setDate(d.getDate() + week * 7);
+  return d.toISOString().slice(0, 10);
+}
+
+function dateToWeek(dateStr: string): number {
+  return (new Date(dateStr).getTime() - BASE_DATE.getTime()) / (7 * 24 * 60 * 60 * 1000);
+}
+
+const MARKER_COLORS = ["#6366F1", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899"];
 
 // --- State Icon ---
 
@@ -89,6 +114,32 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [zoomIdx, setZoomIdx] = useState(1);
 
+  // --- Date Markers state ---
+  const [showMarkerPanel, setShowMarkerPanel] = useState(false);
+  const [markerList, setMarkerList] = useState<Marker[]>([]);
+  const [newMarkerLabel, setNewMarkerLabel] = useState("");
+  const [newMarkerDate, setNewMarkerDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [editingMarker, setEditingMarker] = useState<number | null>(null);
+
+  // --- Dependencies state ---
+  const [showLinks, setShowLinks] = useState(false);
+  const [linksMap, setLinksMap] = useState<Map<number, WorkItemLink[]>>(new Map());
+
+  // --- Drag-to-resize state ---
+  // Local overrides for bar positions (visual-only, not persisted)
+  // TODO: Once work_items table has startDate/endDate fields, persist overrides
+  //       via PATCH /api/work-items/:id on drag end instead of only updating local state
+  const [barOverrides, setBarOverrides] = useState<Map<number, { start: number; duration: number }>>(new Map());
+  const [dragState, setDragState] = useState<{
+    itemId: number;
+    edge: "start" | "end";
+    initialMouseX: number;
+    initialStart: number;
+    initialDuration: number;
+  } | null>(null);
+  const dragRef = useRef(dragState);
+  dragRef.current = dragState;
+
   const todayOffset = weekFromDate(new Date().toISOString());
   const weekWidth = ZOOM_LEVELS[zoomIdx];
   const totalWidth = TOTAL_WEEKS * weekWidth;
@@ -122,6 +173,17 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
       })
     );
     setHistoryMap(new Map(histEntries));
+
+    // Fetch links for all items (for dependency arrows)
+    const linkEntries = await Promise.all(
+      allIds.map(async (id) => {
+        const res = await fetch(`/api/work-items/${id}/links`);
+        if (!res.ok) return [id, [] as WorkItemLink[]] as const;
+        const data: WorkItemLink[] = await res.json();
+        return [id, data] as const;
+      })
+    );
+    setLinksMap(new Map(linkEntries));
   }, [projectId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -180,12 +242,107 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
     setExpanded(prev => { const n = new Set(prev); for (const id of (depthMap.get(d) ?? [])) n.delete(id); return n; });
   }
 
-  // Resolve bar position for a work item
+  // --- Drag-to-resize handlers ---
+  const weekWidthRef = useRef(weekWidth);
+  weekWidthRef.current = weekWidth;
+
+  /** Check whether an item supports drag-to-resize */
+  function isItemDraggable(item: WorkItem): boolean {
+    // Stories are never draggable — their position derives from sprint assignment
+    if (item.type === "story") return false;
+    // Closed (done) items have final dates and shouldn't be resized
+    const ws = workflowStates.find(w => w.slug === item.state);
+    if (ws?.category === "done") return false;
+    return item.type === "epic" || item.type === "feature";
+  }
+
+  /** Start a drag interaction on a bar edge */
+  function handleDragStart(
+    e: React.MouseEvent,
+    itemId: number,
+    edge: "start" | "end",
+    bar: { start: number; duration: number },
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragState({
+      itemId,
+      edge,
+      initialMouseX: e.clientX,
+      initialStart: bar.start,
+      initialDuration: bar.duration,
+    });
+  }
+
+  // Global mousemove/mouseup while dragging
+  useEffect(() => {
+    if (!dragState) return;
+
+    function handleMouseMove(e: MouseEvent) {
+      const ds = dragRef.current;
+      if (!ds) return;
+      const ww = weekWidthRef.current;
+      const deltaX = e.clientX - ds.initialMouseX;
+      const deltaWeeks = deltaX / ww;
+
+      if (ds.edge === "start") {
+        // Resize from the left: move start, shrink/grow duration to keep end fixed
+        const newStart = ds.initialStart + deltaWeeks;
+        const newDuration = ds.initialDuration - deltaWeeks;
+        if (newDuration < 0.5) return; // enforce minimum half-week width
+        setBarOverrides(prev => {
+          const next = new Map(prev);
+          next.set(ds.itemId, { start: newStart, duration: newDuration });
+          return next;
+        });
+      } else {
+        // Resize from the right: keep start, grow/shrink duration
+        const newDuration = ds.initialDuration + deltaWeeks;
+        if (newDuration < 0.5) return;
+        setBarOverrides(prev => {
+          const next = new Map(prev);
+          next.set(ds.itemId, { start: ds.initialStart, duration: newDuration });
+          return next;
+        });
+      }
+    }
+
+    function handleMouseUp() {
+      const ds = dragRef.current;
+      if (!ds) return;
+      // Snap to nearest week boundary on release
+      setBarOverrides(prev => {
+        const current = prev.get(ds.itemId);
+        if (!current) return prev;
+        const next = new Map(prev);
+        const snappedStart = Math.round(current.start);
+        const snappedDuration = Math.max(1, Math.round(current.duration));
+        next.set(ds.itemId, { start: snappedStart, duration: snappedDuration });
+        // TODO: Persist resized dates via PATCH /api/work-items/:id once
+        //       startDate/endDate columns exist in the work_items schema
+        return next;
+      });
+      setDragState(null);
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragState]);
+
+  // Resolve bar position for a work item (with drag override support)
   function getBar(node: TreeNode): { start: number; duration: number } | null {
     const { item, parentFeature } = node;
+    // Check for a drag override first (epics/features only)
+    const override = barOverrides.get(item.id);
+    if (override && (item.type === "epic" || item.type === "feature")) {
+      return override;
+    }
     // Epics/features: need start/end dates on the item — for now use sprint dates or spread
     if (item.type === "epic" || item.type === "feature") {
-      // Find the earliest and latest sprint among children
       const childSprints = getChildSprintRange(item);
       if (childSprints) return childSprints;
       return null;
@@ -240,7 +397,6 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
     if (!hist || hist.length === 0) return null;
     const inProgressSlugs = new Set(workflowStates.filter(w => w.category === "in_progress").map(w => w.slug));
     const doneSlugs = new Set(workflowStates.filter(w => w.category === "done").map(w => w.slug));
-    // "active" = first transition to any non-todo category
     const activeAt = hist.find(h => inProgressSlugs.has(h.toState) || doneSlugs.has(h.toState));
     const inProgressAt = hist.find(h => inProgressSlugs.has(h.toState));
     const doneAt = hist.find(h => doneSlugs.has(h.toState));
@@ -250,6 +406,24 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
       cycleStart: inProgressAt ? weekFromDate(inProgressAt.changedAt) : null,
       cycleEnd: doneAt ? weekFromDate(doneAt.changedAt) : todayOffset,
     };
+  }
+
+  // Collect unique "blocks" links for dependency arrows
+  function getBlocksLinks(): { sourceId: number; targetId: number }[] {
+    const seen = new Set<string>();
+    const result: { sourceId: number; targetId: number }[] = [];
+    for (const [, links] of linksMap) {
+      for (const link of links) {
+        if (link.type === "blocks") {
+          const key = `${link.sourceId}-${link.targetId}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            result.push({ sourceId: link.sourceId, targetId: link.targetId });
+          }
+        }
+      }
+    }
+    return result;
   }
 
   const rows = flattenItems(hierarchy);
@@ -301,7 +475,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
           <div style={{ width: totalWidth }} className="relative">
             {/* Sprint overlay */}
             <div className="h-10 flex border-b border-border relative">
-              {sprints.filter(s => s.startDate).map((sprint, i) => {
+              {sprints.filter(s => s.startDate).map((sprint) => {
                 const start = weekFromDate(sprint.startDate!);
                 const end = sprint.endDate ? weekFromDate(sprint.endDate) : start + 2;
                 return (
@@ -340,6 +514,8 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
               const bar = getBar(node);
               const retro = item.type === "story" ? getRetroBars(item.id) : null;
               const hasRetro = retro && (retro.leadStart != null || retro.cycleStart != null);
+              const draggable = isItemDraggable(item);
+              const isDragging = dragState?.itemId === item.id;
 
               if (!bar) {
                 return (
@@ -371,11 +547,42 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
 
                   {/* Planned bar (hidden for stories with retro data) */}
                   {!hasRetro && (
-                    <div onClick={() => setSelectedId(item.id)}
-                      className={`absolute top-2 h-6 rounded cursor-pointer hover:ring-2 hover:ring-white/40 ${typeColors[item.type] ?? "bg-gray-400"} ${categoryOpacity[workflowStates.find(w => w.slug === item.state)?.category ?? "todo"] ?? "opacity-60"} transition-all`}
-                      style={{ left: bar.start * weekWidth + 2, width: Math.max(bar.duration * weekWidth - 4, 12) }}>
+                    <div
+                      onClick={() => { if (!isDragging) setSelectedId(item.id); }}
+                      className={[
+                        "absolute top-2 h-6 rounded transition-all",
+                        typeColors[item.type] ?? "bg-gray-400",
+                        categoryOpacity[workflowStates.find(w => w.slug === item.state)?.category ?? "todo"] ?? "opacity-60",
+                        draggable ? "group/bar" : "",
+                        isDragging ? "ring-2 ring-white/50" : "hover:ring-2 hover:ring-white/40",
+                        draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+                      ].join(" ")}
+                      style={{
+                        left: bar.start * weekWidth + 2,
+                        width: Math.max(bar.duration * weekWidth - 4, 12),
+                      }}
+                    >
                       {bar.duration * weekWidth > 60 && (
                         <span className="absolute inset-0 flex items-center px-2 text-white text-[10px] font-medium truncate">{item.title}</span>
+                      )}
+                      {/* Drag handles — visible on hover for draggable (non-closed epic/feature) bars */}
+                      {draggable && (
+                        <>
+                          {/* Left handle — resize start date */}
+                          <div
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[6px] h-3 flex items-center justify-center cursor-col-resize opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
+                            onMouseDown={(e) => handleDragStart(e, item.id, "start", bar)}
+                          >
+                            <div className="w-[2px] h-3 bg-white/70 rounded-full" />
+                          </div>
+                          {/* Right handle — resize end date */}
+                          <div
+                            className="absolute right-0 top-1/2 -translate-y-1/2 w-[6px] h-3 flex items-center justify-center cursor-col-resize opacity-0 group-hover/bar:opacity-100 transition-opacity z-10"
+                            onMouseDown={(e) => handleDragStart(e, item.id, "end", bar)}
+                          >
+                            <div className="w-[2px] h-3 bg-white/70 rounded-full" />
+                          </div>
+                        </>
                       )}
                     </div>
                   )}
