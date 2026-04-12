@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { workItems } from "@/db/schema";
-import { eq, and, like, SQL } from "drizzle-orm";
+import { workItems, projects } from "@/db/schema";
+import { eq, and, like, sql, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 
@@ -62,7 +62,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const [row] = await db.insert(workItems).values(parsed.data).returning();
+  // Generate displayId from project key + sequence (atomic increment)
+  const [project] = await db
+    .update(projects)
+    .set({ sequence: sql`${projects.sequence} + 1` })
+    .where(eq(projects.id, parsed.data.projectId))
+    .returning({ key: projects.key, sequence: projects.sequence });
+
+  if (!project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  const displayId = `${project.key}-${project.sequence}`;
+
+  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId }).returning();
   emit({ type: "work-item", action: "created", id: row.id });
   return NextResponse.json(row, { status: 201 });
 }

@@ -16,6 +16,7 @@ interface LinkRow {
 
 interface LinkedWorkItem {
   id: number;
+  displayId: string | null;
   title: string;
   type: string;
   state: string;
@@ -95,7 +96,7 @@ export function WorkItemLinks({ workItemId, projectId, projectKey, workflowState
           linkId: row.id,
           type: row.type,
           direction: "outgoing",
-          target: { id: target.id, title: target.title, type: target.type, state: target.state },
+          target: { id: target.id, displayId: target.displayId ?? null, title: target.title, type: target.type, state: target.state },
         });
       }
     }
@@ -202,7 +203,7 @@ export function WorkItemLinks({ workItemId, projectId, projectKey, workflowState
                   onClick={() => addLink(item.id)}
                   className="w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-content-bg transition-colors text-left"
                 >
-                  <span className="text-text-tertiary">#{item.id}</span>
+                  <span className="text-text-tertiary">{(item as any).displayId ?? `#${item.id}`}</span>
                   <span className="text-text-primary truncate flex-1">{item.title}</span>
                   <StateBadge state={item.state} workflowStates={workflowStates} />
                 </button>
@@ -228,10 +229,10 @@ export function WorkItemLinks({ workItemId, projectId, projectKey, workflowState
                 {LINK_TYPE_LABELS[link.type]}
               </span>
               <Link
-                href={`/projects/${projectKey}/work-items/${link.target.id}`}
+                href={`/projects/${projectKey}/work-items/${link.target.displayId ?? link.target.id}`}
                 className="text-xs text-text-primary hover:text-accent transition-colors truncate flex-1"
               >
-                #{link.target.id} {link.target.title}
+                {link.target.displayId ?? `#${link.target.id}`} {link.target.title}
               </Link>
               <StateBadge state={link.target.state} workflowStates={workflowStates} />
               <button

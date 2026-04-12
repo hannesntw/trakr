@@ -5,6 +5,20 @@ import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 
+/** Resolve a work item ID parameter — accepts numeric id or displayId like "TRK-5" */
+async function resolveWorkItemId(idParam: string): Promise<number | null> {
+  if (idParam.includes("-")) {
+    // Display ID format, e.g. "TRK-5"
+    const [row] = await db
+      .select({ id: workItems.id })
+      .from(workItems)
+      .where(eq(workItems.displayId, idParam.toUpperCase()));
+    return row?.id ?? null;
+  }
+  const num = Number(idParam);
+  return isNaN(num) ? null : num;
+}
+
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
   type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
@@ -24,10 +38,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const resolvedId = await resolveWorkItemId(id);
+  if (resolvedId === null) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const [row] = await db
     .select()
     .from(workItems)
-    .where(eq(workItems.id, Number(id)));
+    .where(eq(workItems.id, resolvedId));
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -35,7 +54,7 @@ export async function GET(
   const children = await db
     .select()
     .from(workItems)
-    .where(eq(workItems.parentId, Number(id)))
+    .where(eq(workItems.parentId, resolvedId))
     .orderBy(workItems.priority, workItems.id);
 
   return NextResponse.json({ ...row, children });
@@ -46,6 +65,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const resolvedId = await resolveWorkItemId(id);
+  if (resolvedId === null) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
@@ -59,7 +83,7 @@ export async function PATCH(
   const [current] = await db
     .select()
     .from(workItems)
-    .where(eq(workItems.id, Number(id)));
+    .where(eq(workItems.id, resolvedId));
   if (!current) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -73,7 +97,7 @@ export async function PATCH(
   const [row] = await db
     .update(workItems)
     .set({ ...parsed.data, updatedAt: new Date().toISOString() })
-    .where(eq(workItems.id, Number(id)))
+    .where(eq(workItems.id, resolvedId))
     .returning();
 
   // Snapshot the new state
@@ -86,7 +110,7 @@ export async function PATCH(
   const nextVersion = (lastSnapshot?.version ?? -1) + 1;
 
   await db.insert(workItemSnapshots).values({
-    workItemId: Number(id),
+    workItemId: resolvedId,
     version: nextVersion,
     snapshot: JSON.stringify(row),
     changedBy,
@@ -96,7 +120,7 @@ export async function PATCH(
   // Record status transition if state changed
   if (parsed.data.state && parsed.data.state !== current.state) {
     await db.insert(statusHistory).values({
-      workItemId: Number(id),
+      workItemId: resolvedId,
       fromState: current.state,
       toState: parsed.data.state,
     });
@@ -111,9 +135,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const resolvedId = await resolveWorkItemId(id);
+  if (resolvedId === null) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const [row] = await db
     .delete(workItems)
-    .where(eq(workItems.id, Number(id)))
+    .where(eq(workItems.id, resolvedId))
     .returning();
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -6,6 +6,7 @@ import type { WorkItemType } from "@/lib/constants";
 
 interface BoardCardProps {
   id: number;
+  displayId?: string | null;
   title: string;
   type: WorkItemType;
   assignee: string | null;
@@ -16,6 +17,7 @@ interface BoardCardProps {
 
 export function BoardCard({
   id,
+  displayId,
   title,
   type,
   assignee,
@@ -27,7 +29,7 @@ export function BoardCard({
       <div className="flex items-start justify-between gap-2 mb-2">
         <TypeBadge type={type} />
         <div className="flex items-center gap-1.5">
-          <IdBadge id={id} />
+          <IdBadge id={id} displayId={displayId} />
           {(type === "story" || type === "bug") && points != null && (
             <PointsBadge points={points} />
           )}

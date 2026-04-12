@@ -43,10 +43,10 @@ export async function seedTestData(db: any) {
   // --- Users ---
   // (Not creating real users — assignee is a plain string)
 
-  // --- Projects ---
+  // --- Projects (sequence will be updated after seeding) ---
   await db.insert(projects).values([
-    { id: 1, name: "Alpha", key: "ALP", description: "Deep hierarchy test project", visibility: "public", ownerId: "test-user", createdAt: now, updatedAt: now },
-    { id: 2, name: "Beta", key: "BET", description: "Wide hierarchy test project", visibility: "public", ownerId: "test-user", createdAt: now, updatedAt: now },
+    { id: 1, name: "Alpha", key: "ALP", description: "Deep hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
+    { id: 2, name: "Beta", key: "BET", description: "Wide hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
   ]);
 
   // --- Workflow states (Standard for both) ---
@@ -112,6 +112,7 @@ export async function seedTestData(db: any) {
 
     alphaItems.push({
       id, projectId: 1, title, type, state, description: "",
+      displayId: `ALP-${id}`,
       parentId, sprintId, assignee, points, priority,
       createdAt, updatedAt,
     });
@@ -158,16 +159,20 @@ export async function seedTestData(db: any) {
 
   // Ensure specific data guarantees:
   // - Title containing "sprint planning" for contains query
+  const spRetroId = alphaId++;
   alphaItems.push({
-    id: alphaId++, projectId: 1, title: "Sprint Planning Retrospective", type: "story",
+    id: spRetroId, projectId: 1, title: "Sprint Planning Retrospective", type: "story",
+    displayId: `ALP-${spRetroId}`,
     state: "done", description: "", parentId: alphaItems[1].id, sprintId: 1,
     assignee: "Alice", points: 5, priority: 3,
     createdAt: "2026-02-15T10:00:00Z", updatedAt: "2026-02-20T10:00:00Z",
   });
 
   // - Item created during active sprint (2026-03-30 to 2026-04-12)
+  const activeId = alphaId++;
   alphaItems.push({
-    id: alphaId++, projectId: 1, title: "Active Sprint Item", type: "story",
+    id: activeId, projectId: 1, title: "Active Sprint Item", type: "story",
+    displayId: `ALP-${activeId}`,
     state: "in_progress", description: "", parentId: alphaItems[1].id, sprintId: 3,
     assignee: "Bob", points: 3, priority: 2,
     createdAt: "2026-04-02T10:00:00Z", updatedAt: "2026-04-10T10:00:00Z",
@@ -182,9 +187,11 @@ export async function seedTestData(db: any) {
   const rngB = mulberry32(137);
   const betaItems: any[] = [];
   let betaId = 2000; // offset to avoid ID collisions
+  let betaSeq = 0;
 
   function betaItem(title: string, type: string, parentId: number | null) {
     const id = betaId++;
+    betaSeq++;
     const createdAt = addHours(BASE_DATE, (id - 2000) * 3).toISOString();
     const staleDays = rngB() < 0.15 ? 30 : Math.floor(rngB() * 10);
     const updatedAt = addDays(new Date(createdAt), staleDays).toISOString();
@@ -198,6 +205,7 @@ export async function seedTestData(db: any) {
 
     betaItems.push({
       id, projectId: 2, title, type, state, description: "",
+      displayId: `BET-${betaSeq}`,
       parentId, sprintId, assignee, points, priority,
       createdAt, updatedAt,
     });
@@ -294,6 +302,11 @@ export async function seedTestData(db: any) {
       createdAt: "2026-01-15T10:00:00Z",
     },
   ]);
+
+  // Update project sequences
+  const { eq } = await import("drizzle-orm");
+  await db.update(projects).set({ sequence: alphaItems.length }).where(eq(projects.id, 1));
+  await db.update(projects).set({ sequence: betaSeq }).where(eq(projects.id, 2));
 }
 
 // Export counts for test assertions

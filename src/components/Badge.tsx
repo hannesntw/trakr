@@ -45,7 +45,7 @@ export function StateBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
+          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border whitespace-nowrap",
           categoryColor
         )}
       >
@@ -58,7 +58,7 @@ export function StateBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
+        "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border whitespace-nowrap",
         FALLBACK_COLOR
       )}
     >
@@ -67,8 +67,8 @@ export function StateBadge({
   );
 }
 
-export function IdBadge({ id }: { id: number }) {
+export function IdBadge({ id, displayId }: { id: number; displayId?: string | null }) {
   return (
-    <span className="text-xs text-text-tertiary font-mono">#{id}</span>
+    <span className="text-xs text-text-tertiary font-mono">{displayId ?? `#${id}`}</span>
   );
 }

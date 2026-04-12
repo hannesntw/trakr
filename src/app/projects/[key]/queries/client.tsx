@@ -485,11 +485,12 @@ export function QueriesClient({
                 key={item.id ? String(item.id) : i}
                 className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer"
                 onClick={() => {
-                  if (item.id) window.location.href = `/projects/${projectKey}/work-items/${item.id}`;
+                  if (item.displayId) window.location.href = `/projects/${projectKey}/work-items/${item.displayId}`;
+                  else if (item.id) window.location.href = `/projects/${projectKey}/work-items/${item.id}`;
                 }}
               >
                 <td className="px-4 py-2.5">
-                  {item.id != null && <IdBadge id={Number(item.id)} />}
+                  {item.id != null && <IdBadge id={Number(item.id)} displayId={item.displayId as string | undefined} />}
                 </td>
                 <td className="px-3 py-2.5">
                   {item.type ? (

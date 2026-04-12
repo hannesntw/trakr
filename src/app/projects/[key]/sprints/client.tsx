@@ -14,6 +14,7 @@ import type { WorkflowState } from "@/lib/constants";
 
 interface WorkItem {
   id: number;
+  displayId: string | null;
   title: string;
   type: string;
   state: string;
@@ -353,7 +354,7 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
                 >
                   <StateIcon state={item.state} workflowStates={workflowStates} />
                   <span className="flex-1 truncate">{item.title}</span>
-                  <IdBadge id={item.id} />
+                  <IdBadge id={item.id} displayId={item.displayId} />
                 </div>
               ))}
               {backlogItems.length === 0 && (
@@ -498,7 +499,7 @@ function SprintBlock({
             className={cn("flex items-center gap-2 px-2 py-1.5 rounded border border-border/50 hover:border-border hover:bg-content-bg transition-colors cursor-grab active:cursor-grabbing text-xs", draggingItemId === story.id && "opacity-50")}>
             <StateIcon state={story.state} workflowStates={workflowStates} />
             <span className="flex-1 truncate text-text-primary">{story.title}</span>
-            <span className="text-text-tertiary">#{story.id}</span>
+            <span className="text-text-tertiary">{story.displayId ?? `#${story.id}`}</span>
           </div>
         ))}
       </div>

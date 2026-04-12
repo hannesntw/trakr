@@ -10,6 +10,7 @@ import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle,
 
 interface WorkItem {
   id: number;
+  displayId: string | null;
   title: string;
   type: string;
   state: string;
@@ -465,7 +466,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
                   {hasChildren ? (isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-text-tertiary mr-1.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-text-tertiary mr-1.5 shrink-0" />) : <span className="w-3.5 mr-1.5 shrink-0" />}
                   <StateIcon state={item.state} workflowStates={workflowStates} />
                   <span className="text-xs text-text-primary truncate ml-1.5">{item.title}</span>
-                  <span className="text-[10px] text-text-tertiary ml-auto mr-2 shrink-0">#{item.id}</span>
+                  <span className="text-[10px] text-text-tertiary ml-auto mr-2 shrink-0">{item.displayId ?? `#${item.id}`}</span>
                 </div>
               );
             })}

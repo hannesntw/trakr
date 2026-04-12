@@ -7,7 +7,7 @@ describe("TraQL text output (SELECT format)", () => {
     expect(r.type).toBe("text");
     expect(r.text!.length).toBeGreaterThan(0);
     for (const line of r.text!) {
-      expect(line).toMatch(/^.+ \(#\d+\)$/);
+      expect(line).toMatch(/^.+ \(#[A-Z]+-\d+\)$/);
     }
   });
 
@@ -17,7 +17,7 @@ describe("TraQL text output (SELECT format)", () => {
     expect(r.text!.length).toBeGreaterThan(0);
     for (const line of r.text!) {
       // Markdown link pattern: - [some title](/projects/KEY/work-items/ID)
-      expect(line).toMatch(/^- \[.+\]\(\/projects\/.+\/work-items\/\d+\)$/);
+      expect(line).toMatch(/^- \[.+\]\(\/projects\/.+\/work-items\/[A-Z]+-\d+\)$/);
     }
   });
 

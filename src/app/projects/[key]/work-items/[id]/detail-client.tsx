@@ -19,6 +19,7 @@ import { TYPE_LABELS, type WorkItemType, type WorkflowState } from "@/lib/consta
 
 interface WorkItem {
   id: number;
+  displayId: string | null;
   title: string;
   type: string;
   state: string;
@@ -179,7 +180,7 @@ export function WorkItemDetailFull({
       parentCandidates.map((c) => ({
         value: String(c.id),
         label: c.title,
-        secondary: `#${c.id} · ${TYPE_LABELS[c.type as keyof typeof TYPE_LABELS] ?? c.type}`,
+        secondary: `${(c as any).displayId ?? `#${c.id}`} · ${TYPE_LABELS[c.type as keyof typeof TYPE_LABELS] ?? c.type}`,
       })),
     [parentCandidates]
   );
@@ -201,7 +202,7 @@ export function WorkItemDetailFull({
 
   return (
     <>
-      <Header title={projectName} subtitle={`#${item.id} ${item.title}`} />
+      <Header title={projectName} subtitle={`${item.displayId ?? `#${item.id}`} ${item.title}`} />
       <div
         className={`flex-1 overflow-auto${pageDragOver ? " ring-2 ring-inset ring-accent/30 bg-accent/5" : ""}`}
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; setPageDragOver(true); }}
@@ -215,7 +216,7 @@ export function WorkItemDetailFull({
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <TypeBadge type={item.type as WorkItemType} />
-                  <IdBadge id={item.id} />
+                  <IdBadge id={item.id} displayId={item.displayId} />
                 </div>
                 <InlineEdit
                   value={item.title}
@@ -247,7 +248,7 @@ export function WorkItemDetailFull({
                     {item.children.map((child) => (
                       <Link
                         key={child.id}
-                        href={`/projects/${projectKey}/work-items/${child.id}`}
+                        href={`/projects/${projectKey}/work-items/${child.displayId ?? child.id}`}
                         className="flex items-center gap-3 px-3 py-2 bg-surface border border-border rounded-lg hover:border-border-hover transition-colors group"
                       >
                         <TypeBadge type={child.type as WorkItemType} />
@@ -255,7 +256,7 @@ export function WorkItemDetailFull({
                           {child.title}
                         </span>
                         <StateBadge state={child.state} workflowStates={workflowStates} />
-                        <IdBadge id={child.id} />
+                        <IdBadge id={child.id} displayId={child.displayId} />
                       </Link>
                     ))}
                   </div>

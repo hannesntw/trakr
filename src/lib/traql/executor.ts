@@ -248,6 +248,23 @@ function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?:
     return sql`${neCol} IS NOT NULL`;
   }
 
+  // Special handling for id field — match against displayId when value contains a dash
+  if (field === "id") {
+    const v = typeof value === "string" ? value : String(value);
+    if (v.includes("-")) {
+      // Display ID format, e.g. "TRK-5" or range "TRK-1..TRK-10"
+      if (operator === "range") {
+        // Parse numeric suffix from both ends
+        const startNum = parseInt(v.split("-").pop()!);
+        const endNum = parseInt(String(expanded.rangeEnd ?? v).split("-").pop()!);
+        const prefix = v.split("-").slice(0, -1).join("-");
+        // Match displayId where prefix matches and numeric suffix is in range
+        return sql`${workItems.displayId} IS NOT NULL AND ${workItems.displayId} LIKE ${prefix + '-%'} AND CAST(SUBSTR(${workItems.displayId}, ${prefix.length + 2}) AS INTEGER) BETWEEN ${startNum} AND ${endNum}`;
+      }
+      return eq(workItems.displayId as any, v.toUpperCase());
+    }
+  }
+
   const col = columnMap[field]?.();
   if (!col) return undefined;
 
@@ -594,9 +611,10 @@ async function executeSelect(
     const lines = items.map(item => {
       let line = template;
       line = line.replace(/\{(\w+(?:\.\w+)?)\}/g, (_, key: string) => {
+        if (key === "id") return (item as any).displayId ?? String(item.id);
         if (key === "url") {
           const pkey = projectMap.get(item.projectId) ?? "?";
-          return `/projects/${pkey}/work-items/${item.id}`;
+          return `/projects/${pkey}/work-items/${(item as any).displayId ?? item.id}`;
         }
         if (key === "project") return projectMap.get(item.projectId) ?? String(item.projectId);
         if (key === "sprint.health") return healthMap.get(item.id) ?? "";

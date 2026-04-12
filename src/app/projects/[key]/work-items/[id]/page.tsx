@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { workItems, projects, sprints } from "@/db/schema";
+import { workItems, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { WorkItemDetailFull } from "./detail-client";
@@ -18,10 +18,22 @@ export default async function WorkItemDetailPage({
     .where(eq(projects.key, key.toUpperCase()));
   if (!project) notFound();
 
-  const [item] = await db
-    .select()
-    .from(workItems)
-    .where(eq(workItems.id, Number(id)));
+  // Accept either numeric id or displayId (e.g. "TRK-5")
+  let item;
+  if (id.includes("-")) {
+    const [row] = await db
+      .select()
+      .from(workItems)
+      .where(eq(workItems.displayId, id.toUpperCase()));
+    item = row;
+  } else {
+    const [row] = await db
+      .select()
+      .from(workItems)
+      .where(eq(workItems.id, Number(id)));
+    item = row;
+  }
+
   if (!item || item.projectId !== project.id) notFound();
 
   return (

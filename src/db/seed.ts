@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import { projects, workItems, sprints, comments } from "./schema";
+import { eq } from "drizzle-orm";
 
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL ?? "file:./local.db",
@@ -8,6 +9,16 @@ const client = createClient({
 });
 
 const db = drizzle(client);
+
+// Track per-project sequence counters for displayId generation
+const sequenceCounters = new Map<number, { key: string; seq: number }>();
+
+function nextDisplayId(projectId: number): string {
+  const entry = sequenceCounters.get(projectId);
+  if (!entry) throw new Error(`Unknown project ${projectId}`);
+  entry.seq += 1;
+  return `${entry.key}-${entry.seq}`;
+}
 
 async function seed() {
   console.log("Seeding database...");
@@ -38,6 +49,10 @@ async function seed() {
         "Project management tool — agile work item tracking with boards, backlogs, and sprints.",
     })
     .returning();
+
+  // Initialize sequence counters
+  sequenceCounters.set(pictura.id, { key: "PIC", seq: 0 });
+  sequenceCounters.set(trakr.id, { key: "TRK", seq: 0 });
 
   // --- Sprints ---
   const [picSprint1] = await db
@@ -107,6 +122,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Pictura Core Features",
       type: "epic",
       state: "active",
@@ -121,6 +137,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Photo Feed Experience",
       type: "feature",
       state: "active",
@@ -135,6 +152,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "View Photo Feed",
       type: "story",
       state: "done",
@@ -147,6 +165,7 @@ async function seed() {
     },
     {
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Like a Photo",
       type: "story",
       state: "done",
@@ -159,6 +178,7 @@ async function seed() {
     },
     {
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Comment on a Photo",
       type: "story",
       state: "done",
@@ -176,6 +196,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "User Profiles",
       type: "feature",
       state: "active",
@@ -188,6 +209,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "View User Profile",
       type: "story",
       state: "done",
@@ -205,6 +227,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Photo Upload",
       type: "feature",
       state: "in_progress",
@@ -217,6 +240,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Upload a Photo",
       type: "story",
       state: "in_progress",
@@ -234,6 +258,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Explore and Discovery",
       type: "feature",
       state: "in_progress",
@@ -246,6 +271,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Browse Explore Grid",
       type: "story",
       state: "ready",
@@ -263,6 +289,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Direct Messaging",
       type: "epic",
       state: "new",
@@ -276,6 +303,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: pictura.id,
+      displayId: nextDisplayId(pictura.id),
       title: "Basic Direct Messages",
       type: "feature",
       state: "new",
@@ -293,6 +321,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Trakr Core",
       type: "epic",
       state: "active",
@@ -307,6 +336,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Work Item Management",
       type: "feature",
       state: "active",
@@ -320,6 +350,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Create Work Item",
       type: "story",
       state: "done",
@@ -332,6 +363,7 @@ async function seed() {
     },
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "View Sprint Board",
       type: "story",
       state: "done",
@@ -344,6 +376,7 @@ async function seed() {
     },
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "View Backlog Table",
       type: "story",
       state: "done",
@@ -356,6 +389,7 @@ async function seed() {
     },
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "View Work Item Detail",
       type: "story",
       state: "in_progress",
@@ -373,6 +407,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Sprint Planning",
       type: "feature",
       state: "in_progress",
@@ -386,6 +421,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Plan Sprint",
       type: "story",
       state: "in_progress",
@@ -398,6 +434,7 @@ async function seed() {
     },
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Create and Manage Sprints",
       type: "story",
       state: "ready",
@@ -415,6 +452,7 @@ async function seed() {
     .insert(workItems)
     .values({
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Work Item Comments",
       type: "feature",
       state: "new",
@@ -427,6 +465,7 @@ async function seed() {
   await db.insert(workItems).values([
     {
       projectId: trakr.id,
+      displayId: nextDisplayId(trakr.id),
       title: "Add and View Comments",
       type: "story",
       state: "new",
@@ -494,6 +533,11 @@ async function seed() {
         createdAt: "2026-04-16T09:00:00Z",
       },
     ]);
+  }
+
+  // Update project sequence counters
+  for (const [projectId, entry] of sequenceCounters) {
+    await db.update(projects).set({ sequence: entry.seq }).where(eq(projects.id, projectId));
   }
 
   console.log("Seed complete!");

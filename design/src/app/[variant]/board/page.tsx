@@ -124,7 +124,7 @@ export default function BoardPage() {
                           <span className={`text-xs ${item.type === "bug" ? "text-red-500" : "text-text-tertiary"}`}>
                             {typeLabel[item.type]}
                           </span>
-                          <span className="text-xs text-text-tertiary ml-auto">#{item.id}</span>
+                          <span className="text-xs text-text-tertiary ml-auto">TRK-{item.id}</span>
                           {variant.features.storyPoints && item.points != null && (
                             <PointsBadge points={item.points} />
                           )}

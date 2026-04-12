@@ -474,7 +474,7 @@ export default function TimelinePage() {
                   <StateIcon state={item.state} size={14} />
                   <span className="text-xs text-text-primary truncate ml-1.5">{item.title}</span>
                   {hasError && <AlertTriangle className="w-3 h-3 text-red-500 ml-1 shrink-0" />}
-                  <span className="text-[10px] text-text-tertiary ml-auto mr-2 shrink-0">#{item.id}</span>
+                  <span className="text-[10px] text-text-tertiary ml-auto mr-2 shrink-0">TRK-{item.id}</span>
                 </div>
               );
             })}

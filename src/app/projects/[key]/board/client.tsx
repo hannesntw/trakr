@@ -11,6 +11,7 @@ import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 interface WorkItem {
   id: number;
+  displayId: string | null;
   title: string;
   type: string;
   state: string;
@@ -186,6 +187,7 @@ export function BoardClient({
                   >
                     <BoardCard
                       id={item.id}
+                      displayId={item.displayId}
                       title={item.title}
                       type={item.type as "epic" | "feature" | "story"}
                       assignee={item.assignee}

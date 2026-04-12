@@ -50,6 +50,7 @@ export const projects = pgTable("projects", {
   description: text("description").default(""),
   visibility: text("visibility").notNull().default("public"),
   ownerId: text("owner_id"),
+  sequence: integer("sequence").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -108,6 +109,7 @@ export const workflowStates = pgTable("workflow_states", {
 
 export const workItems = pgTable("work_items", {
   id: serial("id").primaryKey(),
+  displayId: text("display_id").unique(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id),

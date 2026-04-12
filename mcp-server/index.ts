@@ -150,8 +150,8 @@ server.tool(
 
 server.tool(
   "get_work_item",
-  "Get a single work item by ID (includes children)",
-  { id: z.number() },
+  "Get a single work item by ID or displayId like 'TRK-5' (includes children)",
+  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'") },
   async (params) => textResult(await api(`/api/work-items/${params.id}`))
 );
 
@@ -177,7 +177,7 @@ server.tool(
   "update_work_item",
   "Update fields on a work item",
   {
-    id: z.number(),
+    id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'"),
     title: z.string().optional(),
     type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
     state: z.string().optional().describe("Workflow state slug"),
@@ -194,7 +194,7 @@ server.tool(
 server.tool(
   "delete_work_item",
   "Delete a work item",
-  { id: z.number() },
+  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'") },
   async (params) => textResult(await api(`/api/work-items/${params.id}`, { method: "DELETE" }))
 );
 

@@ -130,7 +130,7 @@ export default function BacklogPage() {
     let result = items;
     if (searchText) {
       const q = searchText.toLowerCase();
-      result = result.filter(i => i.title.toLowerCase().includes(q) || `#${i.id}`.includes(q));
+      result = result.filter(i => i.title.toLowerCase().includes(q) || `TRK-${i.id}`.toLowerCase().includes(q));
     }
     if (typeFilter) result = result.filter(i => i.type === typeFilter);
     if (stateFilter) result = result.filter(i => i.state === stateFilter);
@@ -287,7 +287,7 @@ export default function BacklogPage() {
                         )}
                       </td>
                     )}
-                    <td className="px-6 py-2.5 text-xs text-text-tertiary font-mono">#{item.id}</td>
+                    <td className="px-6 py-2.5 text-xs text-text-tertiary font-mono">TRK-{item.id}</td>
                     <td className="px-3 py-2.5">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${typeBadge[item.type] ?? ""}`}>
                         {item.type.charAt(0).toUpperCase() + item.type.slice(1)}

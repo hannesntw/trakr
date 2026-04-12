@@ -153,15 +153,15 @@ const mockUsers = [
 ];
 
 const mockParentOptions = [
-  { id: "69", label: "User Management", secondary: "Epic #69" },
-  { id: "38", label: "Trakr Core", secondary: "Epic #38" },
-  { id: "39", label: "Work Item Management", secondary: "Feature #39" },
-  { id: "44", label: "Sprint Planning", secondary: "Feature #44" },
-  { id: "50", label: "Timeline Planning", secondary: "Feature #50" },
-  { id: "63", label: "Sprint v2", secondary: "Feature #63" },
-  { id: "73", label: "Advanced Story Detail", secondary: "Feature #73" },
-  { id: "81", label: "General Improvements", secondary: "Feature #81" },
-  { id: "94", label: "Search and Queries", secondary: "Feature #94" },
+  { id: "69", label: "User Management", secondary: "Epic TRK-69" },
+  { id: "38", label: "Trakr Core", secondary: "Epic TRK-38" },
+  { id: "39", label: "Work Item Management", secondary: "Feature TRK-39" },
+  { id: "44", label: "Sprint Planning", secondary: "Feature TRK-44" },
+  { id: "50", label: "Timeline Planning", secondary: "Feature TRK-50" },
+  { id: "63", label: "Sprint v2", secondary: "Feature TRK-63" },
+  { id: "73", label: "Advanced Story Detail", secondary: "Feature TRK-73" },
+  { id: "81", label: "General Improvements", secondary: "Feature TRK-81" },
+  { id: "94", label: "Search and Queries", secondary: "Feature TRK-94" },
 ];
 
 const linkTypes = [
@@ -177,13 +177,13 @@ const mockLinks = [
 ];
 
 const mockLinkTargets = [
-  { id: "40", label: "Create Work Item", secondary: "Story #40" },
-  { id: "41", label: "View Sprint Board", secondary: "Story #41" },
-  { id: "42", label: "View Backlog Table", secondary: "Story #42" },
-  { id: "43", label: "View Work Item Detail", secondary: "Story #43" },
-  { id: "45", label: "Plan Sprint", secondary: "Story #45" },
-  { id: "74", label: "Work Item Snapshots", secondary: "Story #74" },
-  { id: "75", label: "Status Timeline on Detail Page", secondary: "Story #75" },
+  { id: "40", label: "Create Work Item", secondary: "Story TRK-40" },
+  { id: "41", label: "View Sprint Board", secondary: "Story TRK-41" },
+  { id: "42", label: "View Backlog Table", secondary: "Story TRK-42" },
+  { id: "43", label: "View Work Item Detail", secondary: "Story TRK-43" },
+  { id: "45", label: "Plan Sprint", secondary: "Story TRK-45" },
+  { id: "74", label: "Work Item Snapshots", secondary: "Story TRK-74" },
+  { id: "75", label: "Status Timeline on Detail Page", secondary: "Story TRK-75" },
 ];
 
 const story = {
@@ -274,7 +274,7 @@ export default function StoryDetailPage() {
           <ArrowLeft className="w-4 h-4 text-text-secondary" />
         </Link>
         <span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-xs font-medium">Story</span>
-        <span className="text-xs text-text-tertiary font-mono">#{story.id}</span>
+        <span className="text-xs text-text-tertiary font-mono">TRK-{story.id}</span>
         <span className="text-text-tertiary">/</span>
         <span className="text-sm text-text-secondary">{story.title}</span>
       </header>
@@ -287,7 +287,7 @@ export default function StoryDetailPage() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-xs font-medium">Story</span>
-                  <span className="text-xs text-text-tertiary font-mono">#{story.id}</span>
+                  <span className="text-xs text-text-tertiary font-mono">TRK-{story.id}</span>
                 </div>
                 <h2 className="text-xl font-semibold text-text-primary">{story.title}</h2>
               </div>
@@ -446,7 +446,7 @@ export default function StoryDetailPage() {
                       )}
                     />
                   ) : (
-                    <span className="text-sm text-accent">#{story.parentId} {story.parentTitle}</span>
+                    <span className="text-sm text-accent">TRK-{story.parentId} {story.parentTitle}</span>
                   )}
                 </div>
 
@@ -547,7 +547,7 @@ export default function StoryDetailPage() {
                             {lt && <lt.icon className={`w-3 h-3 shrink-0 ${lt.color}`} />}
                             <div className="min-w-0 flex-1">
                               <span className="text-[10px] text-text-tertiary block">{lt?.label}</span>
-                              <span className="text-xs text-text-primary truncate block">#{link.targetId} {link.targetTitle}</span>
+                              <span className="text-xs text-text-primary truncate block">TRK-{link.targetId} {link.targetTitle}</span>
                             </div>
                             <StateIcon state={link.targetState} size={12} />
                             <button

@@ -37,7 +37,7 @@ export function MockDetailPanel({ itemId, title, type, state, onClose }: MockDet
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${typeColors[type] ?? ""}`}>
             {type.charAt(0).toUpperCase() + type.slice(1)}
           </span>
-          <span className="text-xs text-text-tertiary font-mono">#{itemId}</span>
+          <span className="text-xs text-text-tertiary font-mono">TRK-{itemId}</span>
         </div>
         <div className="flex items-center gap-1">
           <Link

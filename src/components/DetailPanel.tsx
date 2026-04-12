@@ -17,6 +17,7 @@ import type { WorkItemType, WorkflowState } from "@/lib/constants";
 
 interface WorkItem {
   id: number;
+  displayId: string | null;
   projectId: number;
   title: string;
   type: string;
@@ -160,13 +161,13 @@ export function DetailPanel({
           {item && (
             <>
               <TypeBadge type={item.type as WorkItemType} />
-              <IdBadge id={item.id} />
+              <IdBadge id={item.id} displayId={item.displayId} />
             </>
           )}
         </div>
         <div className="flex items-center gap-1">
           <Link
-            href={`/projects/${projectKey}/work-items/${workItemId}`}
+            href={`/projects/${projectKey}/work-items/${item?.displayId ?? workItemId}`}
             className="p-1.5 rounded hover:bg-content-bg transition-colors"
             title="Open full page"
           >

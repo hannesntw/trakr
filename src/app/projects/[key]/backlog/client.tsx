@@ -19,6 +19,7 @@ import {
 
 interface WorkItem {
   id: number;
+  displayId: string | null;
   title: string;
   type: string;
   state: string;
@@ -226,11 +227,11 @@ export function BacklogClient({
   // Apply filters
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Text search — match title or #ID
+      // Text search — match title or displayId
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchTitle = item.title.toLowerCase().includes(q);
-        const matchId = `#${item.id}`.includes(q) || String(item.id).includes(q);
+        const matchId = (item.displayId ?? `#${item.id}`).toLowerCase().includes(q) || String(item.id).includes(q);
         if (!matchTitle && !matchId) return false;
       }
 
@@ -354,7 +355,7 @@ export function BacklogClient({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by title or #ID..."
+            placeholder="Search by title or ID..."
             className="h-8 pl-8 pr-3 w-56 rounded-md border border-border bg-content-bg text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
           />
         </div>
@@ -449,14 +450,14 @@ export function BacklogClient({
                   className="border-b border-border/50 hover:bg-surface transition-colors cursor-pointer group"
                 >
                   <td className="px-6 py-2.5">
-                    <IdBadge id={item.id} />
+                    <IdBadge id={item.id} displayId={item.displayId} />
                   </td>
                   <td className="px-3 py-2.5">
                     <TypeBadge type={item.type as WorkItemType} />
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="px-3 py-2.5 max-w-0">
                     <span
-                      className="text-sm text-text-primary group-hover:text-accent transition-colors"
+                      className="text-sm text-text-primary group-hover:text-accent transition-colors block truncate"
                       style={{ paddingLeft: `${depth * 20}px` }}
                     >
                       {item.title}
