@@ -28,6 +28,16 @@ export interface VariantConfig {
     githubCIStatus: boolean;
     githubAutoTransition: boolean;
     githubStatusChecks: boolean;
+    // TraQL-powered board features
+    swimlanes: boolean;
+    cardRules: boolean;
+    // Enterprise org management
+    orgManagement: boolean;
+    teamManagement: boolean;
+    rbac: boolean;
+    auditLog: boolean;
+    sso: boolean;
+    billing: boolean;
   };
   tabs: Array<{ slug: string; label: string }>;
 }

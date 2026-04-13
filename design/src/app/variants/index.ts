@@ -24,11 +24,25 @@ const prodFeatures = {
   storyPoints: true,
 };
 
+const noOrg = {
+  orgManagement: false,
+  teamManagement: false,
+  rbac: false,
+  auditLog: false,
+  sso: false,
+  billing: false,
+};
+
 const noGithub = {
   githubLinks: false,
   githubCIStatus: false,
   githubAutoTransition: false,
   githubStatusChecks: false,
+};
+
+const noTraql = {
+  swimlanes: false,
+  cardRules: false,
 };
 
 const current: VariantConfig = {
@@ -37,6 +51,8 @@ const current: VariantConfig = {
   features: {
     ...prodFeatures,
     ...noGithub,
+    ...noTraql,
+    ...noOrg,
   },
   tabs: [
     { slug: "board", label: "Board" },
@@ -56,6 +72,9 @@ const github: VariantConfig = {
     githubCIStatus: true,
     githubAutoTransition: true,
     githubStatusChecks: true,
+    swimlanes: true,
+    cardRules: true,
+    ...noOrg,
   },
   tabs: [
     { slug: "board", label: "Board" },
@@ -72,9 +91,42 @@ const reports: VariantConfig = {
   features: {
     ...prodFeatures,
     ...noGithub,
+    ...noTraql,
+    ...noOrg,
     sprintCapacity: true,
     velocityTracking: true,
     burndownChart: true,
+  },
+  tabs: [
+    { slug: "board", label: "Board" },
+    { slug: "backlog", label: "Backlog" },
+    { slug: "queries", label: "Queries" },
+    { slug: "sprints", label: "Sprints" },
+    { slug: "timeline", label: "Timeline" },
+    { slug: "reports", label: "Reports" },
+  ],
+};
+
+const enterprise: VariantConfig = {
+  id: "enterprise",
+  label: "Enterprise",
+  features: {
+    ...prodFeatures,
+    githubLinks: true,
+    githubCIStatus: true,
+    githubAutoTransition: true,
+    githubStatusChecks: true,
+    swimlanes: true,
+    cardRules: true,
+    sprintCapacity: true,
+    velocityTracking: true,
+    burndownChart: true,
+    orgManagement: true,
+    teamManagement: true,
+    rbac: true,
+    auditLog: true,
+    sso: true,
+    billing: true,
   },
   tabs: [
     { slug: "board", label: "Board" },
@@ -90,6 +142,7 @@ export const variants: Record<string, VariantConfig> = {
   current,
   github,
   reports,
+  enterprise,
 };
 
 export const variantIds = Object.keys(variants);
