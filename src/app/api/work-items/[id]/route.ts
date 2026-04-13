@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { workItems, statusHistory, workItemSnapshots } from "@/db/schema";
+import { workItems, statusHistory, workItemSnapshots, comments, attachments } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
@@ -145,6 +145,12 @@ export async function DELETE(
   if (resolvedId === null) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Clean up related data before deleting the work item
+  await db.delete(comments).where(eq(comments.workItemId, resolvedId));
+  await db.delete(attachments).where(eq(attachments.workItemId, resolvedId));
+  await db.delete(statusHistory).where(eq(statusHistory.workItemId, resolvedId));
+  await db.delete(workItemSnapshots).where(eq(workItemSnapshots.workItemId, resolvedId));
 
   const [row] = await db
     .delete(workItems)

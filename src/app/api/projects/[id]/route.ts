@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites } from "@/db/schema";
+import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites, workItemSnapshots, savedQueries } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -84,8 +84,10 @@ export async function DELETE(
     await db.delete(comments).where(eq(comments.workItemId, itemId));
     await db.delete(attachments).where(eq(attachments.workItemId, itemId));
     await db.delete(statusHistory).where(eq(statusHistory.workItemId, itemId));
+    await db.delete(workItemSnapshots).where(eq(workItemSnapshots.workItemId, itemId));
   }
   await db.delete(workItems).where(eq(workItems.projectId, pid));
+  await db.delete(savedQueries).where(eq(savedQueries.projectId, pid));
   await db.delete(sprints).where(eq(sprints.projectId, pid));
   await db.delete(projectInvites).where(eq(projectInvites.projectId, pid));
   await db.delete(projects).where(eq(projects.id, pid));
