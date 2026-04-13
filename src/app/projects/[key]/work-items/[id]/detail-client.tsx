@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { TypeBadge, StateBadge, IdBadge } from "@/components/Badge";
 import { InlineEdit, InlineTextarea } from "@/components/InlineEdit";
 import { StateSelect } from "@/components/StateSelect";
@@ -131,6 +132,7 @@ export function WorkItemDetailFull({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  useRealtimeRefresh(fetchData);
 
   async function updateField(field: string, value: unknown) {
     await fetch(`/api/work-items/${workItemId}`, {

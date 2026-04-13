@@ -1,6 +1,6 @@
 "use client";
 
-import { X, ExternalLink } from "lucide-react";
+import { X, ExternalLink, GitBranch, GitPullRequest, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useVariant } from "./VariantContext";
 
@@ -77,6 +77,45 @@ export function MockDetailPanel({ itemId, title, type, state, onClose }: MockDet
           <span className="text-xs text-text-tertiary block mb-1.5">Description</span>
           <p className="text-sm text-text-secondary italic">Click dummy — no description loaded</p>
         </div>
+
+        {/* GitHub integration section */}
+        {variant.features.githubLinks && (
+          <div>
+            <span className="text-xs text-text-tertiary block mb-2">Development</span>
+            {itemId === 4 ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-content-bg rounded-lg">
+                  <GitPullRequest className="w-4 h-4 text-blue-600" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-text-primary truncate">#47 feat: detail panel with markdown preview</p>
+                    <p className="text-[11px] text-text-tertiary">hannesntw/trakr &middot; Open</p>
+                  </div>
+                  <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <code className="text-[11px] bg-content-bg px-1.5 py-0.5 rounded">feat/TRK-4-detail-panel</code>
+                </div>
+              </div>
+            ) : itemId === 1 ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-content-bg rounded-lg">
+                  <GitPullRequest className="w-4 h-4 text-purple-600" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-text-primary truncate">#38 feat: work item CRUD</p>
+                    <p className="text-[11px] text-text-tertiary">hannesntw/trakr &middot; Merged</p>
+                  </div>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                </div>
+              </div>
+            ) : variant.features.createBranch ? (
+              <button className="flex items-center gap-2 px-3 py-2 text-xs text-accent border border-border rounded-lg hover:bg-content-bg transition-colors w-full">
+                <GitBranch className="w-3.5 h-3.5" />
+                Create branch
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

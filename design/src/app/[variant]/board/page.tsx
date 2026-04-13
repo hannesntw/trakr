@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useVariant } from "@/components/VariantContext";
 import { useStateOverride } from "@/components/StateOverrideContext";
 import { MockDetailPanel } from "@/components/MockDetailPanel";
-import { Bug, CheckSquare, Square } from "lucide-react";
+import { Bug, CheckSquare, Square, GitPullRequest, CheckCircle2, Circle, XCircle, GitBranch } from "lucide-react";
 import { PointsBadge } from "@/components/PointsBadge";
 
 const states = [
@@ -30,27 +30,29 @@ interface Card {
   parentTitle: string | null;
   points?: number | null;
   tasks?: Task[];
+  pr?: { number: number; title: string; status: "open" | "merged" | "closed"; ci: "passing" | "failing" | "pending" | null };
+  branch?: string;
 }
 
 const mockCards: Card[] = [
   { id: 7, title: "Add and View Comments", type: "story", state: "new", assignee: "Hannes", parentTitle: null, points: 3, tasks: [] },
-  { id: 8, title: "Board cards misaligned on Safari", type: "bug", state: "active", assignee: "Hannes", parentTitle: "Work Item Management", points: 2 },
+  { id: 8, title: "Board cards misaligned on Safari", type: "bug", state: "active", assignee: "Hannes", parentTitle: "Work Item Management", points: 2, pr: { number: 52, title: "Fix Safari card alignment", status: "open", ci: "passing" }, branch: "fix/TRK-8-safari-cards" },
   { id: 6, title: "Create and Manage Sprints", type: "story", state: "ready", assignee: "Hannes", parentTitle: null, points: 8, tasks: [
     { id: 11, title: "Update API docs", done: false },
   ]},
-  { id: 4, title: "View Work Item Detail", type: "story", state: "in_progress", assignee: "Hannes", parentTitle: null, points: 13, tasks: [
+  { id: 4, title: "View Work Item Detail", type: "story", state: "in_progress", assignee: "Hannes", parentTitle: null, points: 13, pr: { number: 47, title: "feat: detail panel with markdown preview", status: "open", ci: "failing" }, branch: "feat/TRK-4-detail-panel", tasks: [
     { id: 14, title: "Add markdown preview", done: true },
     { id: 15, title: "Wire up inline editing", done: false },
     { id: 16, title: "Connect attachment gallery", done: false },
   ]},
-  { id: 5, title: "Plan Sprint", type: "story", state: "in_progress", assignee: "Hannes", parentTitle: null, points: 5, tasks: [
+  { id: 5, title: "Plan Sprint", type: "story", state: "in_progress", assignee: "Hannes", parentTitle: null, points: 5, branch: "feat/TRK-5-sprint-planning", tasks: [
     { id: 10, title: "Write unit tests for drag-and-drop", done: false },
     { id: 17, title: "Add capacity bar to sprint header", done: true },
   ]},
   { id: 9, title: "Sprint dates off by one day", type: "bug", state: "in_progress", assignee: "Hannes", parentTitle: "Sprint Planning", points: 1 },
   { id: 12, title: "Review PR #47", type: "task", state: "new", assignee: "Hannes", parentTitle: null },
   { id: 13, title: "Set up staging environment", type: "task", state: "done", assignee: "Hannes", parentTitle: null },
-  { id: 1, title: "Create Work Item", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 3, tasks: [] },
+  { id: 1, title: "Create Work Item", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 3, pr: { number: 38, title: "feat: work item CRUD", status: "merged", ci: "passing" }, tasks: [] },
   { id: 2, title: "View Sprint Board", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 5, tasks: [] },
   { id: 3, title: "View Backlog Table", type: "story", state: "done", assignee: "Hannes", parentTitle: null, points: 3, tasks: [] },
 ];
@@ -167,6 +169,40 @@ export default function BoardPage() {
                         )}
                         {item.assignee && !item.tasks?.length && (
                           <p className="text-xs text-text-secondary mt-1">{item.assignee}</p>
+                        )}
+
+                        {/* GitHub integration */}
+                        {variant.features.githubLinks && (item.pr || item.branch) && (
+                          <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-2 flex-wrap">
+                            {item.pr && (
+                              <span className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-md ${
+                                item.pr.status === "merged" ? "bg-purple-50 text-purple-700" :
+                                item.pr.status === "closed" ? "bg-red-50 text-red-600" :
+                                "bg-blue-50 text-blue-700"
+                              }`}>
+                                <GitPullRequest className="w-3 h-3" />
+                                #{item.pr.number}
+                              </span>
+                            )}
+                            {variant.features.githubCIStatus && item.pr?.ci && (
+                              <span className={`inline-flex items-center gap-0.5 text-[11px] ${
+                                item.pr.ci === "passing" ? "text-emerald-600" :
+                                item.pr.ci === "failing" ? "text-red-500" :
+                                "text-amber-500"
+                              }`}>
+                                {item.pr.ci === "passing" ? <CheckCircle2 className="w-3 h-3" /> :
+                                 item.pr.ci === "failing" ? <XCircle className="w-3 h-3" /> :
+                                 <Circle className="w-3 h-3" />}
+                                CI
+                              </span>
+                            )}
+                            {item.branch && !item.pr && (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-text-tertiary">
+                                <GitBranch className="w-3 h-3" />
+                                {item.branch.length > 25 ? item.branch.slice(0, 25) + "..." : item.branch}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     ))}

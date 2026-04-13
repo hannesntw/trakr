@@ -374,9 +374,9 @@ export default function StoryDetailPage() {
                                     <span className="ml-2 text-emerald-600 bg-emerald-50 px-1 rounded">{f.new}</span>
                                   ) : (
                                     <>
-                                      <span className="ml-2 line-through text-red-400 bg-red-50 px-1 rounded">{f.field === "state" ? stateLabels[f.old] ?? f.old : f.old}</span>
+                                      <span className="ml-2 line-through text-red-400 bg-red-50 px-1 rounded">{f.field === "state" && f.old ? stateLabels[f.old] ?? f.old : f.old}</span>
                                       <span className="mx-1 text-text-tertiary">→</span>
-                                      <span className="text-emerald-600 bg-emerald-50 px-1 rounded">{f.field === "state" ? stateLabels[f.new] ?? f.new : f.new}</span>
+                                      <span className="text-emerald-600 bg-emerald-50 px-1 rounded">{f.field === "state" && f.new ? stateLabels[f.new] ?? f.new : f.new}</span>
                                     </>
                                   )}
                                 </div>

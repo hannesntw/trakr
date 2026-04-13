@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects, workflowStates } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const reorderSchema = z.object({
@@ -62,5 +63,6 @@ export async function POST(
     .where(eq(workflowStates.projectId, projectId))
     .orderBy(workflowStates.position);
 
+  emit({ type: "workflow", action: "updated", id: projectId, projectId });
   return NextResponse.json(states);
 }

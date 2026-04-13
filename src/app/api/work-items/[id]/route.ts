@@ -126,7 +126,7 @@ export async function PATCH(
     });
   }
 
-  emit({ type: "work-item", action: "updated", id: row.id });
+  emit({ type: "work-item", action: "updated", id: row.id, projectId: row.projectId });
   return NextResponse.json(row);
 }
 
@@ -162,6 +162,6 @@ export async function DELETE(
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  emit({ type: "work-item", action: "deleted", id: row.id });
+  emit({ type: "work-item", action: "deleted", id: row.id, projectId: row.projectId });
   return NextResponse.json({ deleted: true });
 }

@@ -83,6 +83,6 @@ export async function POST(request: NextRequest) {
   const displayId = `${project.key}-${project.sequence}`;
 
   const [row] = await db.insert(workItems).values({ ...parsed.data, displayId }).returning();
-  emit({ type: "work-item", action: "created", id: row.id });
+  emit({ type: "work-item", action: "created", id: row.id, projectId: row.projectId });
   return NextResponse.json(row, { status: 201 });
 }

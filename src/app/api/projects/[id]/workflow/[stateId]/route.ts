@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { workflowStates, workItems } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const updateSchema = z.object({
@@ -52,6 +53,7 @@ export async function PATCH(
     .where(eq(workflowStates.id, stateIdNum))
     .returning();
 
+  emit({ type: "workflow", action: "updated", id: row.id, projectId });
   return NextResponse.json(row);
 }
 
@@ -159,5 +161,6 @@ export async function DELETE(
   }
 
   await db.delete(workflowStates).where(eq(workflowStates.id, stateIdNum));
+  emit({ type: "workflow", action: "deleted", id: stateIdNum, projectId });
   return NextResponse.json({ deleted: true });
 }

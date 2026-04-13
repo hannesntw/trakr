@@ -56,6 +56,6 @@ export async function PATCH(
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  emit({ type: "sprint", action: "updated", id: row.id });
+  emit({ type: "sprint", action: "updated", id: row.id, projectId: row.projectId });
   return NextResponse.json(row);
 }

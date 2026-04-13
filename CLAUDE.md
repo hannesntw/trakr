@@ -1,6 +1,6 @@
 # Trakr — Project Management Tool
 
-Agile PM tool with boards, backlogs, and sprint planning. Built with Next.js 16, Tailwind v4, Drizzle ORM, SQLite/Turso.
+Agile PM tool with boards, backlogs, and sprint planning. Built with Next.js 16, Tailwind v4, Drizzle ORM, Neon Postgres.
 
 ## Quick start
 
@@ -12,7 +12,7 @@ npm run db:seed            # Reset and seed demo data
 
 ## Architecture
 
-- **Database:** SQLite (local `./local.db`) via Drizzle ORM. Turso for production.
+- **Database:** Neon Postgres via Drizzle ORM. Local dev uses the same Neon instance.
 - **API:** REST routes in `src/app/api/`. All endpoints support JSON.
 - **UI:** Server components by default, client components where needed (`"use client"`).
 - **MCP Server:** `mcp-server/` — separate package wrapping the REST API.

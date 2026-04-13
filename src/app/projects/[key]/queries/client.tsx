@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { Header } from "@/components/Header";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { TypeBadge, StateBadge, IdBadge } from "@/components/Badge";
 import {
   Star,
@@ -371,6 +372,7 @@ export function QueriesClient({
   useEffect(() => {
     fetchSaved();
   }, [fetchSaved]);
+  useRealtimeRefresh(fetchSaved);
 
   // Run query
   const runQuery = useCallback(async () => {

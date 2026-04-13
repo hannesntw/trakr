@@ -4,6 +4,7 @@ import { projects, workflowStates } from "@/db/schema";
 import { eq, and, asc, max } from "drizzle-orm";
 import { z } from "zod";
 import { PRESETS, applyPreset } from "@/lib/workflow-presets";
+import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
@@ -80,6 +81,7 @@ export async function POST(
   const presetParsed = presetSchema.safeParse(body);
   if (presetParsed.success) {
     const states = await applyPreset(projectId, presetParsed.data.preset);
+    emit({ type: "workflow", action: "updated", id: projectId, projectId });
     return NextResponse.json(states, { status: 201 });
   }
 
@@ -135,5 +137,6 @@ export async function POST(
     })
     .returning();
 
+  emit({ type: "workflow", action: "created", id: row.id, projectId });
   return NextResponse.json(row, { status: 201 });
 }

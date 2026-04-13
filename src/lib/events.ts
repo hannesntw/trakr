@@ -4,9 +4,10 @@
 type Listener = (event: ChangeEvent) => void;
 
 export interface ChangeEvent {
-  type: "work-item" | "sprint" | "comment" | "attachment" | "link";
+  type: "work-item" | "sprint" | "comment" | "attachment" | "link" | "project" | "workflow";
   action: "created" | "updated" | "deleted";
   id: number;
+  projectId?: number; // allows clients to filter by project
   workItemId?: number; // for comments/attachments
 }
 

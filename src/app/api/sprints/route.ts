@@ -49,6 +49,6 @@ export async function POST(request: NextRequest) {
   }
 
   const [row] = await db.insert(sprints).values(parsed.data).returning();
-  emit({ type: "sprint", action: "created", id: row.id });
+  emit({ type: "sprint", action: "created", id: row.id, projectId: row.projectId });
   return NextResponse.json(row, { status: 201 });
 }

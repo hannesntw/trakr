@@ -2,6 +2,7 @@ export interface VariantConfig {
   id: string;
   label: string;
   features: {
+    // All existing features (now all in production)
     sprintCapacity: boolean;
     velocityTracking: boolean;
     burndownChart: boolean;
@@ -22,6 +23,11 @@ export interface VariantConfig {
     reparent: boolean;
     configurableWorkflow: boolean;
     storyPoints: boolean;
+    // GitHub integration (new)
+    githubLinks: boolean;
+    githubCIStatus: boolean;
+    githubAutoTransition: boolean;
+    createBranch: boolean;
   };
   tabs: Array<{ slug: string; label: string }>;
 }

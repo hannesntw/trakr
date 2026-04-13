@@ -3,6 +3,7 @@ import { projects, projectInvites } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
+import { RealtimeRefresh } from "@/components/RealtimeRefresh";
 import { auth, signOut } from "@/auth";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export default async function ProjectLayout({
 
   return (
     <div className="h-full flex">
+      <RealtimeRefresh />
       <Sidebar
         projects={visibleProjects}
         currentProjectKey={currentProject.key}

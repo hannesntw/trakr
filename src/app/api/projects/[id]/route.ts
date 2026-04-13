@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites, workItemSnapshots, savedQueries, workflowStates } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const updateSchema = z.object({
@@ -60,6 +61,7 @@ export async function PATCH(
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  emit({ type: "project", action: "updated", id: row.id, projectId: row.id });
   return NextResponse.json(row);
 }
 
@@ -97,5 +99,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  emit({ type: "project", action: "deleted", id: pid, projectId: pid });
   return NextResponse.json({ deleted: true });
 }

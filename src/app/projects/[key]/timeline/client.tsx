@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { DetailPanel } from "@/components/DetailPanel";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import type { WorkflowState } from "@/lib/constants";
 import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle, Circle, CircleDot, CircleCheck, Play, Pencil, Trash2 } from "lucide-react";
 
@@ -188,6 +189,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   }, [projectId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useRealtimeRefresh(fetchData);
 
   function collectIds(items: WorkItem[]): number[] {
     const ids: number[] = [];

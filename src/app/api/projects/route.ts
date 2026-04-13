@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { z } from "zod";
+import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
@@ -44,5 +45,6 @@ export async function POST(request: NextRequest) {
       ownerId: user.id,
     })
     .returning();
+  emit({ type: "project", action: "created", id: row.id, projectId: row.id });
   return NextResponse.json(row, { status: 201 });
 }
