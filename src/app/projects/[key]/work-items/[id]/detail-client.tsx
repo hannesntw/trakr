@@ -15,8 +15,18 @@ import { WorkItemLinks } from "@/components/WorkItemLinks";
 import { PointsPicker } from "@/components/PointsBadge";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { GitPullRequest, GitBranch, CheckCircle2, XCircle, Circle, ExternalLink } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 import { TYPE_LABELS, type WorkItemType, type WorkflowState } from "@/lib/constants";
+
+interface GitHubEventData {
+  prNumber: number | null;
+  prTitle: string | null;
+  prState: string | null;
+  branch: string | null;
+  ciStatus: string | null;
+  repo?: string;
+}
 
 interface WorkItem {
   id: number;
@@ -81,6 +91,8 @@ export function WorkItemDetailFull({
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
   const [newComment, setNewComment] = useState("");
   const [pageDragOver, setPageDragOver] = useState(false);
+  const [githubData, setGithubData] = useState<GitHubEventData | null>(null);
+  const [githubRepo, setGithubRepo] = useState<string | null>(null);
 
   async function handleFileUpload(file: File) {
     const formData = new FormData();
@@ -126,6 +138,22 @@ export function WorkItemDetailFull({
       if (parentRes.ok) setParent(await parentRes.json());
     } else {
       setParent(null);
+    }
+
+    // Fetch GitHub status for this project/work item
+    const ghRes = await fetch(`/api/projects/${projectId}/github/status`);
+    if (ghRes.ok) {
+      const ghData = await ghRes.json();
+      if (ghData.linked && ghData.items && ghData.items[workItemId]) {
+        setGithubData(ghData.items[workItemId]);
+        setGithubRepo(ghData.repo ?? null);
+      } else if (ghData.linked) {
+        setGithubData(null);
+        setGithubRepo(ghData.repo ?? null);
+      } else {
+        setGithubData(null);
+        setGithubRepo(null);
+      }
     }
   }, [workItemId, projectId]);
 
@@ -451,6 +479,77 @@ export function WorkItemDetailFull({
                 projectKey={projectKey}
                 workflowStates={workflowStates}
               />
+
+              {/* Development — GitHub integration */}
+              {githubRepo && (githubData?.prNumber || githubData?.branch) && (
+                <div className="bg-surface border border-border rounded-lg p-4">
+                  <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider flex items-center gap-1 mb-3">
+                    <GitBranch className="w-3 h-3" />
+                    Development
+                  </span>
+
+                  {/* Branch */}
+                  {githubData.branch && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <GitBranch className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                      <code className="text-xs bg-content-bg border border-border px-2 py-1 rounded font-mono text-text-secondary truncate">
+                        {githubData.branch}
+                      </code>
+                    </div>
+                  )}
+
+                  {/* Pull Request */}
+                  {githubData.prNumber && (
+                    <div className="border border-border rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <GitPullRequest className={`w-4 h-4 shrink-0 ${
+                          githubData.prState === "merged" ? "text-purple-600" :
+                          githubData.prState === "closed" ? "text-red-500" :
+                          "text-blue-600"
+                        }`} />
+                        <span className="text-sm font-medium text-text-primary flex-1 truncate">
+                          #{githubData.prNumber} {githubData.prTitle ?? ""}
+                        </span>
+                        <a
+                          href={`https://github.com/${githubRepo}/pull/${githubData.prNumber}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-text-tertiary hover:text-text-secondary transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-text-tertiary">
+                        <span className="flex items-center gap-1">
+                          <span className={`w-2 h-2 rounded-full ${
+                            githubData.prState === "merged" ? "bg-purple-500" :
+                            githubData.prState === "closed" ? "bg-red-500" :
+                            "bg-blue-500"
+                          }`} />
+                          {githubData.prState === "merged" ? "Merged" :
+                           githubData.prState === "closed" ? "Closed" :
+                           "Open"}
+                        </span>
+                        <span>{githubRepo}</span>
+                        {githubData.ciStatus && (
+                          <span className={`flex items-center gap-1 ${
+                            githubData.ciStatus === "success" || githubData.ciStatus === "passing" ? "text-emerald-500" :
+                            githubData.ciStatus === "failure" || githubData.ciStatus === "failing" ? "text-red-500" :
+                            "text-amber-500"
+                          }`}>
+                            {githubData.ciStatus === "success" || githubData.ciStatus === "passing" ? <CheckCircle2 className="w-3 h-3" /> :
+                             githubData.ciStatus === "failure" || githubData.ciStatus === "failing" ? <XCircle className="w-3 h-3" /> :
+                             <Circle className="w-3 h-3" />}
+                            CI {githubData.ciStatus === "success" || githubData.ciStatus === "passing" ? "passing" :
+                                githubData.ciStatus === "failure" || githubData.ciStatus === "failing" ? "failing" :
+                                "pending"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

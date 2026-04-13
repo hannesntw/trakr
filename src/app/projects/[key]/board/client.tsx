@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Header, CreateButton } from "@/components/Header";
-import { BoardCard } from "@/components/BoardCard";
+import { BoardCard, type GitHubStatus } from "@/components/BoardCard";
 import { DetailPanel } from "@/components/DetailPanel";
 import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
 import type { WorkflowState } from "@/lib/constants";
@@ -47,17 +47,27 @@ export function BoardClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [dragOverState, setDragOverState] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [githubStatusMap, setGithubStatusMap] = useState<Record<number, GitHubStatus>>({});
 
   const fetchData = useCallback(async () => {
-    const [sprintsRes, allItemsRes, wfRes] = await Promise.all([
+    const [sprintsRes, allItemsRes, wfRes, ghRes] = await Promise.all([
       fetch(`/api/sprints?projectId=${projectId}&state=active`),
       fetch(`/api/work-items?projectId=${projectId}`),
       fetch(`/api/projects/${projectId}/workflow`),
+      fetch(`/api/projects/${projectId}/github/status`),
     ]);
 
     const sprintsData: Sprint[] = await sprintsRes.json();
     const allItems: WorkItem[] = await allItemsRes.json();
     if (wfRes.ok) setWorkflowStates(await wfRes.json());
+    if (ghRes.ok) {
+      const ghData = await ghRes.json();
+      if (ghData.linked && ghData.items) {
+        setGithubStatusMap(ghData.items);
+      } else {
+        setGithubStatusMap({});
+      }
+    }
     const sprint = sprintsData[0] ?? null;
     setActiveSprint(sprint);
 
@@ -199,6 +209,7 @@ export function BoardClient({
                           : undefined
                       }
                       points={item.points}
+                      github={githubStatusMap[item.id] ?? null}
                     />
                   </div>
                 ))}

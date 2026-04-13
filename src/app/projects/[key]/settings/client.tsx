@@ -3,8 +3,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
-import { Trash2, Mail, GripVertical, Plus } from "lucide-react";
+import { Trash2, Mail, GripVertical, Plus, ExternalLink, Unlink, GitPullRequest, Rocket } from "lucide-react";
 import type { WorkflowState } from "@/lib/constants";
+
+function GitHubIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 016.02 0c2.3-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+  );
+}
+
+function ToggleButton({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? "bg-accent" : "bg-gray-300"}`}>
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-[18px]" : "translate-x-[3px]"}`} />
+    </button>
+  );
+}
 
 interface Project {
   id: number;
@@ -13,6 +29,10 @@ interface Project {
   description: string | null;
   visibility: string;
   ownerId: string | null;
+  githubOwner: string | null;
+  githubRepo: string | null;
+  githubStatusChecks: boolean;
+  githubPrComments: boolean;
 }
 
 interface Invite {
@@ -38,6 +58,26 @@ export function SettingsClient({ project }: { project: Project }) {
   const [editName, setEditName] = useState("");
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
+  // GitHub integration state
+  const [githubLinked, setGithubLinked] = useState(!!(project.githubOwner && project.githubRepo));
+  const [githubRepo, setGithubRepo] = useState(project.githubOwner && project.githubRepo ? `${project.githubOwner}/${project.githubRepo}` : "");
+  const [repoInput, setRepoInput] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [automations, setAutomations] = useState<Array<{ id: number; event: string; targetStateId: number; enabled: boolean; stateName: string }>>([]);
+  const [statusChecks, setStatusChecks] = useState(project.githubStatusChecks);
+  const [prComments, setPrComments] = useState(project.githubPrComments);
+  const [addingAutomation, setAddingAutomation] = useState(false);
+  const [newAutomationEvent, setNewAutomationEvent] = useState("pr_opened");
+  const [newAutomationStateId, setNewAutomationStateId] = useState<number | null>(null);
+
+  const eventLabels: Record<string, string> = {
+    pr_opened: "PR opened",
+    pr_merged: "PR merged",
+    pr_closed: "PR closed",
+    deploy_succeeded: "Deploy succeeded",
+    deploy_failed: "Deploy failed",
+  };
+
   const colorOptions = ["#9CA3AF", "#EF4444", "#F59E0B", "#10B981", "#06B6D4", "#6366F1", "#8B5CF6", "#EC4899", "#14B8A6"];
   const categoryLabels: Record<string, string> = { todo: "To Do", in_progress: "In Progress", done: "Done" };
   const categoryColors: Record<string, string> = { todo: "bg-gray-100 text-gray-600 border-gray-300", in_progress: "bg-blue-50 text-blue-600 border-blue-300", done: "bg-emerald-50 text-emerald-600 border-emerald-300" };
@@ -47,10 +87,106 @@ export function SettingsClient({ project }: { project: Project }) {
     if (res.ok) setWorkflowStates(await res.json());
   }, [project.id]);
 
+  const fetchAutomations = useCallback(async () => {
+    const res = await fetch(`/api/projects/${project.id}/github/automations`);
+    if (res.ok) setAutomations(await res.json());
+  }, [project.id]);
+
   useEffect(() => {
     fetch(`/api/projects/${project.id}/invites`).then(r => r.json()).then(setInvites);
     fetchWorkflow();
-  }, [project.id, fetchWorkflow]);
+    if (githubLinked) fetchAutomations();
+  }, [project.id, fetchWorkflow, fetchAutomations, githubLinked]);
+
+  async function connectRepo() {
+    if (!repoInput.includes("/")) return;
+    setConnecting(true);
+    const [owner, repo] = repoInput.split("/", 2);
+    const res = await fetch(`/api/projects/${project.id}/github`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ owner, repo }),
+    });
+    if (res.ok) {
+      setGithubLinked(true);
+      setGithubRepo(repoInput.trim());
+      setRepoInput("");
+      fetchAutomations();
+    }
+    setConnecting(false);
+  }
+
+  async function disconnectRepo() {
+    if (!confirm("Disconnect GitHub repository? All automation rules and event history will be deleted.")) return;
+    const res = await fetch(`/api/projects/${project.id}/github`, { method: "DELETE" });
+    if (res.ok) {
+      setGithubLinked(false);
+      setGithubRepo("");
+      setAutomations([]);
+    }
+  }
+
+  async function toggleAutomation(ruleId: number, enabled: boolean) {
+    await fetch(`/api/projects/${project.id}/github/automations/${ruleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    });
+    setAutomations(prev => prev.map(a => a.id === ruleId ? { ...a, enabled } : a));
+  }
+
+  async function updateAutomationState(ruleId: number, targetStateId: number) {
+    const res = await fetch(`/api/projects/${project.id}/github/automations/${ruleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetStateId }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setAutomations(prev => prev.map(a => a.id === ruleId ? { ...a, targetStateId, stateName: updated.stateName } : a));
+    }
+  }
+
+  async function deleteAutomation(ruleId: number) {
+    await fetch(`/api/projects/${project.id}/github/automations/${ruleId}`, { method: "DELETE" });
+    setAutomations(prev => prev.filter(a => a.id !== ruleId));
+  }
+
+  async function addAutomation() {
+    if (!newAutomationStateId) return;
+    const res = await fetch(`/api/projects/${project.id}/github/automations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: newAutomationEvent, targetStateId: newAutomationStateId }),
+    });
+    if (res.ok) {
+      const rule = await res.json();
+      setAutomations(prev => [...prev, rule]);
+      setAddingAutomation(false);
+      setNewAutomationEvent("pr_opened");
+      setNewAutomationStateId(null);
+    }
+  }
+
+  async function toggleStatusChecks() {
+    const newVal = !statusChecks;
+    setStatusChecks(newVal);
+    await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ githubStatusChecks: newVal }),
+    });
+  }
+
+  async function togglePrComments() {
+    const newVal = !prComments;
+    setPrComments(newVal);
+    await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ githubPrComments: newVal }),
+    });
+  }
 
   async function saveGeneral() {
     setSaving(true);
@@ -412,6 +548,173 @@ export function SettingsClient({ project }: { project: Project }) {
               </div>
               <p className="text-[10px] text-text-tertiary mt-2">Each state becomes a board column, grouped by category. Items in "Done" states are excluded from <code className="font-mono">is:open</code> queries.</p>
             </div>
+          </section>
+
+          {/* GitHub Integration */}
+          <section>
+            <h2 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <GitHubIcon className="w-4 h-4" />
+              GitHub
+            </h2>
+
+            {/* Linked repo */}
+            <div className="bg-surface border border-border rounded-lg p-4 mb-4">
+              <span className="text-xs text-text-tertiary block mb-2">Repository</span>
+              {githubLinked ? (
+                <div className="flex items-center gap-3">
+                  <GitHubIcon className="w-5 h-5 text-text-secondary shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-text-primary">{githubRepo}</p>
+                    <p className="text-xs text-text-tertiary">Connected — receiving webhook events</p>
+                  </div>
+                  <a href={`https://github.com/${githubRepo}`} target="_blank" rel="noopener noreferrer" className="p-1.5 text-text-tertiary hover:text-text-secondary transition-colors">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <button
+                    onClick={disconnectRepo}
+                    className="px-2.5 py-1 text-xs text-red-500 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                  >
+                    <Unlink className="w-3 h-3 inline mr-1" />
+                    Disconnect
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={repoInput}
+                    onChange={e => setRepoInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && connectRepo()}
+                    placeholder="owner/repository"
+                    className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  />
+                  <button
+                    onClick={connectRepo}
+                    disabled={!repoInput.includes("/") || connecting}
+                    className="px-3 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-sm rounded-md transition-colors"
+                  >
+                    {connecting ? "Connecting..." : "Connect"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Automations and feedback — only when linked */}
+            {githubLinked && (
+              <>
+                {/* Automation rules */}
+                <div className="bg-surface border border-border rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Automations</span>
+                  </div>
+                  <p className="text-xs text-text-secondary mb-3">
+                    Automatically move work items through workflow states based on GitHub events.
+                    Work items are matched by <code className="font-mono text-accent">{project.key}-123</code> mentions in PR titles, branch names, or commit messages.
+                  </p>
+
+                  <div className="space-y-2 mb-3">
+                    {automations.map((rule) => (
+                      <div key={rule.id} className="flex items-center gap-3 p-2.5 bg-content-bg rounded-md group">
+                        <ToggleButton
+                          enabled={rule.enabled}
+                          onClick={() => toggleAutomation(rule.id, !rule.enabled)}
+                        />
+
+                        <div className={`flex items-center gap-2 flex-1 ${!rule.enabled ? "opacity-40" : ""}`}>
+                          {rule.event.startsWith("pr_") && <GitPullRequest className={`w-3.5 h-3.5 ${rule.event === "pr_merged" ? "text-purple-500" : rule.event === "pr_closed" ? "text-red-500" : "text-blue-500"}`} />}
+                          {rule.event.startsWith("deploy_") && <Rocket className={`w-3.5 h-3.5 ${rule.event === "deploy_succeeded" ? "text-emerald-500" : "text-red-500"}`} />}
+                          <span className="text-xs text-text-primary">{eventLabels[rule.event] ?? rule.event}</span>
+                          <span className="text-xs text-text-tertiary">&rarr;</span>
+                          <select
+                            value={rule.targetStateId}
+                            onChange={e => updateAutomationState(rule.id, Number(e.target.value))}
+                            className="text-xs px-2 py-0.5 border border-border rounded bg-surface text-text-primary"
+                          >
+                            {workflowStates.map(s => (
+                              <option key={s.id} value={s.id}>{s.displayName}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <button
+                          onClick={() => deleteAutomation(rule.id)}
+                          className="p-1 text-text-tertiary hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {addingAutomation ? (
+                    <div className="flex items-center gap-2 p-2.5 bg-content-bg rounded-md">
+                      <select
+                        value={newAutomationEvent}
+                        onChange={e => setNewAutomationEvent(e.target.value)}
+                        className="text-xs px-2 py-1 border border-border rounded bg-surface text-text-primary"
+                      >
+                        {Object.entries(eventLabels).map(([val, label]) => (
+                          <option key={val} value={val}>{label}</option>
+                        ))}
+                      </select>
+                      <span className="text-xs text-text-tertiary">&rarr;</span>
+                      <select
+                        value={newAutomationStateId ?? ""}
+                        onChange={e => setNewAutomationStateId(Number(e.target.value))}
+                        className="text-xs px-2 py-1 border border-border rounded bg-surface text-text-primary"
+                      >
+                        <option value="" disabled>Select state...</option>
+                        {workflowStates.map(s => (
+                          <option key={s.id} value={s.id}>{s.displayName}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={addAutomation}
+                        disabled={!newAutomationStateId}
+                        className="px-2.5 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs rounded-md"
+                      >
+                        Add
+                      </button>
+                      <button onClick={() => setAddingAutomation(false)} className="px-2 py-1 text-xs text-text-tertiary hover:text-text-secondary">
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddingAutomation(true)}
+                      className="text-xs text-text-tertiary hover:text-accent transition-colors flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add automation rule
+                    </button>
+                  )}
+                </div>
+
+                {/* GitHub Feedback */}
+                <div className="bg-surface border border-border rounded-lg p-4 mb-4">
+                  <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider block mb-3">GitHub Feedback</span>
+                  <p className="text-xs text-text-secondary mb-3">
+                    Push Trakr context back into GitHub so developers see work item info without leaving their PR.
+                  </p>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <ToggleButton enabled={statusChecks} onClick={toggleStatusChecks} />
+                      <div>
+                        <p className="text-sm text-text-primary">Status checks</p>
+                        <p className="text-xs text-text-tertiary">Show linked work item state as a GitHub Status Check on PRs</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <ToggleButton enabled={prComments} onClick={togglePrComments} />
+                      <div>
+                        <p className="text-sm text-text-primary">PR comments</p>
+                        <p className="text-xs text-text-tertiary">Post work item context (title, acceptance criteria, sprint) as a comment on linked PRs</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
           </section>
 
           {/* Danger Zone */}

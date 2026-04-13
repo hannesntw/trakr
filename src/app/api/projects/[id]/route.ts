@@ -17,6 +17,8 @@ const updateSchema = z.object({
   description: z.string().optional(),
   visibility: z.enum(["public", "private"]).optional(),
   ownerId: z.string().optional(),
+  githubStatusChecks: z.boolean().optional(),
+  githubPrComments: z.boolean().optional(),
 });
 
 export async function GET(
