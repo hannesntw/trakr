@@ -123,8 +123,17 @@ function SuccessState() {
             <Check className="w-8 h-8 text-emerald-600" />
           </div>
           <h2 className="text-xl font-bold text-text-primary mb-2">Connected!</h2>
-          <p className="text-sm text-text-secondary">
-            Claude Code can now access Trakr on your behalf. You can close this tab.
+          <p className="text-sm text-text-secondary mb-4">
+            Claude Code can now access Trakr on your behalf.
+          </p>
+          <a
+            href="/"
+            className="inline-block px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Open Trakr
+          </a>
+          <p className="text-xs text-text-tertiary mt-3">
+            or close this tab and return to Claude Code
           </p>
         </div>
       </div>
