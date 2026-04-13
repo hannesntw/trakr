@@ -15,18 +15,19 @@ import { WorkItemLinks } from "@/components/WorkItemLinks";
 import { PointsPicker } from "@/components/PointsBadge";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { GitPullRequest, GitBranch, CheckCircle2, XCircle, Circle, ExternalLink } from "lucide-react";
+import { GitPullRequest, GitBranch, GitCommit, CheckCircle2, XCircle, Circle, ExternalLink, Rocket } from "lucide-react";
 import { formatFullDateTime } from "@/lib/utils";
 import { RelativeTime } from "@/components/RelativeTime";
 import { TYPE_LABELS, type WorkItemType, type WorkflowState } from "@/lib/constants";
 
 interface GitHubEventData {
-  prNumber: number | null;
-  prTitle: string | null;
-  prState: string | null;
-  branch: string | null;
-  ciStatus: string | null;
+  linked: boolean;
   repo?: string;
+  branch?: string | null;
+  commits?: { sha: string; message: string; createdAt: string }[];
+  pullRequests?: { number: number; title: string | null; state: string | null; ciStatus: string | null }[];
+  deployments?: { status: string | null; createdAt: string }[];
+  ciChecks?: { sha: string | null; status: string | null; createdAt: string }[];
 }
 
 interface WorkItem {
@@ -93,7 +94,6 @@ export function WorkItemDetailFull({
   const [newComment, setNewComment] = useState("");
   const [pageDragOver, setPageDragOver] = useState(false);
   const [githubData, setGithubData] = useState<GitHubEventData | null>(null);
-  const [githubRepo, setGithubRepo] = useState<string | null>(null);
 
   async function handleFileUpload(file: File) {
     const formData = new FormData();
@@ -141,20 +141,13 @@ export function WorkItemDetailFull({
       setParent(null);
     }
 
-    // Fetch GitHub status for this project/work item
-    const ghRes = await fetch(`/api/projects/${projectId}/github/status`);
+    // Fetch GitHub events for this work item
+    const ghRes = await fetch(`/api/work-items/${workItemId}/github`);
     if (ghRes.ok) {
-      const ghData = await ghRes.json();
-      if (ghData.linked && ghData.items && ghData.items[workItemId]) {
-        setGithubData(ghData.items[workItemId]);
-        setGithubRepo(ghData.repo ?? null);
-      } else if (ghData.linked) {
-        setGithubData(null);
-        setGithubRepo(ghData.repo ?? null);
-      } else {
-        setGithubData(null);
-        setGithubRepo(null);
-      }
+      const ghData: GitHubEventData = await ghRes.json();
+      setGithubData(ghData);
+    } else {
+      setGithubData(null);
     }
   }, [workItemId, projectId]);
 
@@ -480,75 +473,139 @@ export function WorkItemDetailFull({
               />
 
               {/* Development — GitHub integration */}
-              {githubRepo && (githubData?.prNumber || githubData?.branch) && (
-                <div className="bg-surface border border-border rounded-lg p-4">
-                  <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider flex items-center gap-1 mb-3">
-                    <GitBranch className="w-3 h-3" />
-                    Development
-                  </span>
+              {githubData?.linked && (() => {
+                const repo = githubData.repo!;
+                const hasActivity =
+                  (githubData.commits?.length ?? 0) > 0 ||
+                  (githubData.pullRequests?.length ?? 0) > 0 ||
+                  (githubData.deployments?.length ?? 0) > 0;
 
-                  {/* Branch */}
-                  {githubData.branch && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <GitBranch className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
-                      <code className="text-xs bg-content-bg border border-border px-2 py-1 rounded font-mono text-text-secondary truncate">
-                        {githubData.branch}
-                      </code>
-                    </div>
-                  )}
+                return (
+                  <div className="bg-surface border border-border rounded-lg p-4">
+                    <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider flex items-center gap-1 mb-3">
+                      <GitBranch className="w-3 h-3" />
+                      Development
+                    </span>
 
-                  {/* Pull Request */}
-                  {githubData.prNumber && (
-                    <div className="border border-border rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <GitPullRequest className={`w-4 h-4 shrink-0 ${
-                          githubData.prState === "merged" ? "text-purple-600" :
-                          githubData.prState === "closed" ? "text-red-500" :
-                          "text-blue-600"
-                        }`} />
-                        <span className="text-sm font-medium text-text-primary flex-1 truncate">
-                          #{githubData.prNumber} {githubData.prTitle ?? ""}
-                        </span>
-                        <a
-                          href={`https://github.com/${githubRepo}/pull/${githubData.prNumber}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-text-tertiary hover:text-text-secondary transition-colors"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                        </a>
+                    {/* Branch */}
+                    {githubData.branch && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <GitBranch className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                        <code className="text-xs bg-content-bg border border-border px-2 py-1 rounded font-mono text-text-secondary truncate">
+                          {githubData.branch}
+                        </code>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-text-tertiary">
-                        <span className="flex items-center gap-1">
-                          <span className={`w-2 h-2 rounded-full ${
-                            githubData.prState === "merged" ? "bg-purple-500" :
-                            githubData.prState === "closed" ? "bg-red-500" :
-                            "bg-blue-500"
-                          }`} />
-                          {githubData.prState === "merged" ? "Merged" :
-                           githubData.prState === "closed" ? "Closed" :
-                           "Open"}
-                        </span>
-                        <span>{githubRepo}</span>
-                        {githubData.ciStatus && (
-                          <span className={`flex items-center gap-1 ${
-                            githubData.ciStatus === "success" || githubData.ciStatus === "passing" ? "text-emerald-500" :
-                            githubData.ciStatus === "failure" || githubData.ciStatus === "failing" ? "text-red-500" :
-                            "text-amber-500"
-                          }`}>
-                            {githubData.ciStatus === "success" || githubData.ciStatus === "passing" ? <CheckCircle2 className="w-3 h-3" /> :
-                             githubData.ciStatus === "failure" || githubData.ciStatus === "failing" ? <XCircle className="w-3 h-3" /> :
-                             <Circle className="w-3 h-3" />}
-                            CI {githubData.ciStatus === "success" || githubData.ciStatus === "passing" ? "passing" :
-                                githubData.ciStatus === "failure" || githubData.ciStatus === "failing" ? "failing" :
-                                "pending"}
-                          </span>
-                        )}
+                    )}
+
+                    {/* Pull Requests */}
+                    {githubData.pullRequests && githubData.pullRequests.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {githubData.pullRequests.map((pr) => (
+                          <div key={pr.number} className="border border-border rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <GitPullRequest className={`w-4 h-4 shrink-0 ${
+                                pr.state === "merged" ? "text-purple-600" :
+                                pr.state === "closed" ? "text-red-500" :
+                                "text-blue-600"
+                              }`} />
+                              <span className="text-sm font-medium text-text-primary flex-1 truncate">
+                                #{pr.number} {pr.title ?? ""}
+                              </span>
+                              <a
+                                href={`https://github.com/${repo}/pull/${pr.number}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-text-tertiary hover:text-text-secondary transition-colors"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-text-tertiary">
+                              <span className="flex items-center gap-1">
+                                <span className={`w-2 h-2 rounded-full ${
+                                  pr.state === "merged" ? "bg-purple-500" :
+                                  pr.state === "closed" ? "bg-red-500" :
+                                  "bg-blue-500"
+                                }`} />
+                                {pr.state === "merged" ? "Merged" :
+                                 pr.state === "closed" ? "Closed" :
+                                 "Open"}
+                              </span>
+                              <span>{repo}</span>
+                              {pr.ciStatus && (
+                                <span className={`flex items-center gap-1 ${
+                                  pr.ciStatus === "success" || pr.ciStatus === "passing" ? "text-emerald-500" :
+                                  pr.ciStatus === "failure" || pr.ciStatus === "failing" ? "text-red-500" :
+                                  "text-amber-500"
+                                }`}>
+                                  {pr.ciStatus === "success" || pr.ciStatus === "passing" ? <CheckCircle2 className="w-3 h-3" /> :
+                                   pr.ciStatus === "failure" || pr.ciStatus === "failing" ? <XCircle className="w-3 h-3" /> :
+                                   <Circle className="w-3 h-3" />}
+                                  CI {pr.ciStatus === "success" || pr.ciStatus === "passing" ? "passing" :
+                                      pr.ciStatus === "failure" || pr.ciStatus === "failing" ? "failing" :
+                                      "pending"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+
+                    {/* Recent commits */}
+                    {githubData.commits && githubData.commits.length > 0 && (
+                      <div className="space-y-1.5 mb-3">
+                        <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Recent commits</span>
+                        {githubData.commits.map((c, i) => (
+                          <div key={`${c.sha}-${i}`} className="flex items-center gap-2 text-xs">
+                            <GitCommit className="w-3 h-3 text-text-tertiary shrink-0" />
+                            <a
+                              href={`https://github.com/${repo}/commit/${c.sha}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-text-tertiary font-mono hover:text-text-secondary transition-colors"
+                            >
+                              {c.sha.slice(0, 7)}
+                            </a>
+                            <span className="text-text-secondary truncate flex-1">
+                              {c.message ? c.message.split("\n")[0] : ""}
+                            </span>
+                            <RelativeTime date={c.createdAt} className="text-text-tertiary shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Deployments */}
+                    {githubData.deployments && githubData.deployments.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Deployments</span>
+                        {githubData.deployments.map((d, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <Rocket className="w-3 h-3 text-text-tertiary shrink-0" />
+                            <span className={`flex items-center gap-1 ${
+                              d.status === "success" ? "text-emerald-500" :
+                              d.status === "failure" ? "text-red-500" :
+                              "text-text-tertiary"
+                            }`}>
+                              {d.status === "success" ? <CheckCircle2 className="w-3 h-3" /> :
+                               d.status === "failure" ? <XCircle className="w-3 h-3" /> :
+                               <Circle className="w-3 h-3" />}
+                              Deploy {d.status ?? "unknown"}
+                            </span>
+                            <RelativeTime date={d.createdAt} className="text-text-tertiary ml-auto shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!hasActivity && (
+                      <p className="text-xs text-text-tertiary">No development activity</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
