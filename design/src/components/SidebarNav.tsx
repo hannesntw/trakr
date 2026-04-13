@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useVariant } from "./VariantContext";
-import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2 } from "lucide-react";
+import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2, Building2, Users, Shield, ScrollText, Lock } from "lucide-react";
 
 const mockProjects = [
   { key: "PIC", name: "Pictura", owned: false },
@@ -60,6 +60,16 @@ export function SidebarNav({ variant }: { variant: string }) {
     { href: `/${variant}/sprints`, icon: CalendarRange, label: "Sprints", show: true },
     { href: `/${variant}/timeline`, icon: GanttChart, label: "Timeline", show: config.features.timelinePlanning },
     { href: `/${variant}/settings`, icon: Settings, label: "Settings", show: isOwned },
+  ];
+
+  const hasOrg = config.features.orgManagement;
+  const orgNavItems = [
+    { href: `/${variant}/org`, icon: Building2, label: "Overview" },
+    { href: `/${variant}/org/members`, icon: Users, label: "Members" },
+    { href: `/${variant}/org/teams`, icon: Users, label: "Teams" },
+    { href: `/${variant}/org/roles`, icon: Shield, label: "Roles" },
+    { href: `/${variant}/org/audit`, icon: ScrollText, label: "Audit Log" },
+    { href: `/${variant}/org/security`, icon: Lock, label: "Security" },
   ];
 
   return (
@@ -176,6 +186,28 @@ export function SidebarNav({ variant }: { variant: string }) {
           </Link>
         ))}
       </nav>
+
+      {/* Organization nav */}
+      {hasOrg && (
+        <div className="border-t border-sidebar-border py-2 px-2">
+          <div className={`flex items-center gap-2.5 pl-2 py-1 mb-0.5 whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
+            <span className="text-[10px] font-medium text-sidebar-text uppercase tracking-wider">Organization</span>
+          </div>
+          {orgNavItems.map(item => (
+            <Link
+              key={item.label}
+              href={item.href}
+              title={isCollapsed ? item.label : undefined}
+              className="flex items-center gap-2.5 pl-2 py-1.5 rounded-md text-sm hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors"
+            >
+              <item.icon className="w-4 h-4 shrink-0" />
+              <span className={`whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* User (mock) */}
       <div className="border-t border-sidebar-border py-2 px-2">
