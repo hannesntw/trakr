@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
   }
 
   const action = typeof payload.action === "string" ? payload.action : undefined;
-  const results: Array<{ projectId: number; eventsCreated: number }> = [];
+  const results: Array<{ projectId: number; eventsCreated: number; automationsApplied: number }> = [];
 
   for (const project of linkedProjects) {
     // Verify HMAC signature using this project's webhook secret
