@@ -158,7 +158,8 @@ function ApproveView({
   session,
   code,
 }: {
-  session: { user: { id?: string; name?: string | null; email?: string | null; image?: string | null } };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: any;
   code: string;
 }) {
   async function authorize() {
