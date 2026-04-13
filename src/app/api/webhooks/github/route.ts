@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, workItems, githubEvents, githubAutomations, workflowStates, statusHistory } from "@/db/schema";
+import { projects, workItems, githubEvents, githubAutomations, workflowStates, statusHistory, sprints } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { emit } from "@/lib/events";
+import { postStatusCheck, postPrComment } from "@/lib/github";
+import type { WorkItemInfo, SprintInfo } from "@/lib/github";
 
 /** Extract display-ID mentions like TRK-123 or PLS-5 from text. */
 function extractDisplayIds(text: string): string[] {
@@ -338,6 +340,73 @@ export async function POST(request: NextRequest) {
             }
           }
         }
+      }
+    }
+
+    // --- GitHub Status Checks & PR Comments ---
+    // Only runs for pull_request events with matched work items
+    if (eventType === "pull_request" && matchedItems.length > 0 && fields.sha) {
+      // Fetch full work item details for status checks and comments
+      const fullItems = await db
+        .select({
+          id: workItems.id,
+          displayId: workItems.displayId,
+          title: workItems.title,
+          state: workItems.state,
+          points: workItems.points,
+          description: workItems.description,
+          sprintId: workItems.sprintId,
+        })
+        .from(workItems)
+        .where(inArray(workItems.id, matchedItems.map((i) => i.id)));
+
+      const wiInfos: WorkItemInfo[] = fullItems.map((wi) => ({
+        id: wi.id,
+        displayId: wi.displayId ?? `#${wi.id}`,
+        title: wi.title,
+        state: wi.state,
+        points: wi.points,
+        description: wi.description,
+      }));
+
+      // Post status checks (one per work item)
+      if (project.githubStatusChecks) {
+        for (const wi of wiInfos) {
+          // Fire-and-forget — errors are logged inside postStatusCheck
+          postStatusCheck({
+            owner,
+            repo: repoName,
+            sha: fields.sha,
+            projectKey: project.key,
+            workItem: wi,
+          });
+        }
+      }
+
+      // Post or update PR comment
+      if (project.githubPrComments && fields.prNumber && (action === "opened" || action === "synchronize")) {
+        // Resolve sprint info from the first work item that has one
+        let sprintInfo: SprintInfo | null = null;
+        const sprintId = fullItems.find((wi) => wi.sprintId)?.sprintId;
+        if (sprintId) {
+          const [s] = await db
+            .select({ name: sprints.name, goal: sprints.goal })
+            .from(sprints)
+            .where(eq(sprints.id, sprintId));
+          if (s) {
+            sprintInfo = { name: s.name, goal: s.goal };
+          }
+        }
+
+        // Fire-and-forget
+        postPrComment({
+          owner,
+          repo: repoName,
+          prNumber: fields.prNumber,
+          projectKey: project.key,
+          workItems: wiInfos,
+          sprint: sprintInfo,
+        });
       }
     }
 

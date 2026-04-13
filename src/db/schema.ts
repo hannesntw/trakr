@@ -76,6 +76,8 @@ export const projects = pgTable("projects", {
   githubOwner: text("github_owner"),
   githubRepo: text("github_repo"),
   githubWebhookSecret: text("github_webhook_secret"),
+  githubStatusChecks: boolean("github_status_checks").notNull().default(true),
+  githubPrComments: boolean("github_pr_comments").notNull().default(true),
 });
 
 export const apiKeys = pgTable("api_keys", {
