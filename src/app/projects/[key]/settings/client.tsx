@@ -63,6 +63,8 @@ export function SettingsClient({ project }: { project: Project }) {
   const [githubRepo, setGithubRepo] = useState(project.githubOwner && project.githubRepo ? `${project.githubOwner}/${project.githubRepo}` : "");
   const [repoInput, setRepoInput] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [webhookSecret, setWebhookSecret] = useState<string | null>(null); // shown once after connecting
+  const [secretCopied, setSecretCopied] = useState(false);
   const [automations, setAutomations] = useState<Array<{ id: number; event: string; targetStateId: number; enabled: boolean; stateName: string }>>([]);
   const [statusChecks, setStatusChecks] = useState(project.githubStatusChecks);
   const [prComments, setPrComments] = useState(project.githubPrComments);
@@ -108,9 +110,11 @@ export function SettingsClient({ project }: { project: Project }) {
       body: JSON.stringify({ owner, repo }),
     });
     if (res.ok) {
+      const data = await res.json();
       setGithubLinked(true);
       setGithubRepo(repoInput.trim());
       setRepoInput("");
+      setWebhookSecret(data.webhookSecret ?? null);
       fetchAutomations();
     }
     setConnecting(false);
@@ -597,6 +601,79 @@ export function SettingsClient({ project }: { project: Project }) {
                 </div>
               )}
             </div>
+
+            {/* Webhook setup — shown after connecting or when secret is available */}
+            {githubLinked && (
+              <div className="bg-surface border border-border rounded-lg p-4 mb-4">
+                <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider block mb-2">Webhook</span>
+                {webhookSecret ? (
+                  <>
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
+                      <p className="text-xs text-amber-800 font-medium mb-1">Set up the GitHub webhook to receive events</p>
+                      <p className="text-xs text-amber-700">The webhook secret is shown only once. Copy it now.</p>
+                    </div>
+
+                    <div className="space-y-2 mb-3">
+                      <div>
+                        <span className="text-xs text-text-tertiary block mb-1">Payload URL</span>
+                        <div className="flex gap-1.5">
+                          <code className="flex-1 text-xs bg-content-bg border border-border rounded px-2.5 py-1.5 font-mono text-text-secondary select-all">
+                            {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/github` : "/api/webhooks/github"}
+                          </code>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/github`)}
+                            className="px-2 py-1.5 text-xs text-text-tertiary hover:text-accent border border-border rounded transition-colors"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-text-tertiary block mb-1">Secret</span>
+                        <div className="flex gap-1.5">
+                          <code className="flex-1 text-xs bg-content-bg border border-border rounded px-2.5 py-1.5 font-mono text-text-secondary select-all">
+                            {webhookSecret}
+                          </code>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(webhookSecret); setSecretCopied(true); setTimeout(() => setSecretCopied(false), 2000); }}
+                            className="px-2 py-1.5 text-xs text-text-tertiary hover:text-accent border border-border rounded transition-colors"
+                          >
+                            {secretCopied ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <a
+                      href={`https://github.com/${githubRepo}/settings/hooks/new`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-accent border border-border rounded-md hover:bg-content-bg transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Open GitHub webhook settings
+                    </a>
+
+                    <p className="text-[10px] text-text-tertiary mt-2">
+                      Content type: <code className="font-mono">application/json</code> · SSL: enabled · Events: Pull requests, Pushes, Check suites, Deployments
+                    </p>
+
+                    <button
+                      onClick={() => setWebhookSecret(null)}
+                      className="text-[10px] text-text-tertiary hover:text-text-secondary mt-2 block"
+                    >
+                      I&apos;ve saved the secret — dismiss
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Webhook configured
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Automations and feedback — only when linked */}
             {githubLinked && (
