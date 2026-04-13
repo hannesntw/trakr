@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { sprints } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -46,6 +46,23 @@ export async function PATCH(
       { error: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
+  }
+
+  // When activating a sprint, close all other active sprints in the same project
+  if (parsed.data.state === "active") {
+    const [existing] = await db.select().from(sprints).where(eq(sprints.id, Number(id)));
+    if (existing) {
+      await db
+        .update(sprints)
+        .set({ state: "closed" })
+        .where(
+          and(
+            eq(sprints.projectId, existing.projectId),
+            eq(sprints.state, "active"),
+            ne(sprints.id, Number(id))
+          )
+        );
+    }
   }
 
   const [row] = await db

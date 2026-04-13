@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
+
+// Mock api-auth to avoid pulling in next-auth (needs full Next.js runtime)
+vi.mock("@/lib/api-auth", () => ({
+  resolveApiUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+// Import route handlers after mock is set up
 import { GET as listSprints } from "../sprints/route";
 import { GET as getSprint, PATCH as patchSprint } from "../sprints/[id]/route";
 
@@ -64,13 +71,27 @@ describe("Sprints API", () => {
     const data = await res.json();
     expect(data.state).toBe("active");
 
-    // Restore
+    // Activating sprint 4 should have closed sprint 3 (same project)
+    const getReq = new NextRequest("http://localhost/api/sprints/3");
+    const getRes = await getSprint(getReq, makeParams(3));
+    const sprint3 = await getRes.json();
+    expect(sprint3.state).toBe("closed");
+
+    // Restore sprint 4 back to planning
     const restoreReq = new NextRequest("http://localhost/api/sprints/4", {
       method: "PATCH",
       body: JSON.stringify({ state: "planning" }),
       headers: { "Content-Type": "application/json" },
     });
     await patchSprint(restoreReq, makeParams(4));
+
+    // Restore sprint 3 back to active (was closed by activating sprint 4)
+    const restoreSprint3 = new NextRequest("http://localhost/api/sprints/3", {
+      method: "PATCH",
+      body: JSON.stringify({ state: "active" }),
+      headers: { "Content-Type": "application/json" },
+    });
+    await patchSprint(restoreSprint3, makeParams(3));
   });
 
   it("Sprint has startDate and endDate", async () => {

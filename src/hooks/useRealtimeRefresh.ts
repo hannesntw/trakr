@@ -3,9 +3,15 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { ChangeEvent } from "@/lib/events";
 
+const POLL_INTERVAL = 5000; // 5 seconds
+
 /**
  * Subscribes to the SSE event stream and calls `onRefresh` whenever
  * a change event arrives. Debounces rapid-fire events (e.g. bulk MCP updates).
+ *
+ * Includes a polling fallback (every 5s) for cross-instance updates on
+ * serverless platforms (e.g. Vercel) where SSE only works within a single
+ * instance. Polling is skipped when an SSE event was received recently.
  *
  * Returns a set of recently-changed work-item IDs (for highlight animations).
  * IDs are automatically cleared after 2 seconds.
@@ -14,6 +20,7 @@ export function useRealtimeRefresh(onRefresh: () => void) {
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
 
+  const lastSseEvent = useRef(0);
   const [changedIds, setChangedIds] = useState<Set<number>>(new Set());
   const clearTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
@@ -56,6 +63,8 @@ export function useRealtimeRefresh(onRefresh: () => void) {
       es = new EventSource("/api/events");
 
       es.onmessage = (msg) => {
+        lastSseEvent.current = Date.now();
+
         let event: ChangeEvent | undefined;
         try {
           event = JSON.parse(msg.data) as ChangeEvent;
@@ -83,9 +92,20 @@ export function useRealtimeRefresh(onRefresh: () => void) {
     }
 
     connect();
+
+    // Polling fallback for cross-instance updates (serverless).
+    // Only polls when the tab is visible and no SSE event arrived recently.
+    const pollTimer = setInterval(() => {
+      if (disposed) return;
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastSseEvent.current < POLL_INTERVAL) return;
+      onRefreshRef.current();
+    }, POLL_INTERVAL);
+
     return () => {
       disposed = true;
       clearTimeout(debounceTimer);
+      clearInterval(pollTimer);
       es?.close();
       // Clean up all highlight timers
       for (const timer of clearTimers.current.values()) {

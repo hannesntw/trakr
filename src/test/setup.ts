@@ -48,6 +48,14 @@ beforeAll(async () => {
     console.log("Test data seeded.");
   }
 
+  // Ensure sprint states match seed data (tests may have mutated them)
+  await db.update(schema.sprints).set({ state: "closed" }).where(eq(schema.sprints.id, 1));
+  await db.update(schema.sprints).set({ state: "closed" }).where(eq(schema.sprints.id, 2));
+  await db.update(schema.sprints).set({ state: "active" }).where(eq(schema.sprints.id, 3));
+  await db.update(schema.sprints).set({ state: "planning" }).where(eq(schema.sprints.id, 4));
+  await db.update(schema.sprints).set({ state: "active" }).where(eq(schema.sprints.id, 5));
+  await db.update(schema.sprints).set({ state: "planning" }).where(eq(schema.sprints.id, 6));
+
   // Ensure test user
   const existingUser = await db.select().from(schema.users).where(eq(schema.users.id, "test-user"));
   if (existingUser.length === 0) {

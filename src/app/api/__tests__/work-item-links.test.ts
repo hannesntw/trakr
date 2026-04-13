@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { NextRequest } from "next/server";
+
+// Mock api-auth to avoid pulling in next-auth (needs full Next.js runtime)
+vi.mock("@/lib/api-auth", () => ({
+  resolveApiUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+// Import route handlers after mock is set up
 import { GET, POST } from "../work-items/[id]/links/route";
 import { DELETE } from "../work-items/[id]/links/[linkId]/route";
 
