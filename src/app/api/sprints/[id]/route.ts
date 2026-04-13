@@ -4,6 +4,7 @@ import { sprints } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -32,6 +33,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);

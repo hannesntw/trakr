@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -14,6 +15,7 @@ const updateSchema = z.object({
     .optional(),
   description: z.string().optional(),
   visibility: z.enum(["public", "private"]).optional(),
+  ownerId: z.string().optional(),
 });
 
 export async function GET(
@@ -35,6 +37,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
@@ -57,9 +64,14 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const pid = Number(id);
 

@@ -3,11 +3,17 @@ import { db } from "@/db";
 import { workItemLinks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { emit } from "@/lib/events";
+import { resolveApiUser } from "@/lib/api-auth";
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; linkId: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id, linkId } = await params;
   const workItemId = Number(id);
 

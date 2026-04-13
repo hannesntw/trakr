@@ -4,6 +4,7 @@ import { projects, workflowStates } from "@/db/schema";
 import { eq, and, asc, max } from "drizzle-orm";
 import { z } from "zod";
 import { PRESETS, applyPreset } from "@/lib/workflow-presets";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
   displayName: z.string().min(1),
@@ -57,6 +58,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const projectId = Number(id);
 

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { attachments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { emit } from "@/lib/events";
+import { resolveApiUser } from "@/lib/api-auth";
 
 export async function GET(
   _request: NextRequest,
@@ -27,6 +28,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const formData = await request.formData();
   const file = formData.get("file") as File | null;

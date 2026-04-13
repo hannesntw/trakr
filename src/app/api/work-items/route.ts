@@ -4,6 +4,7 @@ import { workItems, projects } from "@/db/schema";
 import { eq, and, like, sql, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
   projectId: z.number().int().positive(),
@@ -53,6 +54,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Require authenticated user
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {

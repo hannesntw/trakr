@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { workflowStates, workItems } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const updateSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -14,6 +15,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; stateId: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id, stateId } = await params;
   const projectId = Number(id);
   const stateIdNum = Number(stateId);
@@ -53,6 +59,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; stateId: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id, stateId } = await params;
   const projectId = Number(id);
   const stateIdNum = Number(stateId);

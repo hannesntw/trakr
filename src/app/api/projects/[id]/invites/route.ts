@@ -4,6 +4,7 @@ import { projectInvites, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { Resend } from "resend";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const resend = new Resend(process.env.AUTH_RESEND_KEY);
 
@@ -28,6 +29,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const body = await request.json();
   const parsed = createSchema.safeParse(body);
@@ -79,6 +85,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const { email } = await request.json();
   await db

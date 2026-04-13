@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { projects, workflowStates } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { resolveApiUser } from "@/lib/api-auth";
 
 const reorderSchema = z.object({
   ids: z.array(z.number().int().positive()),
@@ -12,6 +13,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const projectId = Number(id);
 

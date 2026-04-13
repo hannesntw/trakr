@@ -30,14 +30,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Set owner from API user (works for both session and API key auth)
+  // Require authenticated user to create a project
   const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const [row] = await db
     .insert(projects)
     .values({
       ...parsed.data,
       visibility: parsed.data.visibility ?? "private",
-      ownerId: user?.id ?? null,
+      ownerId: user.id,
     })
     .returning();
   return NextResponse.json(row, { status: 201 });
