@@ -27,7 +27,7 @@ export interface VariantConfig {
     githubLinks: boolean;
     githubCIStatus: boolean;
     githubAutoTransition: boolean;
-    createBranch: boolean;
+    githubStatusChecks: boolean;
   };
   tabs: Array<{ slug: string; label: string }>;
 }

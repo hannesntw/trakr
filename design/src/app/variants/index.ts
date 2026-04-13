@@ -28,7 +28,7 @@ const noGithub = {
   githubLinks: false,
   githubCIStatus: false,
   githubAutoTransition: false,
-  createBranch: false,
+  githubStatusChecks: false,
 };
 
 const current: VariantConfig = {
@@ -55,7 +55,7 @@ const github: VariantConfig = {
     githubLinks: true,
     githubCIStatus: true,
     githubAutoTransition: true,
-    createBranch: true,
+    githubStatusChecks: true,
   },
   tabs: [
     { slug: "board", label: "Board" },

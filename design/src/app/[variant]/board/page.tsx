@@ -196,7 +196,7 @@ export default function BoardPage() {
                                 CI
                               </span>
                             )}
-                            {item.branch && !item.pr && (
+                            {item.branch && (
                               <span className="inline-flex items-center gap-1 text-[11px] text-text-tertiary">
                                 <GitBranch className="w-3 h-3" />
                                 {item.branch.length > 25 ? item.branch.slice(0, 25) + "..." : item.branch}

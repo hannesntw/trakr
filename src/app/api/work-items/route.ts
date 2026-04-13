@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { workItems, projects } from "@/db/schema";
-import { eq, and, like, sql, SQL } from "drizzle-orm";
+import { eq, and, ilike, or, sql, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   if (parentId) conditions.push(eq(workItems.parentId, Number(parentId)));
 
   const q = url.get("q");
-  if (q) conditions.push(like(workItems.title, `%${q}%`));
+  if (q) conditions.push(or(ilike(workItems.title, `%${q}%`), ilike(workItems.displayId, `%${q}%`))!);
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const rows = await db

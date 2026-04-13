@@ -8,6 +8,8 @@
  *   work_item DELETE → cascades: snapshots, comments, attachments,
  *                      status_history, links
  *   work_item DELETE → SET NULL: children's parentId
+ *   project DELETE → cascades: github_events
+ *   work_item DELETE → cascades: github_events (nullable FK)
  *
  * No app-side cascade logic is needed — route handlers just delete
  * the parent row and Postgres handles the rest.
@@ -71,6 +73,9 @@ export const projects = pgTable("projects", {
   updatedAt: text("updated_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
+  githubOwner: text("github_owner"),
+  githubRepo: text("github_repo"),
+  githubWebhookSecret: text("github_webhook_secret"),
 });
 
 export const apiKeys = pgTable("api_keys", {
@@ -240,6 +245,27 @@ export const comments = pgTable("comments", {
     .references(() => workItems.id, { onDelete: "cascade" }),
   author: text("author").notNull(),
   body: text("body").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const githubEvents = pgTable("github_events", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workItemId: integer("work_item_id")
+    .references(() => workItems.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  action: text("action"),
+  prNumber: integer("pr_number"),
+  prTitle: text("pr_title"),
+  prState: text("pr_state"),
+  branch: text("branch"),
+  sha: text("sha"),
+  ciStatus: text("ci_status"),
+  payload: text("payload"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

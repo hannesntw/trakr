@@ -4,7 +4,7 @@
 type Listener = (event: ChangeEvent) => void;
 
 export interface ChangeEvent {
-  type: "work-item" | "sprint" | "comment" | "attachment" | "link" | "project" | "workflow";
+  type: "work-item" | "sprint" | "comment" | "attachment" | "link" | "project" | "workflow" | "github-event";
   action: "created" | "updated" | "deleted";
   id: number;
   projectId?: number; // allows clients to filter by project

@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, RotateCcw, Globe, Terminal, Cpu,
   ArrowLeft, MessageSquare, ImagePlus, Search, X,
   Link2, ArrowRight, Ban, Plus, GripVertical,
+  GitPullRequest, GitBranch, CheckCircle2, XCircle, ExternalLink, GitCommit,
 } from "lucide-react";
 import Link from "next/link";
 import { PointsBadge, PointsPicker } from "@/components/PointsBadge";
@@ -559,6 +560,99 @@ export default function StoryDetailPage() {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Development — GitHub integration */}
+              {variant.features.githubLinks && (
+                <div className="bg-surface border border-border rounded-lg p-4">
+                  <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider flex items-center gap-1 mb-3">
+                    <GitBranch className="w-3 h-3" />
+                    Development
+                  </span>
+
+                  {/* Branch */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <GitBranch className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                    <code className="text-xs bg-content-bg border border-border px-2 py-1 rounded font-mono text-text-secondary">
+                      feat/TRK-4-view-work-item-detail
+                    </code>
+                  </div>
+
+                  {/* Pull Request */}
+                  <div className="border border-border rounded-lg p-3 mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <GitPullRequest className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span className="text-sm font-medium text-text-primary flex-1 truncate">
+                        #47 feat: detail panel with markdown preview
+                      </span>
+                      <ExternalLink className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-text-tertiary">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        Open
+                      </span>
+                      <span>hannesntw/trakr</span>
+                      <span className="flex items-center gap-1 text-red-500">
+                        <XCircle className="w-3 h-3" />
+                        CI failing
+                      </span>
+                    </div>
+
+                    {/* CI checks breakdown */}
+                    {variant.features.githubCIStatus && (
+                      <div className="mt-2 pt-2 border-t border-border space-y-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          <span className="text-text-secondary">Lint</span>
+                          <span className="text-text-tertiary ml-auto">12s</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          <span className="text-text-secondary">Typecheck</span>
+                          <span className="text-text-tertiary ml-auto">8s</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <XCircle className="w-3 h-3 text-red-500" />
+                          <span className="text-text-secondary">Test</span>
+                          <span className="text-text-tertiary ml-auto">Failed</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <Circle className="w-3 h-3 text-text-tertiary" />
+                          <span className="text-text-tertiary">Build</span>
+                          <span className="text-text-tertiary ml-auto">Skipped</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent commits */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-text-tertiary uppercase tracking-wider">Recent commits</span>
+                    {[
+                      { sha: "a8f3c2d", msg: "Add markdown preview to description", time: "2h ago" },
+                      { sha: "5e1b09a", msg: "Wire up inline field editing", time: "4h ago" },
+                      { sha: "c7d4f88", msg: "Initial detail panel layout", time: "1d ago" },
+                    ].map((c) => (
+                      <div key={c.sha} className="flex items-center gap-2 text-xs">
+                        <GitCommit className="w-3 h-3 text-text-tertiary shrink-0" />
+                        <code className="text-[11px] text-text-tertiary font-mono">{c.sha}</code>
+                        <span className="text-text-secondary truncate flex-1">{c.msg}</span>
+                        <span className="text-text-tertiary shrink-0">{c.time}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Auto-transition info */}
+                  {variant.features.githubAutoTransition && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                        <Play className="w-3 h-3" />
+                        <span>PR merge → auto-moves to <strong className="text-text-secondary">Dev Done</strong></span>
+                      </div>
                     </div>
                   )}
                 </div>

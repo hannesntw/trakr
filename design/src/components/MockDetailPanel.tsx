@@ -108,11 +108,6 @@ export function MockDetailPanel({ itemId, title, type, state, onClose }: MockDet
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 </div>
               </div>
-            ) : variant.features.createBranch ? (
-              <button className="flex items-center gap-2 px-3 py-2 text-xs text-accent border border-border rounded-lg hover:bg-content-bg transition-colors w-full">
-                <GitBranch className="w-3.5 h-3.5" />
-                Create branch
-              </button>
             ) : null}
           </div>
         )}
