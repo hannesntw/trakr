@@ -229,28 +229,57 @@ export function BacklogClient({
 
   // Members are fetched in fetchData and stored in `members` state
 
-  // Apply filters
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+  // Apply filters — also compute ghost parent IDs (done parents with visible descendants)
+  const { filteredItems, ghostParentIds } = useMemo(() => {
+    // First pass: determine which items pass the filters normally
+    const passing = new Set<number>();
+    for (const item of items) {
+      let passes = true;
       // Text search — match title or displayId
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchTitle = item.title.toLowerCase().includes(q);
         const matchId = (item.displayId ?? `#${item.id}`).toLowerCase().includes(q) || String(item.id).includes(q);
-        if (!matchTitle && !matchId) return false;
+        if (!matchTitle && !matchId) passes = false;
       }
-
-      if (typeFilter.size > 0 && !typeFilter.has(item.type as WorkItemType))
-        return false;
-      if (stateFilter.size > 0 && !stateFilter.has(item.state))
-        return false;
-      if (assigneeFilter) {
-        if (item.assignee !== assigneeFilter) return false;
+      if (passes && typeFilter.size > 0 && !typeFilter.has(item.type as WorkItemType))
+        passes = false;
+      if (passes && stateFilter.size > 0 && !stateFilter.has(item.state))
+        passes = false;
+      if (passes && assigneeFilter) {
+        if (item.assignee !== assigneeFilter) passes = false;
       }
+      if (passes) passing.add(item.id);
+    }
 
-      return true;
-    });
-  }, [items, searchQuery, typeFilter, stateFilter, assigneeFilter]);
+    // Second pass: when hiding done items, find ghost parents.
+    // A ghost parent is a done item that is NOT in `passing` but has a
+    // descendant that IS in `passing`. Walk up the parent chain of every
+    // visible item and mark ancestors that were filtered out due to being done.
+    const ghostIds = new Set<number>();
+    if (!showCompleted && workflowStates.length > 0) {
+      const doneSlugs = new Set(
+        workflowStates.filter((ws) => ws.category === "done").map((ws) => ws.slug)
+      );
+      const itemById = new Map(items.map((i) => [i.id, i]));
+
+      for (const id of passing) {
+        let current = itemById.get(id);
+        while (current?.parentId) {
+          const parent = itemById.get(current.parentId);
+          if (!parent) break;
+          if (!passing.has(parent.id) && doneSlugs.has(parent.state)) {
+            ghostIds.add(parent.id);
+          }
+          current = parent;
+        }
+      }
+    }
+
+    // Combine passing items + ghost parents
+    const allVisible = items.filter((i) => passing.has(i.id) || ghostIds.has(i.id));
+    return { filteredItems: allVisible, ghostParentIds: ghostIds };
+  }, [items, searchQuery, typeFilter, stateFilter, assigneeFilter, showCompleted, workflowStates]);
 
   const hasActiveFilters =
     searchQuery.length > 0 ||
@@ -519,6 +548,7 @@ export function BacklogClient({
               const isDragging = dragId === item.id;
               const isDropTarget = dropTargetId === item.id && dragId !== null;
               const canDrag = item.type !== "epic";
+              const isGhostParent = ghostParentIds.has(item.id);
               return (
                 <tr
                   key={item.id}
@@ -531,13 +561,15 @@ export function BacklogClient({
                   onDragEnd={handleDragEnd}
                   className={cn(
                     "border-b transition-colors cursor-pointer group",
-                    isDragging
+                    isGhostParent
                       ? "opacity-40 border-border/50"
-                      : isDropTarget && dropValid
-                        ? "bg-accent/10 border-accent/30"
-                        : isDropTarget && !dropValid
-                          ? "bg-red-50 border-red-200"
-                          : "border-border/50 hover:bg-surface",
+                      : isDragging
+                        ? "opacity-40 border-border/50"
+                        : isDropTarget && dropValid
+                          ? "bg-accent/10 border-accent/30"
+                          : isDropTarget && !dropValid
+                            ? "bg-red-50 border-red-200"
+                            : "border-border/50 hover:bg-surface",
                     changedIds.has(item.id) && "realtime-highlight"
                   )}
                 >
