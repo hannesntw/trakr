@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Cpu, Copy, Check, Key } from "lucide-react";
+import { formatFullDateTime } from "@/lib/utils";
 
 interface ApiKeyInfo {
   id: number;
@@ -127,8 +128,8 @@ export function AccountClient({ user }: AccountClientProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-primary">{k.label}</p>
                     <p className="text-xs text-text-tertiary">
-                      Created {new Date(k.createdAt).toLocaleDateString()}
-                      {k.lastUsedAt && ` · Last used ${new Date(k.lastUsedAt).toLocaleDateString()}`}
+                      <span title={formatFullDateTime(k.createdAt)}>Created {new Date(k.createdAt).toLocaleDateString()}</span>
+                      {k.lastUsedAt && <span title={formatFullDateTime(k.lastUsedAt)}>{` · Last used ${new Date(k.lastUsedAt).toLocaleDateString()}`}</span>}
                     </p>
                   </div>
                   <code className="text-xs text-text-tertiary font-mono">{k.keyPrefix}••••</code>

@@ -155,7 +155,9 @@ describe("Work Item CRUD", () => {
       .where(eq(statusHistory.workItemId, targetId))
       .orderBy(desc(statusHistory.id));
 
-    expect(rows.length).toBeGreaterThanOrEqual(1);
+    // Expect at least 3 rows: creation + new→in_progress + in_progress→done
+    expect(rows.length).toBeGreaterThanOrEqual(3);
+    // rows are ordered by desc(id), so latest is first
     const latest = rows[0];
     expect(latest.fromState).toBe("in_progress");
     expect(latest.toState).toBe("done");

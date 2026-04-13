@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { workItems, projects } from "@/db/schema";
+import { workItems, projects, statusHistory } from "@/db/schema";
 import { eq, and, ilike, or, sql, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
@@ -83,6 +83,15 @@ export async function POST(request: NextRequest) {
   const displayId = `${project.key}-${project.sequence}`;
 
   const [row] = await db.insert(workItems).values({ ...parsed.data, displayId }).returning();
+
+  // Record initial status in status_history so the timeline shows the creation state
+  await db.insert(statusHistory).values({
+    workItemId: row.id,
+    fromState: "(created)",
+    toState: row.state,
+    changedAt: row.createdAt,
+  });
+
   emit({ type: "work-item", action: "created", id: row.id, projectId: row.projectId });
   return NextResponse.json(row, { status: 201 });
 }

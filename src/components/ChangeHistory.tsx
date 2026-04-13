@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, RotateCcw, Globe, Terminal, Cpu } from "lucide-react";
-import { formatRelativeTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/RelativeTime";
 import type { WorkflowState } from "@/lib/constants";
 
 interface Snapshot {
@@ -145,7 +145,7 @@ export function ChangeHistory({ versions, onRestore, workflowStates }: { version
               <div className="bg-surface border border-border rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] text-text-tertiary font-mono">v{entry.version}</span>
-                  <span className="text-[10px] text-text-tertiary">{formatRelativeTime(entry.createdAt)}</span>
+                  <RelativeTime date={entry.createdAt} className="text-[10px] text-text-tertiary" />
                   <span className="text-xs text-text-secondary">{entry.changedBy ?? "system"}</span>
                   <ChannelIcon channel={entry.channel} />
                   {entry.version > 0 && (

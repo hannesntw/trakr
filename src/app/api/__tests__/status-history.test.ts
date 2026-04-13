@@ -68,9 +68,13 @@ describe("Status history on state change", () => {
     expect(histRes.status).toBe(200);
     const history = await histRes.json();
     expect(Array.isArray(history)).toBe(true);
-    expect(history.length).toBe(1);
-    expect(history[0].fromState).toBe("new");
-    expect(history[0].toState).toBe("in_progress");
+    expect(history.length).toBe(2);
+    // First entry is the creation record
+    expect(history[0].fromState).toBe("(created)");
+    expect(history[0].toState).toBe("new");
+    // Second entry is the state change
+    expect(history[1].fromState).toBe("new");
+    expect(history[1].toState).toBe("in_progress");
   });
 
   it("history entries have fromState, toState, changedAt", async () => {
@@ -83,8 +87,8 @@ describe("Status history on state change", () => {
       params: Promise.resolve({ id: String(testItemId) }),
     });
     const history = await histRes.json();
-    expect(history.length).toBeGreaterThanOrEqual(1);
-    const entry = history[0];
+    expect(history.length).toBeGreaterThanOrEqual(2);
+    const entry = history[1]; // first transition (after creation record)
     expect(entry).toHaveProperty("fromState");
     expect(entry).toHaveProperty("toState");
     expect(entry).toHaveProperty("changedAt");
@@ -113,11 +117,13 @@ describe("Status history on state change", () => {
       params: Promise.resolve({ id: String(testItemId) }),
     });
     const history = await histRes.json();
-    expect(history.length).toBe(2);
-    expect(history[0].fromState).toBe("new");
-    expect(history[0].toState).toBe("in_progress");
-    expect(history[1].fromState).toBe("in_progress");
-    expect(history[1].toState).toBe("done");
+    expect(history.length).toBe(3);
+    expect(history[0].fromState).toBe("(created)");
+    expect(history[0].toState).toBe("new");
+    expect(history[1].fromState).toBe("new");
+    expect(history[1].toState).toBe("in_progress");
+    expect(history[2].fromState).toBe("in_progress");
+    expect(history[2].toState).toBe("done");
   });
 });
 
@@ -230,7 +236,7 @@ describe("Non-state changes do not create history", () => {
 });
 
 describe("GET /api/work-items/:id/history", () => {
-  it("returns empty array for item with no state changes", async () => {
+  it("returns creation record for item with no subsequent state changes", async () => {
     // Create a fresh item
     const createReq = jsonRequest("http://localhost:3100/api/work-items", {
       projectId: 1,
@@ -251,6 +257,8 @@ describe("GET /api/work-items/:id/history", () => {
     expect(histRes.status).toBe(200);
     const history = await histRes.json();
     expect(Array.isArray(history)).toBe(true);
-    expect(history.length).toBe(0);
+    expect(history.length).toBe(1);
+    expect(history[0].fromState).toBe("(created)");
+    expect(history[0].toState).toBe("new");
   });
 });

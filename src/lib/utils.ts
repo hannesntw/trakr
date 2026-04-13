@@ -13,6 +13,13 @@ export function formatDate(date: string): string {
   });
 }
 
+export function formatFullDateTime(date: string): string {
+  return new Date(date).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "medium",
+  });
+}
+
 export function formatRelativeTime(date: string): string {
   const now = new Date();
   const then = new Date(date);

@@ -16,7 +16,8 @@ import { PointsPicker } from "@/components/PointsBadge";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { GitPullRequest, GitBranch, CheckCircle2, XCircle, Circle, ExternalLink } from "lucide-react";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatFullDateTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/RelativeTime";
 import { TYPE_LABELS, type WorkItemType, type WorkflowState } from "@/lib/constants";
 
 interface GitHubEventData {
@@ -337,9 +338,7 @@ export function WorkItemDetailFull({
                           <span className="text-sm font-medium text-text-primary">
                             {c.author}
                           </span>
-                          <span className="text-xs text-text-tertiary">
-                            {formatRelativeTime(c.createdAt)}
-                          </span>
+                          <RelativeTime date={c.createdAt} className="text-xs text-text-tertiary" />
                         </div>
                         <div className="text-sm text-text-secondary leading-relaxed prose prose-sm">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -453,7 +452,7 @@ export function WorkItemDetailFull({
                   <span className="text-xs text-text-tertiary block mb-0.5">
                     Created
                   </span>
-                  <span className="text-xs text-text-secondary">
+                  <span className="text-xs text-text-secondary" title={formatFullDateTime(item.createdAt)}>
                     {new Date(item.createdAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",

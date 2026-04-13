@@ -1,6 +1,7 @@
 "use client";
 
-import { Circle, CircleDot, CircleCheck, Play, Globe, Terminal, Cpu } from "lucide-react";
+import { Circle, CircleDot, CircleCheck, Play, Plus, Globe, Terminal, Cpu } from "lucide-react";
+import { formatFullDateTime } from "@/lib/utils";
 import type { WorkflowState } from "@/lib/constants";
 
 interface StatusChange {
@@ -69,9 +70,11 @@ export function StatusTimeline({ changes, workflowStates }: { changes: StatusCha
     return curr - prev;
   });
 
-  // Stats
-  const totalChanges = changes.length;
+  // Stats — exclude the initial creation entry from counts
+  const isCreationEntry = (c: StatusChange) => c.fromState === "(created)";
+  const totalChanges = changes.filter((c) => !isCreationEntry(c)).length;
   const regressions = changes.filter((c) => {
+    if (isCreationEntry(c)) return false;
     return getStatePosition(c.toState, workflowStates) < getStatePosition(c.fromState, workflowStates);
   }).length;
 
@@ -117,9 +120,15 @@ export function StatusTimeline({ changes, workflowStates }: { changes: StatusCha
             return (
               <div key={`icon-${i}`} className="contents">
                 <div className="flex justify-center">
-                  <div className={`w-9 h-9 rounded-full border-2 ${getStateColor(change.toState, workflowStates)} flex items-center justify-center`}>
-                    <StateIcon state={change.toState} workflowStates={workflowStates} />
-                  </div>
+                  {isCreationEntry(change) ? (
+                    <div className="w-9 h-9 rounded-full border-2 bg-blue-50 border-blue-300 flex items-center justify-center">
+                      <Plus style={{ width: 18, height: 18 }} className="text-blue-500 shrink-0" />
+                    </div>
+                  ) : (
+                    <div className={`w-9 h-9 rounded-full border-2 ${getStateColor(change.toState, workflowStates)} flex items-center justify-center`}>
+                      <StateIcon state={change.toState} workflowStates={workflowStates} />
+                    </div>
+                  )}
                 </div>
                 {!isLast && (
                   <div className="flex items-center px-1">
@@ -135,8 +144,10 @@ export function StatusTimeline({ changes, workflowStates }: { changes: StatusCha
             return (
               <div key={`label-${i}`} className="contents">
                 <div className="text-center pt-2">
-                  <p className="text-[11px] font-medium text-text-primary">{getStateLabel(change.toState, workflowStates)}</p>
-                  <p className="text-[10px] text-text-tertiary">{formatTime(change.changedAt)}</p>
+                  <p className="text-[11px] font-medium text-text-primary">
+                    {isCreationEntry(change) ? "Created" : getStateLabel(change.toState, workflowStates)}
+                  </p>
+                  <p className="text-[10px] text-text-tertiary" title={formatFullDateTime(change.changedAt)}>{formatTime(change.changedAt)}</p>
                 </div>
                 {!isLast && (
                   <div className="text-center pt-2">
