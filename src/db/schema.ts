@@ -1,3 +1,17 @@
+/**
+ * Drizzle ORM schema for Trakr.
+ *
+ * Deletion cascades (all enforced at the Postgres FK level):
+ *
+ *   project DELETE → cascades: work_items, sprints, workflow_states,
+ *                    saved_queries, project_invites
+ *   work_item DELETE → cascades: snapshots, comments, attachments,
+ *                      status_history, links
+ *   work_item DELETE → SET NULL: children's parentId
+ *
+ * No app-side cascade logic is needed — route handlers just delete
+ * the parent row and Postgres handles the rest.
+ */
 import { pgTable, text, integer, serial, boolean, timestamp, customType, type AnyPgColumn } from "drizzle-orm/pg-core";
 
 const bytea = customType<{ data: Buffer }>({

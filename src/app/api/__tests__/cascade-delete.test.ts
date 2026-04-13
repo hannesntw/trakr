@@ -48,6 +48,9 @@ function idParams(id: number | string) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
 
+// Unique suffix per test run to avoid key collisions on shared DB
+const RUN = Math.random().toString(36).slice(2, 5).toUpperCase();
+
 describe("Work item cascade delete (TRK-72)", () => {
   let projectId: number;
   let workItemId: number;
@@ -57,7 +60,7 @@ describe("Work item cascade delete (TRK-72)", () => {
     const pRes = await createProject(
       jsonRequest("/api/projects", {
         name: "Cascade Test",
-        key: "CAS",
+        key: `C${RUN}`,
       })
     );
     const project = await pRes.json();
@@ -153,7 +156,7 @@ describe("Parent work item delete sets children parentId to NULL (TRK-72)", () =
     const pRes = await createProject(
       jsonRequest("/api/projects", {
         name: "Parent Test",
-        key: "PAR",
+        key: `P${RUN}`,
       })
     );
     projectId = (await pRes.json()).id;
@@ -227,7 +230,7 @@ describe("Project cascade delete (TRK-73)", () => {
     const pRes = await createProject(
       jsonRequest("/api/projects", {
         name: "Full Cascade",
-        key: "FUL",
+        key: `F${RUN}`,
       })
     );
     projectId = (await pRes.json()).id;

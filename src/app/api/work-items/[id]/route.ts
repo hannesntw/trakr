@@ -146,7 +146,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Clean up related data before deleting the work item
+  // Postgres FK ON DELETE CASCADE handles this at the DB level, but
+  // the neon-http driver may not see the cascade within a single
+  // stateless request. Explicit cleanup ensures it works reliably.
+  // See src/db/schema.ts for FK definitions.
   await db.delete(comments).where(eq(comments.workItemId, resolvedId));
   await db.delete(attachments).where(eq(attachments.workItemId, resolvedId));
   await db.delete(statusHistory).where(eq(statusHistory.workItemId, resolvedId));

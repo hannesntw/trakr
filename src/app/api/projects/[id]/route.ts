@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites, workItemSnapshots, savedQueries } from "@/db/schema";
+import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites, workItemSnapshots, savedQueries, workflowStates } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -75,22 +75,27 @@ export async function DELETE(
   const { id } = await params;
   const pid = Number(id);
 
-  // Get all work item IDs for this project to clean up related data
+  // Postgres FK ON DELETE CASCADE is defined in the schema, but the
+  // neon-http driver (stateless HTTP per query) doesn't reliably see
+  // cascades. Explicit app-side cleanup as belt-and-suspenders.
+  // See src/db/schema.ts for FK definitions.
   const items = await db.select({ id: workItems.id }).from(workItems).where(eq(workItems.projectId, pid));
-  const itemIds = items.map(i => i.id);
-
-  // Delete related data
-  for (const itemId of itemIds) {
-    await db.delete(comments).where(eq(comments.workItemId, itemId));
-    await db.delete(attachments).where(eq(attachments.workItemId, itemId));
-    await db.delete(statusHistory).where(eq(statusHistory.workItemId, itemId));
-    await db.delete(workItemSnapshots).where(eq(workItemSnapshots.workItemId, itemId));
+  for (const item of items) {
+    await db.delete(comments).where(eq(comments.workItemId, item.id));
+    await db.delete(attachments).where(eq(attachments.workItemId, item.id));
+    await db.delete(statusHistory).where(eq(statusHistory.workItemId, item.id));
+    await db.delete(workItemSnapshots).where(eq(workItemSnapshots.workItemId, item.id));
   }
   await db.delete(workItems).where(eq(workItems.projectId, pid));
   await db.delete(savedQueries).where(eq(savedQueries.projectId, pid));
   await db.delete(sprints).where(eq(sprints.projectId, pid));
+  await db.delete(workflowStates).where(eq(workflowStates.projectId, pid));
   await db.delete(projectInvites).where(eq(projectInvites.projectId, pid));
-  await db.delete(projects).where(eq(projects.id, pid));
+
+  const [row] = await db.delete(projects).where(eq(projects.id, pid)).returning();
+  if (!row) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ deleted: true });
 }
