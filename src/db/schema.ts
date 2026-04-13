@@ -8,7 +8,7 @@
  *   work_item DELETE → cascades: snapshots, comments, attachments,
  *                      status_history, links
  *   work_item DELETE → SET NULL: children's parentId
- *   project DELETE → cascades: github_events
+ *   project DELETE → cascades: github_automations, github_events
  *   work_item DELETE → cascades: github_events (nullable FK)
  *
  * No app-side cascade logic is needed — route handlers just delete
@@ -245,6 +245,21 @@ export const comments = pgTable("comments", {
     .references(() => workItems.id, { onDelete: "cascade" }),
   author: text("author").notNull(),
   body: text("body").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const githubAutomations = pgTable("github_automations", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  event: text("event").notNull(), // "pr_opened", "pr_merged", "pr_closed", "deploy_succeeded", "deploy_failed"
+  targetStateId: integer("target_state_id")
+    .notNull()
+    .references(() => workflowStates.id),
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

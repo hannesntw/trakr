@@ -1,7 +1,7 @@
 // Deterministic seed script for TraQL integration tests
 // Uses a seeded PRNG — no randomness, fully reproducible
 
-import { projects, workItems, sprints, workflowStates, workItemLinks, statusHistory, workItemSnapshots } from "@/db/schema";
+import { projects, workItems, sprints, workflowStates, workItemLinks, statusHistory, workItemSnapshots, githubEvents } from "@/db/schema";
 
 // Seeded PRNG (mulberry32)
 function mulberry32(seed: number) {
@@ -303,6 +303,74 @@ export async function seedTestData(db: any) {
     },
   ]);
 
+  // --- GitHub events for pr:, ci:, has: filter tests ---
+  // Item 3: has an open PR
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 3, eventType: "pull_request", action: "opened",
+      prNumber: 42, prTitle: "Fix authentication", prState: "open", branch: "fix/auth",
+      createdAt: "2026-04-01T10:00:00Z",
+    },
+  ]);
+  // Item 5: has a merged PR (two events — opened then merged, latest is merged)
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 5, eventType: "pull_request", action: "opened",
+      prNumber: 43, prTitle: "Add search feature", prState: "open", branch: "feat/search",
+      createdAt: "2026-04-01T10:00:00Z",
+    },
+    {
+      projectId: 1, workItemId: 5, eventType: "pull_request", action: "closed",
+      prNumber: 43, prTitle: "Add search feature", prState: "merged", branch: "feat/search",
+      createdAt: "2026-04-03T10:00:00Z",
+    },
+  ]);
+  // Item 7: has a closed (not merged) PR
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 7, eventType: "pull_request", action: "closed",
+      prNumber: 44, prTitle: "Old approach", prState: "closed", branch: "feat/old",
+      createdAt: "2026-04-02T10:00:00Z",
+    },
+  ]);
+  // Item 10: has passing CI
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 10, eventType: "check_suite", action: "completed",
+      ciStatus: "success", branch: "feat/metrics", sha: "abc123",
+      createdAt: "2026-04-05T10:00:00Z",
+    },
+  ]);
+  // Item 4: has failing CI (two events — first success, then failure)
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 4, eventType: "check_suite", action: "completed",
+      ciStatus: "success", branch: "feat/dashboard", sha: "def456",
+      createdAt: "2026-04-04T10:00:00Z",
+    },
+    {
+      projectId: 1, workItemId: 4, eventType: "check_suite", action: "completed",
+      ciStatus: "failure", branch: "feat/dashboard", sha: "ghi789",
+      createdAt: "2026-04-06T10:00:00Z",
+    },
+  ]);
+  // Item 6: has pending CI
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 6, eventType: "check_suite", action: "requested",
+      ciStatus: "pending", branch: "feat/export", sha: "jkl012",
+      createdAt: "2026-04-07T10:00:00Z",
+    },
+  ]);
+  // Item 8: has a branch push but no PR
+  await db.insert(githubEvents).values([
+    {
+      projectId: 1, workItemId: 8, eventType: "push", action: "push",
+      branch: "feat/notifications", sha: "mno345",
+      createdAt: "2026-04-03T10:00:00Z",
+    },
+  ]);
+
   // Update project sequences
   const { eq } = await import("drizzle-orm");
   await db.update(projects).set({ sequence: alphaItems.length }).where(eq(projects.id, 1));
@@ -326,4 +394,12 @@ export const EXPECTED = {
   // Items with blocks links
   BLOCKER_ITEM: 3,  // blocks item 4
   BLOCKED_ITEM: 4,  // blocked by item 3
+  // Items with GitHub events
+  ITEM_WITH_OPEN_PR: 3,
+  ITEM_WITH_MERGED_PR: 5,
+  ITEM_WITH_CLOSED_PR: 7,
+  ITEM_WITH_PASSING_CI: 10,
+  ITEM_WITH_FAILING_CI: 4,
+  ITEM_WITH_PENDING_CI: 6,
+  ITEM_WITH_BRANCH_ONLY: 8,  // has branch but no PR
 };

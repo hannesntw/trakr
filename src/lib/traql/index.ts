@@ -2,6 +2,7 @@
 
 export { tokenize, LexerError } from "./lexer";
 export { parse, ParseError } from "./parser";
+export type { GitHubFilterNode } from "./parser";
 export { executeTraql, ExecutionError } from "./executor";
 export type { TraqlResult } from "./executor";
 export type { TraqlAST } from "./parser";

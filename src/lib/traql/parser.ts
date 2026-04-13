@@ -10,7 +10,8 @@ export type FilterNode =
   | NotNode
   | ShortcutNode
   | WasNode
-  | ChangedNode;
+  | ChangedNode
+  | GitHubFilterNode;
 
 export interface FieldFilter {
   kind: "field";
@@ -52,6 +53,12 @@ export interface NotNode {
 export interface ShortcutNode {
   kind: "shortcut";
   name: string; // is:open, my:items, etc.
+}
+
+export interface GitHubFilterNode {
+  kind: "github";
+  filterType: "pr" | "ci" | "has";
+  value: string;          // e.g. "open", "merged", "passing", "branch"
 }
 
 export interface SortClause {
@@ -206,6 +213,21 @@ export function parse(tokens: Token[]): TraqlAST {
         }
       }
       return { kind: "changed", field, fromValue, toValue, during };
+    }
+
+    // GitHub filters: pr:open, pr:merged, ci:passing, has:pr, has:branch
+    if ((field === "pr" || field === "ci" || field === "has") && match("COLON")) {
+      advance(); // consume COLON
+      const val = parseValue();
+      const validValues: Record<string, string[]> = {
+        pr: ["open", "merged", "closed", "none"],
+        ci: ["passing", "failing", "pending", "none"],
+        has: ["pr", "branch"],
+      };
+      if (!validValues[field].includes(val)) {
+        throw new ParseError(`Invalid ${field}: value '${val}'. Expected one of: ${validValues[field].join(", ")}`, fieldToken.pos);
+      }
+      return { kind: "github", filterType: field as "pr" | "ci" | "has", value: val };
     }
 
     // Check for shortcuts like is:open, my:items

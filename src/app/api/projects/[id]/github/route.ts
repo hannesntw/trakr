@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, githubEvents } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { projects, githubEvents, githubAutomations, workflowStates } from "@/db/schema";
+import { eq, and, asc } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -74,6 +74,56 @@ export async function POST(
 
   emit({ type: "project", action: "updated", id: row.id, projectId: row.id });
 
+  // Create default automation rules based on the project's workflow states
+  const states = await db
+    .select({
+      id: workflowStates.id,
+      slug: workflowStates.slug,
+      displayName: workflowStates.displayName,
+      category: workflowStates.category,
+      position: workflowStates.position,
+    })
+    .from(workflowStates)
+    .where(eq(workflowStates.projectId, row.id))
+    .orderBy(asc(workflowStates.position));
+
+  const inProgressStates = states.filter((s) => s.category === "in_progress");
+  const doneStates = states.filter((s) => s.category === "done");
+
+  const defaultRules: Array<{ event: string; targetStateId: number }> = [];
+
+  // pr_opened → first in_progress state
+  if (inProgressStates.length > 0) {
+    defaultRules.push({ event: "pr_opened", targetStateId: inProgressStates[0].id });
+  }
+
+  // pr_merged → state named like "dev done", or second in_progress state, or first done state
+  const devDoneState = inProgressStates.find(
+    (s) => s.slug.includes("dev_done") || s.displayName.toLowerCase().includes("dev done")
+  );
+  if (devDoneState) {
+    defaultRules.push({ event: "pr_merged", targetStateId: devDoneState.id });
+  } else if (inProgressStates.length > 1) {
+    defaultRules.push({ event: "pr_merged", targetStateId: inProgressStates[1].id });
+  } else if (doneStates.length > 0) {
+    defaultRules.push({ event: "pr_merged", targetStateId: doneStates[0].id });
+  }
+
+  // deploy_succeeded → first done state
+  if (doneStates.length > 0) {
+    defaultRules.push({ event: "deploy_succeeded", targetStateId: doneStates[0].id });
+  }
+
+  if (defaultRules.length > 0) {
+    await db.insert(githubAutomations).values(
+      defaultRules.map((r) => ({
+        projectId: row.id,
+        event: r.event,
+        targetStateId: r.targetStateId,
+      }))
+    );
+  }
+
   return NextResponse.json({
     owner: row.githubOwner,
     repo: row.githubRepo,
@@ -94,8 +144,9 @@ export async function DELETE(
   const { id } = await params;
   const pid = Number(id);
 
-  // Delete all github events for this project
+  // Delete all github events and automation rules for this project
   await db.delete(githubEvents).where(eq(githubEvents.projectId, pid));
+  await db.delete(githubAutomations).where(eq(githubAutomations.projectId, pid));
 
   const [row] = await db
     .update(projects)

@@ -12,10 +12,12 @@ beforeAll(async () => {
   // Also check for v2 seed data (status_history, blocks links) to detect stale seed
   const existing = await db.select().from(schema.workItems).where(eq(schema.workItems.title, "ALP-Epic-0: Authentication"));
   const historyExists = await db.select().from(schema.statusHistory).where(eq(schema.statusHistory.workItemId, 3));
-  if (existing.length === 0 || historyExists.length === 0) {
+  const githubEventsExist = await db.select().from(schema.githubEvents).where(eq(schema.githubEvents.workItemId, 3));
+  if (existing.length === 0 || historyExists.length === 0 || githubEventsExist.length === 0) {
     console.log("Seeding test data (cleaning stale data first)...");
     // Clean ALL data from the test branch — it's dedicated to test runs
     // Order matters due to FK constraints: children before parents
+    await db.execute(sql`DELETE FROM github_events`);
     await db.execute(sql`DELETE FROM work_item_links`);
     await db.execute(sql`DELETE FROM work_item_snapshots`);
     await db.execute(sql`DELETE FROM status_history`);
@@ -42,6 +44,7 @@ beforeAll(async () => {
     await db.execute(sql`SELECT setval('workflow_states_id_seq', (SELECT COALESCE(MAX(id), 1) FROM workflow_states))`);
     await db.execute(sql`SELECT setval('status_history_id_seq', (SELECT COALESCE(MAX(id), 1) FROM status_history))`);
     await db.execute(sql`SELECT setval('work_item_snapshots_id_seq', (SELECT COALESCE(MAX(id), 1) FROM work_item_snapshots))`);
+    await db.execute(sql`SELECT setval('github_events_id_seq', (SELECT COALESCE(MAX(id), 1) FROM github_events))`);
     console.log("Test data seeded.");
   }
 

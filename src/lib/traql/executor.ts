@@ -1,9 +1,9 @@
 // TraQL Executor — compiles AST to SQL and executes against the database
 
 import { db } from "@/db";
-import { workItems, sprints, projects, users, workItemLinks, statusHistory, workItemSnapshots } from "@/db/schema";
+import { workItems, sprints, projects, users, workItemLinks, statusHistory, workItemSnapshots, githubEvents } from "@/db/schema";
 import { eq, and, or, not, like, ilike, gt, gte, lt, lte, inArray, between, sql, desc, asc, SQL, count, sum, avg, ne, isNull } from "drizzle-orm";
-import type { TraqlAST, FilterNode, SortClause, SelectClause, WasNode, ChangedNode } from "./parser";
+import type { TraqlAST, FilterNode, SortClause, SelectClause, WasNode, ChangedNode, GitHubFilterNode } from "./parser";
 
 // Security: zero sql.raw() calls.
 // Column names use sql.identifier() (quoted identifiers) or Drizzle column references.
@@ -149,6 +149,11 @@ function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?:
   // History queries: CHANGED
   if (expanded.kind === "changed") {
     return buildChangedFilter(expanded);
+  }
+
+  // GitHub filters: pr:, ci:, has:
+  if (expanded.kind === "github") {
+    return buildGitHubFilter(expanded, contextProjectId);
   }
 
   if (expanded.kind !== "field") return undefined;
@@ -311,6 +316,89 @@ function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?:
 
 function isDateField(field: string): boolean {
   return ["created", "updated", "end", "start"].includes(field);
+}
+
+// GitHub filter: pr:open/merged/closed/none, ci:passing/failing/pending/none, has:pr/branch
+function buildGitHubFilter(node: GitHubFilterNode, contextProjectId?: number): SQL {
+  const { filterType, value } = node;
+
+  if (filterType === "pr") {
+    if (value === "none") {
+      // Work items with NO pull_request github_event
+      return sql`NOT EXISTS (
+        SELECT 1 FROM github_events ge
+        WHERE ge.work_item_id = ${workItems.id}
+          AND ge.event_type = 'pull_request'
+      )`;
+    }
+    // Map "merged" to prState value (GitHub uses "closed" + merged flag, but our schema stores prState)
+    const prStateValue = value; // open, merged, closed map directly
+    // Find work items where the latest pull_request event has matching prState
+    return sql`EXISTS (
+      SELECT 1 FROM github_events ge
+      WHERE ge.work_item_id = ${workItems.id}
+        AND ge.event_type = 'pull_request'
+        AND ge.pr_state = ${prStateValue}
+        AND ge.id = (
+          SELECT ge2.id FROM github_events ge2
+          WHERE ge2.work_item_id = ${workItems.id}
+            AND ge2.event_type = 'pull_request'
+          ORDER BY ge2.created_at DESC
+          LIMIT 1
+        )
+    )`;
+  }
+
+  if (filterType === "ci") {
+    if (value === "none") {
+      // Work items with NO check_suite github_event
+      return sql`NOT EXISTS (
+        SELECT 1 FROM github_events ge
+        WHERE ge.work_item_id = ${workItems.id}
+          AND ge.event_type = 'check_suite'
+      )`;
+    }
+    // Map friendly names to ci_status values
+    const ciStatusMap: Record<string, string> = {
+      passing: "success",
+      failing: "failure",
+      pending: "pending",
+    };
+    const ciStatusValue = ciStatusMap[value] ?? value;
+    // Find work items where the latest check_suite event has matching ciStatus
+    return sql`EXISTS (
+      SELECT 1 FROM github_events ge
+      WHERE ge.work_item_id = ${workItems.id}
+        AND ge.event_type = 'check_suite'
+        AND ge.ci_status = ${ciStatusValue}
+        AND ge.id = (
+          SELECT ge2.id FROM github_events ge2
+          WHERE ge2.work_item_id = ${workItems.id}
+            AND ge2.event_type = 'check_suite'
+          ORDER BY ge2.created_at DESC
+          LIMIT 1
+        )
+    )`;
+  }
+
+  if (filterType === "has") {
+    if (value === "pr") {
+      return sql`EXISTS (
+        SELECT 1 FROM github_events ge
+        WHERE ge.work_item_id = ${workItems.id}
+          AND ge.pr_number IS NOT NULL
+      )`;
+    }
+    if (value === "branch") {
+      return sql`EXISTS (
+        SELECT 1 FROM github_events ge
+        WHERE ge.work_item_id = ${workItems.id}
+          AND ge.branch IS NOT NULL
+      )`;
+    }
+  }
+
+  throw new ExecutionError(`Unsupported GitHub filter: ${filterType}:${value}`);
 }
 
 function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProjectId?: number, currentUserId?: string): SQL | undefined {

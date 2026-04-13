@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, workItems, githubEvents } from "@/db/schema";
+import { projects, workItems, githubEvents, githubAutomations, workflowStates, statusHistory } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { createHmac, timingSafeEqual } from "crypto";
 import { emit } from "@/lib/events";
@@ -64,6 +64,27 @@ function collectMentionTexts(eventType: string, payload: Record<string, unknown>
   }
 
   return texts;
+}
+
+/** Map a GitHub webhook event type + action to our automation rule event name. */
+function mapToRuleEvent(eventType: string, action: string | undefined, payload: Record<string, unknown>): string | null {
+  if (eventType === "pull_request") {
+    if (action === "opened") return "pr_opened";
+    if (action === "closed") {
+      const pr = payload.pull_request as Record<string, unknown> | undefined;
+      if (pr?.merged === true) return "pr_merged";
+      return "pr_closed";
+    }
+  }
+  if (eventType === "deployment_status") {
+    const ds = payload.deployment_status as Record<string, unknown> | undefined;
+    if (ds) {
+      const state = typeof ds.state === "string" ? ds.state : undefined;
+      if (state === "success") return "deploy_succeeded";
+      if (state === "failure" || state === "error") return "deploy_failed";
+    }
+  }
+  return null;
 }
 
 /** Verify the GitHub webhook HMAC-SHA256 signature. */
@@ -253,7 +274,74 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    results.push({ projectId: project.id, eventsCreated });
+    // Execute automation rules: transition matched work items to the target state
+    const ruleEvent = mapToRuleEvent(eventType, action, payload);
+    let automationsApplied = 0;
+
+    if (ruleEvent && matchedItems.length > 0) {
+      // Find enabled automation rules for this event
+      const rules = await db
+        .select({
+          id: githubAutomations.id,
+          targetStateId: githubAutomations.targetStateId,
+        })
+        .from(githubAutomations)
+        .where(
+          and(
+            eq(githubAutomations.projectId, project.id),
+            eq(githubAutomations.event, ruleEvent),
+            eq(githubAutomations.enabled, true)
+          )
+        );
+
+      if (rules.length > 0) {
+        // Use the first matching rule (there should typically be one per event)
+        const rule = rules[0];
+
+        // Look up the target state slug
+        const [targetState] = await db
+          .select({ slug: workflowStates.slug })
+          .from(workflowStates)
+          .where(eq(workflowStates.id, rule.targetStateId));
+
+        if (targetState) {
+          for (const item of matchedItems) {
+            // Get the current state of the work item
+            const [currentItem] = await db
+              .select({ id: workItems.id, state: workItems.state, projectId: workItems.projectId })
+              .from(workItems)
+              .where(eq(workItems.id, item.id));
+
+            if (currentItem && currentItem.state !== targetState.slug) {
+              // Update the work item state
+              await db
+                .update(workItems)
+                .set({ state: targetState.slug, updatedAt: new Date().toISOString() })
+                .where(eq(workItems.id, item.id));
+
+              // Record in status_history
+              await db.insert(statusHistory).values({
+                workItemId: item.id,
+                fromState: currentItem.state,
+                toState: targetState.slug,
+              });
+
+              // Emit SSE event for the state change
+              emit({
+                type: "work-item",
+                action: "updated",
+                id: item.id,
+                projectId: project.id,
+              });
+
+              automationsApplied++;
+            }
+          }
+        }
+      }
+    }
+
+    results.push({ projectId: project.id, eventsCreated, automationsApplied });
   }
 
   return NextResponse.json({ ok: true, results });
