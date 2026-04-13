@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, boolean, timestamp, customType } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, boolean, timestamp, customType, type AnyPgColumn } from "drizzle-orm/pg-core";
 
 const bytea = customType<{ data: Buffer }>({
   dataType() { return "bytea"; },
@@ -85,7 +85,7 @@ export const deviceCodes = pgTable("device_codes", {
 
 export const projectInvites = pgTable("project_invites", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
   createdAt: text("created_at")
     .notNull()
@@ -112,14 +112,14 @@ export const workItems = pgTable("work_items", {
   displayId: text("display_id").unique(),
   projectId: integer("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   type: text("type").notNull(),
   state: text("state")
     .notNull()
     .default("new"),
   description: text("description").default(""),
-  parentId: integer("parent_id"),
+  parentId: integer("parent_id").references((): AnyPgColumn => workItems.id, { onDelete: "set null" }),
   sprintId: integer("sprint_id"),
   assignee: text("assignee"),
   points: integer("points"),
@@ -136,7 +136,7 @@ export const workItemSnapshots = pgTable("work_item_snapshots", {
   id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
-    .references(() => workItems.id),
+    .references(() => workItems.id, { onDelete: "cascade" }),
   version: integer("version").notNull(),
   snapshot: text("snapshot").notNull(),
   changedBy: text("changed_by"),
@@ -150,7 +150,7 @@ export const sprints = pgTable("sprints", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   goal: text("goal"),
   startDate: text("start_date"),
@@ -167,7 +167,7 @@ export const attachments = pgTable("attachments", {
   id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
-    .references(() => workItems.id),
+    .references(() => workItems.id, { onDelete: "cascade" }),
   filename: text("filename").notNull(),
   contentType: text("content_type").notNull(),
   data: bytea("data").notNull(),
@@ -180,7 +180,7 @@ export const statusHistory = pgTable("status_history", {
   id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
-    .references(() => workItems.id),
+    .references(() => workItems.id, { onDelete: "cascade" }),
   fromState: text("from_state").notNull(),
   toState: text("to_state").notNull(),
   changedAt: text("changed_at")
@@ -206,7 +206,7 @@ export const savedQueries = pgTable("saved_queries", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -223,7 +223,7 @@ export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   workItemId: integer("work_item_id")
     .notNull()
-    .references(() => workItems.id),
+    .references(() => workItems.id, { onDelete: "cascade" }),
   author: text("author").notNull(),
   body: text("body").notNull(),
   createdAt: text("created_at")
