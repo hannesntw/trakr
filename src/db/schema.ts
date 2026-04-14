@@ -33,6 +33,7 @@ export const users = pgTable("user", {
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
 });
 
 export const accounts = pgTable("account", {
@@ -137,6 +138,42 @@ export const auditLog = pgTable("audit_log", {
   ipAddress: text("ip_address"),
   projectId: integer("project_id"),
   metadata: text("metadata"), // JSON for extra context
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+// --- Security tables ---
+
+export const ssoConfigurations = pgTable("sso_configurations", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  protocol: text("protocol").notNull(), // "saml" or "oidc"
+  entityId: text("entity_id"),
+  metadataUrl: text("metadata_url"),
+  clientId: text("client_id"),
+  discoveryUrl: text("discovery_url"),
+  certificate: text("certificate"),
+  enforced: boolean("enforced").notNull().default(false),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const verifiedDomains = pgTable("verified_domains", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  domain: text("domain").notNull(),
+  status: text("status").notNull().default("pending"), // "pending", "verified"
+  verificationToken: text("verification_token").notNull(),
+  requireSso: boolean("require_sso").notNull().default(false),
+  blockMagicLink: boolean("block_magic_link").notNull().default(false),
+  autoCapture: boolean("auto_capture").notNull().default(false),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const ipAllowlist = pgTable("ip_allowlist", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  cidr: text("cidr").notNull(),
+  description: text("description"),
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
@@ -374,4 +411,12 @@ export const githubEvents = pgTable("github_events", {
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
+});
+
+// --- Platform admin tables ---
+
+export const platformSettings = pgTable("platform_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
