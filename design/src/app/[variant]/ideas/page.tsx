@@ -328,10 +328,13 @@ export default function IdeasPage() {
 
   // Interaction state
   const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isPanning, setIsPanning] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0, origX: 0, origY: 0 });
+  const dragStart = useRef({ x: 0, y: 0, origPositions: new Map<number, { x: number; y: number }>() });
   const panStart = useRef({ x: 0, y: 0, origPanX: 0, origPanY: 0 });
+
+  // Track mouse position for the floating selection badge
+  const [dragMouse, setDragMouse] = useState<{ x: number; y: number } | null>(null);
 
   // Quick-add state
   const [quickTitle, setQuickTitle] = useState("");
@@ -424,16 +427,47 @@ export default function IdeasPage() {
       if (editingId === idea.id) return; // don't drag while editing
       e.stopPropagation();
       e.preventDefault();
+
+      if (e.shiftKey) {
+        // Shift+Click: toggle card in/out of selection
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(idea.id)) {
+            next.delete(idea.id);
+          } else {
+            next.add(idea.id);
+          }
+          return next;
+        });
+        return; // don't start a drag on shift-click
+      }
+
+      // Non-shift click
+      let effectiveSelection: Set<number>;
+      if (selectedIds.has(idea.id)) {
+        // Card is already in selection -- drag the whole group
+        effectiveSelection = selectedIds;
+      } else {
+        // Card is NOT in selection -- select only this card
+        effectiveSelection = new Set([idea.id]);
+        setSelectedIds(effectiveSelection);
+      }
+
+      // Build origPositions map for all cards being dragged
+      const origPositions = new Map<number, { x: number; y: number }>();
+      for (const id of effectiveSelection) {
+        const card = ideas.find((i) => i.id === id);
+        if (card) origPositions.set(id, { x: card.x, y: card.y });
+      }
+
       setDraggingId(idea.id);
-      setSelectedId(idea.id);
       dragStart.current = {
         x: e.clientX,
         y: e.clientY,
-        origX: idea.x,
-        origY: idea.y,
+        origPositions,
       };
     },
-    [editingId]
+    [editingId, selectedIds, ideas]
   );
 
   const handleCardDoubleClick = useCallback(
@@ -454,7 +488,7 @@ export default function IdeasPage() {
         // Save any in-progress edit
         if (editingId !== null) saveEditing();
         setIsPanning(true);
-        setSelectedId(null);
+        setSelectedIds(new Set());
         panStart.current = {
           x: e.clientX,
           y: e.clientY,
@@ -473,12 +507,16 @@ export default function IdeasPage() {
       if (draggingId !== null) {
         const dx = (e.clientX - dragStart.current.x) / zoom;
         const dy = (e.clientY - dragStart.current.y) / zoom;
+        const origPositions = dragStart.current.origPositions;
+        setDragMouse({ x: e.clientX, y: e.clientY });
         setIdeas((prev) =>
-          prev.map((idea) =>
-            idea.id === draggingId
-              ? { ...idea, x: dragStart.current.origX + dx, y: dragStart.current.origY + dy }
-              : idea
-          )
+          prev.map((idea) => {
+            const orig = origPositions.get(idea.id);
+            if (orig) {
+              return { ...idea, x: orig.x + dx, y: orig.y + dy };
+            }
+            return idea;
+          })
         );
       } else if (isPanning) {
         const dx = e.clientX - panStart.current.x;
@@ -492,6 +530,7 @@ export default function IdeasPage() {
 
     function handleMouseUp() {
       setDraggingId(null);
+      setDragMouse(null);
       setIsPanning(false);
     }
 
@@ -713,8 +752,9 @@ export default function IdeasPage() {
           >
             {filtered.map((idea, idx) => {
               const color = cardColor(idea.id, idea.colorIndex);
-              const isSelected = selectedId === idea.id;
-              const isDragging = draggingId === idea.id;
+              const isSelected = selectedIds.has(idea.id);
+              const isDragging = draggingId !== null && dragStart.current.origPositions.has(idea.id);
+              const isPrimaryDrag = draggingId === idea.id;
               const isEditing = editingId === idea.id;
               return (
                 <div
@@ -728,6 +768,7 @@ export default function IdeasPage() {
                     width: CARD_WIDTH,
                     backgroundColor: color.bg,
                     borderColor: isSelected || isEditing ? "var(--color-accent)" : color.border,
+                    borderWidth: isSelected ? 2 : 1,
                     zIndex: isDragging ? 999 : isEditing ? 998 : isSelected ? 100 : 1,
                     transition: isDragging ? "none" : "box-shadow 0.15s, border-color 0.15s",
                   }}
@@ -846,6 +887,22 @@ export default function IdeasPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Floating selection badge — follows cursor during bulk drag, otherwise top-left */}
+        {selectedIds.size > 1 && (
+          <div
+            className="pointer-events-none z-20"
+            style={
+              dragMouse
+                ? { position: "fixed", left: dragMouse.x + 16, top: dragMouse.y - 12 }
+                : { position: "absolute", top: 12, left: 12 }
+            }
+          >
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent text-white text-xs font-medium px-2.5 py-1 shadow-lg">
+              {selectedIds.size} ideas
+            </span>
           </div>
         )}
 
