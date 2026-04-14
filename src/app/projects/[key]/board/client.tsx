@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header, CreateButton } from "@/components/Header";
-import { BoardCard, type GitHubStatus } from "@/components/BoardCard";
+import { BoardCard, type GitHubStatus, type ChildTask } from "@/components/BoardCard";
 import { DetailPanel } from "@/components/DetailPanel";
 import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
 import type { WorkflowState } from "@/lib/constants";
@@ -358,6 +358,22 @@ export function BoardClient({
     fetchData();
   }, [fetchData]);
 
+  // Keyboard shortcut listeners
+  useEffect(() => {
+    const handleCreate = () => setCreateOpen(true);
+    const handleClose = () => {
+      setCreateOpen(false);
+      setSelectedId(null);
+      setCustomizePanelOpen(false);
+    };
+    window.addEventListener("trakr:create-item", handleCreate);
+    window.addEventListener("trakr:close-panel", handleClose);
+    return () => {
+      window.removeEventListener("trakr:create-item", handleCreate);
+      window.removeEventListener("trakr:close-panel", handleClose);
+    };
+  }, []);
+
   const changedIds = useRealtimeRefresh(fetchData);
 
   // TRK-137: Filtered items (hide epics/features when toggle is on)
@@ -365,6 +381,44 @@ export function BoardClient({
     if (!hideContainers) return items;
     return items.filter((i) => i.type !== "epic" && i.type !== "feature");
   }, [items, hideContainers]);
+
+  // Build child tasks map for task checklists on story/feature cards
+  const childTasksMap = useMemo(() => {
+    const map = new Map<number, ChildTask[]>();
+    for (const item of items) {
+      if (item.type === "task" && item.parentId) {
+        const existing = map.get(item.parentId) ?? [];
+        existing.push({
+          id: item.id,
+          displayId: item.displayId,
+          title: item.title,
+          state: item.state,
+        });
+        map.set(item.parentId, existing);
+      }
+    }
+    return map;
+  }, [items]);
+
+  // Toggle task done/undone
+  async function handleToggleTask(taskId: number, done: boolean) {
+    const doneState = workflowStates.find((s) => s.category === "done")?.slug ?? "done";
+    const todoState = workflowStates.find((s) => s.category === "todo")?.slug ?? "new";
+    const newState = done ? doneState : todoState;
+
+    // Optimistic update
+    setItems((prev) =>
+      prev.map((i) => (i.id === taskId ? { ...i, state: newState } : i))
+    );
+
+    await fetch(`/api/work-items/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: newState }),
+    });
+
+    fetchData();
+  }
 
   async function handleDrop(targetState: string) {
     if (!draggingId) return;
@@ -509,6 +563,7 @@ export function BoardClient({
                     displayId={item.displayId}
                     title={item.title}
                     type={item.type as "epic" | "feature" | "story"}
+                    state={item.state}
                     assignee={item.assignee}
                     projectKey={projectKey}
                     parentTitle={
@@ -518,6 +573,8 @@ export function BoardClient({
                     }
                     points={item.points}
                     github={githubStatusMap[item.id] ?? null}
+                    childTasks={childTasksMap.get(item.id)}
+                    onToggleTask={handleToggleTask}
                   />
                 </div>
               ))}
@@ -929,6 +986,7 @@ export function BoardClient({
                         displayId={item.displayId}
                         title={item.title}
                         type={item.type as "epic" | "feature" | "story"}
+                        state={item.state}
                         assignee={item.assignee}
                         projectKey={projectKey}
                         parentTitle={
@@ -938,6 +996,8 @@ export function BoardClient({
                         }
                         points={item.points}
                         github={githubStatusMap[item.id] ?? null}
+                        childTasks={childTasksMap.get(item.id)}
+                        onToggleTask={handleToggleTask}
                       />
                     </div>
                   ))}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 
 // Routes that don't need auth
-const PUBLIC_ROUTES = ["/login", "/api/auth", "/api/events", "/api/webhooks"];
+const PUBLIC_ROUTES = ["/login", "/api/auth", "/api/events", "/api/webhooks", "/api/health"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

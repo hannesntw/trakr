@@ -91,6 +91,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Validate canvasColor — default to "blue" if invalid
+  const VALID_CANVAS_COLORS = ["red", "blue", "amber", "emerald", "violet", "orange", "pink", "cyan"];
+  if (parsed.data.canvasColor && !VALID_CANVAS_COLORS.includes(parsed.data.canvasColor)) {
+    parsed.data.canvasColor = "blue";
+  }
+
   // Detect channel and user
   const channel = (request.headers.get("x-trakr-channel") ?? "api") as "web" | "api" | "mcp";
   const { resolveApiUser } = await import("@/lib/api-auth");

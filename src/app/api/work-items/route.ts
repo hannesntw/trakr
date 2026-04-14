@@ -98,6 +98,12 @@ export async function POST(request: NextRequest) {
     resolvedState = match ? match.slug : wfStates[0].slug;
   }
 
+  // Validate canvasColor — default to "blue" if invalid
+  const VALID_CANVAS_COLORS = ["red", "blue", "amber", "emerald", "violet", "orange", "pink", "cyan"];
+  if (parsed.data.canvasColor && !VALID_CANVAS_COLORS.includes(parsed.data.canvasColor)) {
+    parsed.data.canvasColor = "blue";
+  }
+
   // Auto-place ideas if no position given
   let canvasX = parsed.data.canvasX ?? null;
   let canvasY = parsed.data.canvasY ?? null;

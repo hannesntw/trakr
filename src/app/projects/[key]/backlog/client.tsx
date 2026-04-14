@@ -218,6 +218,21 @@ export function BacklogClient({
 
   const changedIds = useRealtimeRefresh(fetchData);
 
+  // Keyboard shortcut listeners
+  useEffect(() => {
+    const handleCreate = () => setCreateOpen(true);
+    const handleClose = () => {
+      setCreateOpen(false);
+      setSelectedId(null);
+    };
+    window.addEventListener("trakr:create-item", handleCreate);
+    window.addEventListener("trakr:close-panel", handleClose);
+    return () => {
+      window.removeEventListener("trakr:create-item", handleCreate);
+      window.removeEventListener("trakr:close-panel", handleClose);
+    };
+  }, []);
+
   // On first load, pre-select all non-done states to hide completed items
   useEffect(() => {
     if (workflowStates.length > 0 && !initialFilterApplied) {

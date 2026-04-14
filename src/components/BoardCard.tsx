@@ -2,7 +2,7 @@
 
 import { TypeBadge, IdBadge } from "@/components/Badge";
 import { PointsBadge } from "@/components/PointsBadge";
-import { GitPullRequest, CheckCircle2, XCircle, Circle, GitBranch } from "lucide-react";
+import { GitPullRequest, CheckCircle2, XCircle, Circle, GitBranch, Square, CheckSquare } from "lucide-react";
 import type { WorkItemType } from "@/lib/constants";
 
 export interface GitHubStatus {
@@ -13,16 +13,26 @@ export interface GitHubStatus {
   ciStatus: string | null;
 }
 
+export interface ChildTask {
+  id: number;
+  displayId?: string | null;
+  title: string;
+  state: string;
+}
+
 interface BoardCardProps {
   id: number;
   displayId?: string | null;
   title: string;
   type: WorkItemType;
+  state?: string;
   assignee: string | null;
   projectKey: string;
   parentTitle?: string;
   points?: number | null;
   github?: GitHubStatus | null;
+  childTasks?: ChildTask[];
+  onToggleTask?: (taskId: number, done: boolean) => void;
 }
 
 export function BoardCard({
@@ -30,15 +40,36 @@ export function BoardCard({
   displayId,
   title,
   type,
+  state,
   assignee,
   parentTitle,
   points,
   github,
+  childTasks,
+  onToggleTask,
 }: BoardCardProps) {
+  const isDone = state === "done" || state === "closed";
+
   return (
     <div className="bg-surface border border-border rounded-lg p-3 hover:border-border-hover hover:shadow-sm transition-all group">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <TypeBadge type={type} />
+        {type === "task" ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleTask?.(id, !isDone);
+            }}
+            className="shrink-0 mt-0.5"
+          >
+            {isDone ? (
+              <CheckSquare className="w-4 h-4 text-emerald-500" />
+            ) : (
+              <Square className="w-4 h-4 text-slate-300 hover:text-slate-500 transition-colors" />
+            )}
+          </button>
+        ) : (
+          <TypeBadge type={type} />
+        )}
         <div className="flex items-center gap-1.5">
           <IdBadge id={id} displayId={displayId} />
           {(type === "story" || type === "bug") && points != null && (
@@ -46,7 +77,9 @@ export function BoardCard({
           )}
         </div>
       </div>
-      <p className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2">
+      <p className={`text-sm font-medium group-hover:text-accent transition-colors line-clamp-2 ${
+        type === "task" && isDone ? "line-through text-text-tertiary" : "text-text-primary"
+      }`}>
         {title}
       </p>
       {parentTitle && (
@@ -54,6 +87,39 @@ export function BoardCard({
           {parentTitle}
         </p>
       )}
+
+      {/* Child task checklist (for stories/features with child tasks) */}
+      {childTasks && childTasks.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+          <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">
+            Tasks {childTasks.filter((t) => t.state === "done" || t.state === "closed").length}/{childTasks.length}
+          </p>
+          {childTasks.map((task) => {
+            const taskDone = task.state === "done" || task.state === "closed";
+            return (
+              <div key={task.id} className="flex items-center gap-1.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleTask?.(task.id, !taskDone);
+                  }}
+                  className="shrink-0"
+                >
+                  {taskDone ? (
+                    <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 transition-colors" />
+                  )}
+                </button>
+                <span className={`text-xs ${taskDone ? "line-through text-text-tertiary" : "text-text-primary"}`}>
+                  {task.title}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {assignee && (
         <div className="flex items-center gap-1.5 mt-2.5">
           <span className="w-5 h-5 rounded-full bg-accent/10 text-accent text-[10px] font-semibold flex items-center justify-center">
