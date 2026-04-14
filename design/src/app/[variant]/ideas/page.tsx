@@ -12,6 +12,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize,
+  Pencil,
 } from "lucide-react";
 
 /* ── Types ──────────────────────────────────────────────────── */
@@ -23,6 +24,7 @@ interface Idea {
   createdAt: string; // ISO date
   x: number;
   y: number;
+  colorIndex: number;
 }
 
 /* ── Mock data ──────────────────────────────────────────────── */
@@ -120,6 +122,7 @@ function assignPositions(items: typeof RAW_IDEAS): Idea[] {
       ...item,
       x: 60 + col * (CARD_W + GAP) + jitterX,
       y: 60 + row * (CARD_H + GAP) + jitterY,
+      colorIndex: item.id % BRAND_COLORS.length,
     };
   });
 }
@@ -141,21 +144,39 @@ function relativeTime(iso: string): string {
   return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/* ── Sticky note color palette ─────────────────────────────── */
+/* ── Sticky note color palette (Trakr brand tints) ────────── */
 
-const cardColors = [
-  { bg: "#fffbeb", border: "rgba(253,230,138,0.6)" }, // amber
-  { bg: "#f0f9ff", border: "rgba(186,230,253,0.6)" }, // sky
-  { bg: "#f5f3ff", border: "rgba(221,214,254,0.6)" }, // violet
-  { bg: "#ecfdf5", border: "rgba(167,243,208,0.6)" }, // emerald
-  { bg: "#fff1f2", border: "rgba(254,205,211,0.6)" }, // rose
-  { bg: "#fff7ed", border: "rgba(253,186,116,0.6)" }, // orange
-  { bg: "#f0fdfa", border: "rgba(153,246,228,0.6)" }, // teal
-  { bg: "#eef2ff", border: "rgba(199,210,254,0.6)" }, // indigo
+const BRAND_COLORS = [
+  { hex: "#ef4444", label: "red" },
+  { hex: "#3b82f6", label: "blue" },
+  { hex: "#fbbf24", label: "amber" },
+  { hex: "#10b981", label: "emerald" },
+  { hex: "#8b5cf6", label: "violet" },
+  { hex: "#f97316", label: "orange" },
+  { hex: "#ec4899", label: "pink" },
+  { hex: "#06b6d4", label: "cyan" },
 ];
 
-function cardColor(id: number) {
-  return cardColors[id % cardColors.length];
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+}
+
+function brandCardColor(colorIndex: number) {
+  const c = BRAND_COLORS[colorIndex % BRAND_COLORS.length];
+  const { r, g, b } = hexToRgb(c.hex);
+  return {
+    bg: `rgba(${r}, ${g}, ${b}, 0.08)`,
+    border: `rgba(${r}, ${g}, ${b}, 0.25)`,
+    dot: c.hex,
+  };
+}
+
+function cardColor(id: number, colorOverride?: number) {
+  const idx = colorOverride !== undefined ? colorOverride : id;
+  return brandCardColor(idx);
 }
 
 /* ── Constants ─────────────────────────────────────────────── */
@@ -313,8 +334,16 @@ export default function IdeasPage() {
   const [quickExpanded, setQuickExpanded] = useState(false);
   const addFormRef = useRef<HTMLDivElement>(null);
 
+  // Edit mode
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+
   // Promote dialog
   const [promoteIdea, setPromoteIdea] = useState<Idea | null>(null);
+
+  // Last-added position for stacking new ideas
+  const lastAddedPos = useRef<{ x: number; y: number } | null>(null);
 
   // Canvas ref
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -345,10 +374,48 @@ export default function IdeasPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [quickTitle, quickBody]);
 
+  /* ── Edit helpers ──────────────────────────────────────── */
+
+  const startEditing = useCallback((idea: Idea) => {
+    setEditingId(idea.id);
+    setEditTitle(idea.title);
+    setEditBody(idea.body);
+  }, []);
+
+  const saveEditing = useCallback(() => {
+    if (editingId === null) return;
+    const t = editTitle.trim();
+    if (t) {
+      setIdeas((prev) =>
+        prev.map((i) =>
+          i.id === editingId ? { ...i, title: t, body: editBody.trim() } : i
+        )
+      );
+    }
+    setEditingId(null);
+  }, [editingId, editTitle, editBody]);
+
+  const cancelEditing = useCallback(() => {
+    setEditingId(null);
+  }, []);
+
+  /* ── Color cycling ───────────────────────────────────── */
+
+  const cycleColor = useCallback((id: number) => {
+    setIdeas((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? { ...i, colorIndex: (i.colorIndex + 1) % BRAND_COLORS.length }
+          : i
+      )
+    );
+  }, []);
+
   /* ── Card drag ─────────────────────────────────────────── */
 
   const handleCardMouseDown = useCallback(
     (e: React.MouseEvent, idea: Idea) => {
+      if (editingId === idea.id) return; // don't drag while editing
       e.stopPropagation();
       e.preventDefault();
       setDraggingId(idea.id);
@@ -360,7 +427,16 @@ export default function IdeasPage() {
         origY: idea.y,
       };
     },
-    []
+    [editingId]
+  );
+
+  const handleCardDoubleClick = useCallback(
+    (e: React.MouseEvent, idea: Idea) => {
+      e.stopPropagation();
+      e.preventDefault();
+      startEditing(idea);
+    },
+    [startEditing]
   );
 
   /* ── Canvas pan ────────────────────────────────────────── */
@@ -369,6 +445,8 @@ export default function IdeasPage() {
     (e: React.MouseEvent) => {
       // Only start pan if clicking on the canvas itself (not a card)
       if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.canvasBg === "true") {
+        // Save any in-progress edit
+        if (editingId !== null) saveEditing();
         setIsPanning(true);
         setSelectedId(null);
         panStart.current = {
@@ -379,7 +457,7 @@ export default function IdeasPage() {
         };
       }
     },
-    [pan]
+    [pan, editingId, saveEditing]
   );
 
   /* ── Mouse move (card drag or pan) ─────────────────────── */
@@ -431,7 +509,11 @@ export default function IdeasPage() {
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      // Trackpad-friendly: small multiplier, clamped per event
+      const raw = -e.deltaY * 0.001;
+      const delta = Math.max(-0.05, Math.min(0.05, raw));
+      if (Math.abs(delta) < 0.0001) return;
+
       setZoom((prevZoom) => {
         const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prevZoom + delta));
         const scale = newZoom / prevZoom;
@@ -494,18 +576,41 @@ export default function IdeasPage() {
     const title = quickTitle.trim();
     if (!title) return;
 
-    // Place new card near center of current viewport
     const el = canvasRef.current;
-    let cx = 200,
+    let cx: number, cy: number;
+
+    if (lastAddedPos.current) {
+      // Stack below and slightly right of last added idea
+      cx = lastAddedPos.current.x + 30;
+      cy = lastAddedPos.current.y + 220;
+
+      // Reset if off-screen
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const screenX = cx * zoom + pan.x;
+        const screenY = cy * zoom + pan.y;
+        if (
+          screenX < 0 ||
+          screenX > rect.width - 100 ||
+          screenY < 0 ||
+          screenY > rect.height - 100
+        ) {
+          cx = (rect.width / 2 - pan.x) / zoom;
+          cy = (rect.height / 2 - pan.y) / zoom;
+        }
+      }
+    } else {
+      // First add: center of viewport
+      cx = 200;
       cy = 200;
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      cx = (rect.width / 2 - pan.x) / zoom;
-      cy = (rect.height / 2 - pan.y) / zoom;
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        cx = (rect.width / 2 - pan.x) / zoom;
+        cy = (rect.height / 2 - pan.y) / zoom;
+      }
     }
-    // Add small random offset so stacked additions don't overlap exactly
-    cx += (Math.random() - 0.5) * 80;
-    cy += (Math.random() - 0.5) * 60;
+
+    lastAddedPos.current = { x: cx, y: cy };
 
     const newIdea: Idea = {
       id: Date.now(),
@@ -514,6 +619,7 @@ export default function IdeasPage() {
       createdAt: new Date("2026-04-13T12:00:00Z").toISOString(),
       x: cx,
       y: cy,
+      colorIndex: Date.now() % BRAND_COLORS.length,
     };
     setIdeas((prev) => [...prev, newIdea]);
     setQuickTitle("");
@@ -571,7 +677,7 @@ export default function IdeasPage() {
         style={{
           cursor: isPanning ? "grabbing" : draggingId ? "grabbing" : "default",
           background:
-            "radial-gradient(circle, var(--color-text-tertiary) 0.5px, transparent 0.5px)",
+            `radial-gradient(circle, var(--color-text-tertiary) ${Math.max(0.5, 0.75 * zoom)}px, transparent ${Math.max(0.5, 0.75 * zoom)}px)`,
           backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
           backgroundPosition: `${pan.x}px ${pan.y}px`,
           backgroundColor: "var(--color-content-bg)",
@@ -590,45 +696,93 @@ export default function IdeasPage() {
               left: 0,
             }}
           >
-            {filtered.map((idea) => {
-              const color = cardColor(idea.id);
+            {filtered.map((idea, idx) => {
+              const color = cardColor(idea.id, idea.colorIndex);
               const isSelected = selectedId === idea.id;
               const isDragging = draggingId === idea.id;
+              const isEditing = editingId === idea.id;
               return (
                 <div
                   key={idea.id}
                   onMouseDown={(e) => handleCardMouseDown(e, idea)}
+                  onDoubleClick={(e) => handleCardDoubleClick(e, idea)}
                   style={{
                     position: "absolute",
                     left: idea.x,
                     top: idea.y,
                     width: CARD_WIDTH,
                     backgroundColor: color.bg,
-                    borderColor: isSelected ? "var(--color-accent)" : color.border,
-                    zIndex: isDragging ? 999 : isSelected ? 100 : 1,
+                    borderColor: isSelected || isEditing ? "var(--color-accent)" : color.border,
+                    zIndex: isDragging ? 999 : isEditing ? 998 : isSelected ? 100 : 1,
                     transition: isDragging ? "none" : "box-shadow 0.15s, border-color 0.15s",
                   }}
                   className={`group rounded-lg border p-3 select-none ${
                     isDragging
                       ? "shadow-xl scale-[1.03] rotate-[1deg]"
-                      : isSelected
+                      : isSelected || isEditing
                       ? "shadow-lg"
                       : "shadow-md hover:shadow-lg"
                   }`}
                 >
-                  {/* Title */}
-                  <h3
-                    className="text-[13px] font-medium text-text-primary leading-snug line-clamp-2"
-                    style={{ cursor: "grab" }}
-                  >
-                    {idea.title}
-                  </h3>
+                  {/* ID badge + color dot */}
+                  <div className="flex items-center justify-between mb-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cycleColor(idea.id);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="w-2.5 h-2.5 rounded-full shrink-0 hover:scale-125 transition-transform"
+                      style={{ backgroundColor: color.dot }}
+                      title="Change color"
+                    />
+                    <span className="text-[10px] text-text-tertiary/50 font-mono leading-none">
+                      #{idx + 1}
+                    </span>
+                  </div>
 
-                  {/* Description preview */}
-                  {idea.body && (
-                    <p className="text-[11px] text-text-secondary/80 mt-1.5 leading-relaxed line-clamp-2">
-                      {idea.body}
-                    </p>
+                  {isEditing ? (
+                    /* ── Edit mode ── */
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") cancelEditing();
+                          if (e.key === "Enter") saveEditing();
+                        }}
+                        autoFocus
+                        className="w-full text-[13px] font-medium text-text-primary bg-white/60 border border-border rounded px-1.5 py-0.5 outline-none focus:border-accent"
+                      />
+                      <textarea
+                        value={editBody}
+                        onChange={(e) => setEditBody(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") cancelEditing();
+                        }}
+                        rows={2}
+                        className="w-full mt-1.5 text-[11px] text-text-secondary bg-white/60 border border-border rounded px-1.5 py-0.5 outline-none focus:border-accent resize-none"
+                      />
+                    </div>
+                  ) : (
+                    /* ── View mode ── */
+                    <>
+                      <h3
+                        className="text-[13px] font-medium text-text-primary leading-snug line-clamp-2"
+                        style={{ cursor: "grab" }}
+                      >
+                        {idea.title}
+                      </h3>
+                      {idea.body && (
+                        <p className="text-[11px] text-text-secondary/80 mt-1.5 leading-relaxed line-clamp-2">
+                          {idea.body}
+                        </p>
+                      )}
+                    </>
                   )}
 
                   {/* Footer */}
@@ -637,6 +791,17 @@ export default function IdeasPage() {
                       {relativeTime(idea.createdAt)}
                     </span>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(idea);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-white/60 transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -743,12 +908,14 @@ export default function IdeasPage() {
                     }
                   }}
                   placeholder="Capture an idea..."
+                  tabIndex={1}
                   className="flex-1 h-11 px-2.5 text-sm bg-transparent outline-none text-text-primary placeholder:text-text-tertiary"
                 />
                 {quickExpanded && (
                   <button
                     onClick={handleQuickAdd}
                     disabled={!quickTitle.trim()}
+                    tabIndex={3}
                     className="mr-3 h-7 px-3 text-xs font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     Add
@@ -766,6 +933,7 @@ export default function IdeasPage() {
                       }
                     }}
                     rows={2}
+                    tabIndex={2}
                     placeholder="Add a description (optional)... Cmd+Enter to save"
                     className="w-full px-2.5 py-2 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary resize-none"
                   />
