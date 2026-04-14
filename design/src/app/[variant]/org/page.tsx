@@ -1,139 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Building2, Users, FolderKanban, HardDrive, CreditCard, ExternalLink, Upload, Check } from "lucide-react";
+import { Users, FolderKanban, HardDrive, TrendingUp, BarChart3, Activity, FileText } from "lucide-react";
+import { OrgTabNav } from "@/components/OrgTabNav";
 
-const plans = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    features: ["Up to 5 members", "3 projects", "Basic workflow", "1 GB storage"],
-    cta: "Current plan",
-    current: false,
-  },
-  {
-    id: "team",
-    name: "Team",
-    price: "$12",
-    period: "per user/month",
-    features: ["Up to 50 members", "Unlimited projects", "Custom workflows", "10 GB storage", "Priority support"],
-    cta: "Current plan",
-    current: true,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "$39",
-    period: "per user/month",
-    features: ["Unlimited members", "Unlimited projects", "SSO/SAML", "Audit log", "Custom roles", "100 GB storage", "Dedicated support", "99.9% SLA"],
-    cta: "Upgrade",
-    current: false,
-  },
+const sparklineData = [18, 20, 19, 22, 21, 24, 23, 24]; // active users per week
+
+const storageByProject = [
+  { name: "Trakr", storage: 1.8, color: "bg-accent" },
+  { name: "Pictura", storage: 0.9, color: "bg-purple-500" },
+  { name: "Infrastructure", storage: 0.3, color: "bg-emerald-500" },
+  { name: "Design System", storage: 0.2, color: "bg-amber-500" },
 ];
 
-export default function OrgPage() {
+const totalStorage = storageByProject.reduce((a, b) => a + b.storage, 0);
+
+export default function OrgDashboardPage() {
   const params = useParams();
   const variant = params.variant as string;
-  const [orgName, setOrgName] = useState("ThoughtWorks");
-  const [orgSlug, setOrgSlug] = useState("thoughtworks");
-  const [logoUploaded, setLogoUploaded] = useState(false);
 
   return (
     <>
       <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
-        <h1 className="text-sm font-semibold text-text-primary">Organization Settings</h1>
+        <h1 className="text-sm font-semibold text-text-primary">Organization</h1>
+        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-accent/10 text-accent rounded-full">Owner view</span>
       </header>
 
       <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-8">
-          {/* Sub-nav */}
-          <nav className="flex gap-1 border-b border-border -mt-2 mb-2">
-            {[
-              { href: `/${variant}/org`, label: "Overview", active: true },
-              { href: `/${variant}/org/members`, label: "Members" },
-              { href: `/${variant}/org/teams`, label: "Teams" },
-              { href: `/${variant}/org/roles`, label: "Roles & Permissions" },
-              { href: `/${variant}/org/audit`, label: "Audit Log" },
-              { href: `/${variant}/org/security`, label: "Security" },
-            ].map((tab) => (
-              <Link
-                key={tab.label}
-                href={tab.href}
-                className={`px-3 py-2 text-sm border-b-2 transition-colors ${
-                  tab.active
-                    ? "border-accent text-accent font-medium"
-                    : "border-transparent text-text-secondary hover:text-text-primary hover:border-border"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
+          <OrgTabNav variant={variant} activeTab="dashboard" />
 
-          {/* Organization identity */}
+          {/* Key metrics */}
           <section>
-            <h2 className="text-sm font-semibold text-text-primary mb-4">Organization</h2>
-            <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
-              <div className="flex items-start gap-4">
-                <button
-                  onClick={() => setLogoUploaded(true)}
-                  className="w-16 h-16 rounded-lg border-2 border-dashed border-border hover:border-accent flex items-center justify-center transition-colors shrink-0"
-                >
-                  {logoUploaded ? (
-                    <span className="w-full h-full rounded-lg bg-accent/10 text-accent text-xl font-bold flex items-center justify-center">
-                      TW
-                    </span>
-                  ) : (
-                    <Upload className="w-5 h-5 text-text-tertiary" />
-                  )}
-                </button>
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <label className="text-xs text-text-tertiary block mb-1">Organization Name</label>
-                    <input
-                      value={orgName}
-                      onChange={(e) => setOrgName(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-tertiary block mb-1">URL Slug</label>
-                    <div className="flex items-center gap-0">
-                      <span className="px-3 py-1.5 text-sm bg-content-bg border border-r-0 border-border rounded-l-md text-text-tertiary">
-                        https://
-                      </span>
-                      <input
-                        value={orgSlug}
-                        onChange={(e) => setOrgSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                        className="flex-1 px-3 py-1.5 text-sm border border-border bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent font-mono"
-                      />
-                      <span className="px-3 py-1.5 text-sm bg-content-bg border border-l-0 border-border rounded-r-md text-text-tertiary">
-                        .trakr.app
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-md transition-colors">
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Usage stats */}
-          <section>
-            <h2 className="text-sm font-semibold text-text-primary mb-4">Usage</h2>
-            <div className="grid grid-cols-3 gap-4">
+            <h2 className="text-sm font-semibold text-text-primary mb-4">Overview</h2>
+            <div className="grid grid-cols-4 gap-4">
               {[
-                { icon: Users, label: "Members", value: "24", limit: "50", percent: 48 },
-                { icon: FolderKanban, label: "Projects", value: "8", limit: "Unlimited", percent: 0 },
-                { icon: HardDrive, label: "Storage", value: "3.2 GB", limit: "10 GB", percent: 32 },
+                { icon: Users, label: "Active Members", value: "24", subtext: "of 50 seats", percent: 48 },
+                { icon: FolderKanban, label: "Projects", value: "8", subtext: "Unlimited", percent: 0 },
+                { icon: HardDrive, label: "Storage Used", value: "3.2 GB", subtext: "of 10 GB", percent: 32 },
+                { icon: Activity, label: "API Calls", value: "12.4k", subtext: "this month", percent: 0 },
               ].map((stat) => (
                 <div key={stat.label} className="bg-surface border border-border rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -141,7 +46,7 @@ export default function OrgPage() {
                     <span className="text-xs text-text-tertiary">{stat.label}</span>
                   </div>
                   <p className="text-xl font-semibold text-text-primary">{stat.value}</p>
-                  <p className="text-xs text-text-tertiary mt-0.5">of {stat.limit}</p>
+                  <p className="text-xs text-text-tertiary mt-0.5">{stat.subtext}</p>
                   {stat.percent > 0 && (
                     <div className="mt-2 h-1.5 bg-content-bg rounded-full overflow-hidden">
                       <div
@@ -155,93 +60,128 @@ export default function OrgPage() {
             </div>
           </section>
 
-          {/* Billing plans */}
+          {/* Active users sparkline */}
           <section>
-            <h2 className="text-sm font-semibold text-text-primary mb-4">Billing Plan</h2>
-            <div className="grid grid-cols-3 gap-4">
-              {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`bg-surface border rounded-lg p-4 ${
-                    plan.current ? "border-accent ring-1 ring-accent/20" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-text-primary">{plan.name}</h3>
-                    {plan.current && (
-                      <span className="px-2 py-0.5 text-[10px] font-medium bg-accent/10 text-accent rounded-full">
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-2xl font-bold text-text-primary">
-                    {plan.price}
-                    <span className="text-xs font-normal text-text-tertiary ml-1">{plan.period}</span>
-                  </p>
-                  <ul className="mt-3 space-y-1.5">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-xs text-text-secondary">
-                        <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    className={`w-full mt-4 px-3 py-1.5 text-sm rounded-md transition-colors ${
-                      plan.current
-                        ? "bg-content-bg text-text-tertiary cursor-default"
-                        : plan.id === "enterprise"
-                        ? "bg-accent hover:bg-accent-hover text-white"
-                        : "border border-border text-text-secondary hover:border-accent hover:text-accent"
-                    }`}
-                  >
-                    {plan.current ? "Current plan" : plan.cta}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Billing details */}
-          <section>
-            <h2 className="text-sm font-semibold text-text-primary mb-4">Billing Details</h2>
-            <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-text-primary font-medium">Next invoice</p>
-                  <p className="text-xs text-text-tertiary">May 1, 2026 &mdash; $288.00 (24 seats x $12)</p>
-                </div>
-                <button className="text-xs text-accent hover:text-accent-hover flex items-center gap-1">
-                  View invoices <ExternalLink className="w-3 h-3" />
-                </button>
+            <h2 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-text-tertiary" />
+              Active Users (last 8 weeks)
+            </h2>
+            <div className="bg-surface border border-border rounded-lg p-4">
+              <div className="flex items-end gap-2 h-24">
+                {sparklineData.map((val, i) => {
+                  const maxVal = Math.max(...sparklineData);
+                  const heightPct = (val / maxVal) * 100;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-text-tertiary">{val}</span>
+                      <div
+                        className="w-full bg-accent/80 rounded-t transition-all"
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-              <div className="border-t border-border pt-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-text-tertiary" />
-                  <div>
-                    <p className="text-sm text-text-primary">Visa ending in 4242</p>
-                    <p className="text-xs text-text-tertiary">Expires 08/2028</p>
-                  </div>
-                </div>
-                <button className="px-3 py-1.5 text-xs border border-border rounded-md text-text-secondary hover:border-accent hover:text-accent transition-colors">
-                  Update payment method
-                </button>
+              <div className="flex justify-between mt-2 text-[10px] text-text-tertiary">
+                <span>8 weeks ago</span>
+                <span>This week</span>
               </div>
             </div>
           </section>
 
-          {/* Danger zone */}
+          {/* Work items created + API calls */}
           <section>
-            <h2 className="text-sm font-semibold text-red-500 mb-4">Danger Zone</h2>
-            <div className="bg-surface border border-red-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Delete organization</p>
-                  <p className="text-xs text-text-tertiary">Permanently delete this organization, all projects, and all data. This cannot be undone.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-surface border border-border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-sm font-semibold text-text-primary">Work Items This Week</span>
                 </div>
-                <button className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md transition-colors">
-                  Delete
-                </button>
+                <div className="space-y-2">
+                  {[
+                    { project: "Trakr", count: 14, color: "bg-accent" },
+                    { project: "Pictura", count: 8, color: "bg-purple-500" },
+                    { project: "Infrastructure", count: 3, color: "bg-emerald-500" },
+                    { project: "Design System", count: 2, color: "bg-amber-500" },
+                  ].map((item) => (
+                    <div key={item.project} className="flex items-center gap-3">
+                      <span className="text-xs text-text-secondary w-24 shrink-0">{item.project}</span>
+                      <div className="flex-1 h-4 bg-content-bg rounded overflow-hidden">
+                        <div
+                          className={`h-full ${item.color} rounded transition-all`}
+                          style={{ width: `${(item.count / 14) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-text-primary font-medium w-6 text-right">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-text-tertiary mt-3">27 total work items created this week</p>
+              </div>
+
+              <div className="bg-surface border border-border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-sm font-semibold text-text-primary">API Calls This Month</span>
+                </div>
+                <p className="text-3xl font-bold text-text-primary mb-1">12,438</p>
+                <p className="text-xs text-emerald-600 font-medium">+18% vs last month</p>
+                <div className="mt-3 space-y-1.5">
+                  {[
+                    { label: "REST API", value: "8,241", pct: 66 },
+                    { label: "MCP Server", value: "3,102", pct: 25 },
+                    { label: "Webhooks", value: "1,095", pct: 9 },
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-center gap-2 text-xs">
+                      <span className="text-text-secondary w-20">{row.label}</span>
+                      <div className="flex-1 h-1.5 bg-content-bg rounded-full overflow-hidden">
+                        <div className="h-full bg-accent rounded-full" style={{ width: `${row.pct}%` }} />
+                      </div>
+                      <span className="text-text-tertiary w-12 text-right">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Storage breakdown */}
+          <section>
+            <h2 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-text-tertiary" />
+              Storage Breakdown
+            </h2>
+            <div className="bg-surface border border-border rounded-lg p-4">
+              {/* Stacked bar */}
+              <div className="h-6 flex rounded overflow-hidden mb-4">
+                {storageByProject.map((p) => (
+                  <div
+                    key={p.name}
+                    className={`${p.color} transition-all`}
+                    style={{ width: `${(p.storage / 10) * 100}%` }}
+                    title={`${p.name}: ${p.storage} GB`}
+                  />
+                ))}
+                <div className="flex-1 bg-content-bg" />
+              </div>
+              <div className="space-y-2">
+                {storageByProject.map((p) => (
+                  <div key={p.name} className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded ${p.color} shrink-0`} />
+                    <span className="text-xs text-text-secondary flex-1">{p.name}</span>
+                    <div className="w-48 h-2 bg-content-bg rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${p.color} rounded-full transition-all`}
+                        style={{ width: `${(p.storage / 10) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-text-primary font-medium w-16 text-right">{p.storage} GB</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-border flex justify-between text-xs text-text-tertiary">
+                <span>{totalStorage.toFixed(1)} GB used</span>
+                <span>10 GB plan limit</span>
               </div>
             </div>
           </section>

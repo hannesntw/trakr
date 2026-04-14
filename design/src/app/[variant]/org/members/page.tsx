@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Plus, Search, X, Mail, ChevronDown, MoreHorizontal, Clock, UserMinus, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Plus, Search, X, Mail, ChevronDown, MoreHorizontal, Clock, UserMinus, ShieldCheck, ShieldAlert, Info } from "lucide-react";
+import { OrgTabNav } from "@/components/OrgTabNav";
 
 type OrgRole = "Owner" | "Admin" | "Member" | "Viewer" | "Guest";
 
@@ -130,34 +130,13 @@ export default function MembersPage() {
   return (
     <>
       <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
-        <h1 className="text-sm font-semibold text-text-primary">Organization Settings</h1>
+        <h1 className="text-sm font-semibold text-text-primary">Organization</h1>
+        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-accent/10 text-accent rounded-full">Owner view</span>
       </header>
 
       <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-8">
-          {/* Sub-nav */}
-          <nav className="flex gap-1 border-b border-border -mt-2 mb-2">
-            {[
-              { href: `/${variant}/org`, label: "Overview" },
-              { href: `/${variant}/org/members`, label: "Members", active: true },
-              { href: `/${variant}/org/teams`, label: "Teams" },
-              { href: `/${variant}/org/roles`, label: "Roles & Permissions" },
-              { href: `/${variant}/org/audit`, label: "Audit Log" },
-              { href: `/${variant}/org/security`, label: "Security" },
-            ].map((tab) => (
-              <Link
-                key={tab.label}
-                href={tab.href}
-                className={`px-3 py-2 text-sm border-b-2 transition-colors ${
-                  tab.active
-                    ? "border-accent text-accent font-medium"
-                    : "border-transparent text-text-secondary hover:text-text-primary hover:border-border"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
+          <OrgTabNav variant={variant} activeTab="members" />
 
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -209,6 +188,21 @@ export default function MembersPage() {
               </div>
             </div>
           )}
+
+          {/* Admin delegation info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-700 space-y-1">
+              <p className="font-medium">Role visibility differs by permission level</p>
+              <p>
+                <span className="font-medium">Admins</span> can manage teams they lead, add/remove members from their teams, and create projects
+                &mdash; but cannot access Plans &amp; Billing, Security, or Audit Log tabs.
+              </p>
+              <p>
+                <span className="font-medium">Members</span> and <span className="font-medium">Viewers</span> see a read-only version of this page.
+              </p>
+            </div>
+          </div>
 
           {/* Filters + bulk actions */}
           <div className="flex items-center gap-2">

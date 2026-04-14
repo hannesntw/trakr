@@ -1,180 +1,81 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Plus, Users, FolderKanban, ChevronRight, X, Check, Trash2, Search } from "lucide-react";
+import { Plus, Users, FolderKanban, Search, ChevronRight, X, Check, Trash2 } from "lucide-react";
+import { OrgTabNav } from "@/components/OrgTabNav";
 
-interface TeamMember {
-  name: string;
-  email: string;
-  avatar: string;
-  role: "Lead" | "Member";
-}
-
-interface Team {
+interface TeamRow {
   id: string;
   name: string;
   description: string;
-  members: TeamMember[];
-  projects: string[];
+  membersCount: number;
+  projectsCount: number;
+  lead: string;
+  created: string;
 }
 
-const initialTeams: Team[] = [
-  {
-    id: "1",
-    name: "Platform Engineering",
-    description: "Core infrastructure and developer tooling",
-    members: [
-      { name: "Hannes", email: "hannes@example.com", avatar: "H", role: "Lead" },
-      { name: "Sarah Chen", email: "sarah@example.com", avatar: "S", role: "Member" },
-      { name: "Alex Rivera", email: "alex@example.com", avatar: "A", role: "Member" },
-      { name: "Peter Schmidt", email: "peter@example.com", avatar: "P", role: "Member" },
-    ],
-    projects: ["Trakr", "Infrastructure"],
-  },
-  {
-    id: "2",
-    name: "Product Design",
-    description: "UX research, interaction design, and design systems",
-    members: [
-      { name: "Maya Patel", email: "maya@example.com", avatar: "M", role: "Lead" },
-      { name: "Jordan Lee", email: "jordan@example.com", avatar: "J", role: "Member" },
-      { name: "Taylor Kim", email: "taylor@example.com", avatar: "T", role: "Member" },
-    ],
-    projects: ["Trakr", "Pictura"],
-  },
-  {
-    id: "3",
-    name: "Growth",
-    description: "Marketing, analytics, and customer acquisition",
-    members: [
-      { name: "Chris Evans", email: "chris@example.com", avatar: "C", role: "Lead" },
-      { name: "Dana White", email: "dana@example.com", avatar: "D", role: "Member" },
-    ],
-    projects: ["Pictura"],
-  },
-  {
-    id: "4",
-    name: "QA & Release",
-    description: "Test automation, quality assurance, and release management",
-    members: [
-      { name: "Robin Park", email: "robin@example.com", avatar: "R", role: "Lead" },
-      { name: "Sam Torres", email: "sam@example.com", avatar: "S", role: "Member" },
-      { name: "Alex Rivera", email: "alex@example.com", avatar: "A", role: "Member" },
-    ],
-    projects: ["Trakr", "Pictura", "Infrastructure"],
-  },
+const initialTeams: TeamRow[] = [
+  { id: "1", name: "Platform Engineering", description: "Core infrastructure and developer tooling", membersCount: 4, projectsCount: 2, lead: "Hannes", created: "Jan 15, 2025" },
+  { id: "2", name: "Product Design", description: "UX research, interaction design, and design systems", membersCount: 3, projectsCount: 2, lead: "Maya Patel", created: "Feb 3, 2025" },
+  { id: "3", name: "Growth", description: "Marketing, analytics, and customer acquisition", membersCount: 2, projectsCount: 1, lead: "Chris Evans", created: "Mar 10, 2025" },
+  { id: "4", name: "QA & Release", description: "Test automation, quality assurance, and release management", membersCount: 3, projectsCount: 3, lead: "Robin Park", created: "Apr 1, 2025" },
+  { id: "5", name: "Backend API", description: "REST API development, database, and performance", membersCount: 5, projectsCount: 2, lead: "Alex Rivera", created: "Apr 15, 2025" },
+  { id: "6", name: "Mobile", description: "iOS and Android native app development", membersCount: 3, projectsCount: 1, lead: "Taylor Kim", created: "May 1, 2025" },
+  { id: "7", name: "DevOps", description: "CI/CD pipelines, monitoring, and infrastructure automation", membersCount: 2, projectsCount: 3, lead: "Sam Torres", created: "Jun 10, 2025" },
+  { id: "8", name: "Data Engineering", description: "Data pipelines, analytics infrastructure, and reporting", membersCount: 4, projectsCount: 2, lead: "Jordan Lee", created: "Jul 20, 2025" },
+  { id: "9", name: "Security", description: "Application security, penetration testing, and compliance", membersCount: 2, projectsCount: 2, lead: "Dana White", created: "Aug 5, 2025" },
+  { id: "10", name: "Customer Success", description: "Onboarding, support escalation, and feedback loops", membersCount: 3, projectsCount: 1, lead: "Peter Schmidt", created: "Sep 12, 2025" },
 ];
-
-const allMembers = [
-  { name: "Hannes", email: "hannes@example.com", avatar: "H" },
-  { name: "Sarah Chen", email: "sarah@example.com", avatar: "S" },
-  { name: "Alex Rivera", email: "alex@example.com", avatar: "A" },
-  { name: "Peter Schmidt", email: "peter@example.com", avatar: "P" },
-  { name: "Maya Patel", email: "maya@example.com", avatar: "M" },
-  { name: "Jordan Lee", email: "jordan@example.com", avatar: "J" },
-  { name: "Taylor Kim", email: "taylor@example.com", avatar: "T" },
-  { name: "Chris Evans", email: "chris@example.com", avatar: "C" },
-  { name: "Dana White", email: "dana@example.com", avatar: "D" },
-  { name: "Robin Park", email: "robin@example.com", avatar: "R" },
-  { name: "Sam Torres", email: "sam@example.com", avatar: "S" },
-];
-
-const allProjects = ["Trakr", "Pictura", "Infrastructure"];
 
 export default function TeamsPage() {
   const params = useParams();
   const variant = params.variant as string;
-  const [teams, setTeams] = useState<Team[]>(initialTeams);
-  const [expandedTeam, setExpandedTeam] = useState<string | null>("1");
+  const [teams, setTeams] = useState<TeamRow[]>(initialTeams);
+  const [searchText, setSearchText] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [addingMemberTo, setAddingMemberTo] = useState<string | null>(null);
-  const [memberSearch, setMemberSearch] = useState("");
+
+  const filtered = teams.filter((t) => {
+    if (!searchText) return true;
+    const q = searchText.toLowerCase();
+    return t.name.toLowerCase().includes(q) || t.lead.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
+  });
 
   function createTeam() {
     if (!newName.trim()) return;
-    const team: Team = {
+    const team: TeamRow = {
       id: String(Date.now()),
       name: newName.trim(),
       description: newDesc.trim(),
-      members: [],
-      projects: [],
+      membersCount: 0,
+      projectsCount: 0,
+      lead: "Hannes",
+      created: "Apr 13, 2026",
     };
     setTeams([...teams, team]);
     setNewName("");
     setNewDesc("");
     setCreating(false);
-    setExpandedTeam(team.id);
   }
 
   function removeTeam(id: string) {
     setTeams(teams.filter((t) => t.id !== id));
-    if (expandedTeam === id) setExpandedTeam(null);
-  }
-
-  function removeMember(teamId: string, email: string) {
-    setTeams(teams.map((t) => t.id === teamId ? { ...t, members: t.members.filter((m) => m.email !== email) } : t));
-  }
-
-  function addMember(teamId: string, member: typeof allMembers[0]) {
-    setTeams(teams.map((t) => {
-      if (t.id !== teamId) return t;
-      if (t.members.some((m) => m.email === member.email)) return t;
-      return { ...t, members: [...t.members, { ...member, role: "Member" as const }] };
-    }));
-    setMemberSearch("");
-    setAddingMemberTo(null);
-  }
-
-  function toggleProject(teamId: string, project: string) {
-    setTeams(teams.map((t) => {
-      if (t.id !== teamId) return t;
-      const has = t.projects.includes(project);
-      return { ...t, projects: has ? t.projects.filter((p) => p !== project) : [...t.projects, project] };
-    }));
-  }
-
-  function toggleRole(teamId: string, email: string) {
-    setTeams(teams.map((t) => {
-      if (t.id !== teamId) return t;
-      return { ...t, members: t.members.map((m) => m.email === email ? { ...m, role: m.role === "Lead" ? "Member" as const : "Lead" as const } : m) };
-    }));
+    if (expandedId === id) setExpandedId(null);
   }
 
   return (
     <>
       <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
-        <h1 className="text-sm font-semibold text-text-primary">Organization Settings</h1>
+        <h1 className="text-sm font-semibold text-text-primary">Organization</h1>
+        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-accent/10 text-accent rounded-full">Owner view</span>
       </header>
 
       <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-8">
-          {/* Sub-nav */}
-          <nav className="flex gap-1 border-b border-border -mt-2 mb-2">
-            {[
-              { href: `/${variant}/org`, label: "Overview" },
-              { href: `/${variant}/org/members`, label: "Members" },
-              { href: `/${variant}/org/teams`, label: "Teams", active: true },
-              { href: `/${variant}/org/roles`, label: "Roles & Permissions" },
-              { href: `/${variant}/org/audit`, label: "Audit Log" },
-              { href: `/${variant}/org/security`, label: "Security" },
-            ].map((tab) => (
-              <Link
-                key={tab.label}
-                href={tab.href}
-                className={`px-3 py-2 text-sm border-b-2 transition-colors ${
-                  tab.active
-                    ? "border-accent text-accent font-medium"
-                    : "border-transparent text-text-secondary hover:text-text-primary hover:border-border"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
+          <OrgTabNav variant={variant} activeTab="teams" />
 
           {/* Header with create */}
           <div className="flex items-center justify-between">
@@ -225,151 +126,77 @@ export default function TeamsPage() {
             </div>
           )}
 
-          {/* Team list */}
-          <div className="space-y-3">
-            {teams.map((team) => {
-              const isExpanded = expandedTeam === team.id;
-              return (
-                <div key={team.id} className="bg-surface border border-border rounded-lg overflow-hidden">
-                  {/* Team header */}
-                  <button
-                    onClick={() => setExpandedTeam(isExpanded ? null : team.id)}
-                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-content-bg/50 transition-colors text-left"
-                  >
-                    <ChevronRight className={`w-4 h-4 text-text-tertiary transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary">{team.name}</p>
-                      <p className="text-xs text-text-tertiary truncate">{team.description}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="flex items-center gap-1 text-xs text-text-tertiary">
-                        <Users className="w-3 h-3" /> {team.members.length}
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-text-tertiary">
-                        <FolderKanban className="w-3 h-3" /> {team.projects.length}
-                      </span>
-                    </div>
-                  </button>
+          {/* Search */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
+              <input
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search teams..."
+                className="w-full h-8 pl-8 pr-3 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary"
+              />
+            </div>
+          </div>
 
-                  {/* Expanded content */}
-                  {isExpanded && (
-                    <div className="border-t border-border">
-                      {/* Members section */}
-                      <div className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider">Members</span>
-                          <button
-                            onClick={() => setAddingMemberTo(addingMemberTo === team.id ? null : team.id)}
-                            className="text-xs text-accent hover:text-accent-hover flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Add
-                          </button>
-                        </div>
-
-                        {addingMemberTo === team.id && (
-                          <div className="mb-3 relative">
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-content-bg border border-border rounded-md">
-                              <Search className="w-3.5 h-3.5 text-text-tertiary" />
-                              <input
-                                autoFocus
-                                value={memberSearch}
-                                onChange={(e) => setMemberSearch(e.target.value)}
-                                placeholder="Search members..."
-                                className="flex-1 bg-transparent text-sm outline-none"
-                              />
-                              <button onClick={() => { setAddingMemberTo(null); setMemberSearch(""); }}>
-                                <X className="w-3 h-3 text-text-tertiary" />
-                              </button>
-                            </div>
-                            {memberSearch && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-lg z-20 max-h-40 overflow-auto">
-                                {allMembers
-                                  .filter((m) => !team.members.some((tm) => tm.email === m.email))
-                                  .filter((m) => m.name.toLowerCase().includes(memberSearch.toLowerCase()) || m.email.toLowerCase().includes(memberSearch.toLowerCase()))
-                                  .map((m) => (
-                                    <button
-                                      key={m.email}
-                                      onClick={() => addMember(team.id, m)}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-content-bg transition-colors"
-                                    >
-                                      <span className="w-6 h-6 rounded-full bg-accent/10 text-accent text-[10px] font-bold flex items-center justify-center">
-                                        {m.avatar}
-                                      </span>
-                                      <span className="text-text-primary">{m.name}</span>
-                                      <span className="text-text-tertiary text-xs ml-auto">{m.email}</span>
-                                    </button>
-                                  ))}
-                              </div>
-                            )}
+          {/* Teams table */}
+          <div className="bg-surface border border-border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="px-4 py-2.5 text-xs font-medium text-text-tertiary uppercase">Team</th>
+                  <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase w-20 text-center">
+                    <span className="flex items-center justify-center gap-1"><Users className="w-3 h-3" /> Members</span>
+                  </th>
+                  <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase w-20 text-center">
+                    <span className="flex items-center justify-center gap-1"><FolderKanban className="w-3 h-3" /> Projects</span>
+                  </th>
+                  <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase w-32">Lead</th>
+                  <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase w-28">Created</th>
+                  <th className="w-10" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((team) => {
+                  const isExpanded = expandedId === team.id;
+                  return (
+                    <tr
+                      key={team.id}
+                      className={`border-b border-border/50 transition-colors cursor-pointer ${isExpanded ? "bg-accent/5" : "hover:bg-content-bg/50"}`}
+                    >
+                      <td className="px-4 py-2.5" onClick={() => setExpandedId(isExpanded ? null : team.id)}>
+                        <div className="flex items-center gap-2">
+                          <ChevronRight className={`w-3.5 h-3.5 text-text-tertiary transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                          <div>
+                            <p className="text-sm text-text-primary font-medium">{team.name}</p>
+                            {isExpanded && <p className="text-xs text-text-tertiary mt-0.5">{team.description}</p>}
                           </div>
-                        )}
-
-                        <div className="space-y-1">
-                          {team.members.map((member) => (
-                            <div key={member.email} className="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-content-bg/50 group">
-                              <span className="w-6 h-6 rounded-full bg-accent/10 text-accent text-[10px] font-bold flex items-center justify-center shrink-0">
-                                {member.avatar}
-                              </span>
-                              <span className="text-sm text-text-primary flex-1">{member.name}</span>
-                              <button
-                                onClick={() => toggleRole(team.id, member.email)}
-                                className={`px-2 py-0.5 text-[10px] rounded-full border font-medium ${
-                                  member.role === "Lead"
-                                    ? "bg-amber-50 text-amber-600 border-amber-200"
-                                    : "bg-gray-50 text-gray-500 border-gray-200"
-                                }`}
-                              >
-                                {member.role}
-                              </button>
-                              <button
-                                onClick={() => removeMember(team.id, member.email)}
-                                className="p-1 text-text-tertiary hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
                         </div>
-                      </div>
-
-                      {/* Projects access */}
-                      <div className="px-4 py-3 border-t border-border/50">
-                        <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider block mb-2">Project Access</span>
-                        <div className="flex flex-wrap gap-2">
-                          {allProjects.map((project) => {
-                            const hasAccess = team.projects.includes(project);
-                            return (
-                              <button
-                                key={project}
-                                onClick={() => toggleProject(team.id, project)}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                                  hasAccess
-                                    ? "border-accent/50 bg-accent/5 text-accent"
-                                    : "border-border text-text-tertiary hover:border-border"
-                                }`}
-                              >
-                                {hasAccess && <Check className="w-3 h-3" />}
-                                {project}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Delete team */}
-                      <div className="px-4 py-2 border-t border-border/50 flex justify-end">
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-sm text-text-secondary">{team.membersCount}</td>
+                      <td className="px-3 py-2.5 text-center text-sm text-text-secondary">{team.projectsCount}</td>
+                      <td className="px-3 py-2.5">
+                        <span className="text-xs text-text-secondary">{team.lead}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-text-tertiary">{team.created}</td>
+                      <td className="px-3 py-2.5">
                         <button
-                          onClick={() => removeTeam(team.id)}
-                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); removeTeam(team.id); }}
+                          className="p-1 text-text-tertiary hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          style={{ opacity: isExpanded ? 1 : undefined }}
                         >
-                          <Trash2 className="w-3 h-3" /> Delete team
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs text-text-tertiary">
+            Showing {filtered.length} of {teams.length} teams
           </div>
         </div>
       </div>
