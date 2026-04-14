@@ -330,6 +330,8 @@ export default function IdeasPage() {
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isPanning, setIsPanning] = useState(false);
+  const [lassoRect, setLassoRect] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const lassoStartSelection = useRef<Set<number>>(new Set());
   const dragStart = useRef({ x: 0, y: 0, origPositions: new Map<number, { x: number; y: number }>() });
   const panStart = useRef({ x: 0, y: 0, origPanX: 0, origPanY: 0 });
 
@@ -483,21 +485,28 @@ export default function IdeasPage() {
 
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Only start pan if clicking on the canvas itself (not a card)
+      // Only respond if clicking on the canvas itself (not a card)
       if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.canvasBg === "true") {
-        // Save any in-progress edit
         if (editingId !== null) saveEditing();
-        setIsPanning(true);
-        setSelectedIds(new Set());
-        panStart.current = {
-          x: e.clientX,
-          y: e.clientY,
-          origPanX: pan.x,
-          origPanY: pan.y,
-        };
+
+        if (e.shiftKey) {
+          // Shift+drag on canvas = lasso selection
+          lassoStartSelection.current = new Set(selectedIds);
+          setLassoRect({ startX: e.clientX, startY: e.clientY, currentX: e.clientX, currentY: e.clientY });
+        } else {
+          // Normal drag on canvas = pan
+          setIsPanning(true);
+          setSelectedIds(new Set());
+          panStart.current = {
+            x: e.clientX,
+            y: e.clientY,
+            origPanX: pan.x,
+            origPanY: pan.y,
+          };
+        }
       }
     },
-    [pan, editingId, saveEditing]
+    [pan, editingId, saveEditing, selectedIds]
   );
 
   /* ── Mouse move (card drag or pan) ─────────────────────── */
@@ -525,6 +534,48 @@ export default function IdeasPage() {
           x: panStart.current.origPanX + dx,
           y: panStart.current.origPanY + dy,
         });
+      } else if (lassoRect) {
+        // Update lasso rectangle and compute selection
+        const newRect = { ...lassoRect, currentX: e.clientX, currentY: e.clientY };
+        setLassoRect(newRect);
+
+        // Convert lasso screen coords to canvas coords
+        const el = canvasRef.current;
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const lx1 = (Math.min(newRect.startX, newRect.currentX) - rect.left - pan.x) / zoom;
+          const ly1 = (Math.min(newRect.startY, newRect.currentY) - rect.top - pan.y) / zoom;
+          const lx2 = (Math.max(newRect.startX, newRect.currentX) - rect.left - pan.x) / zoom;
+          const ly2 = (Math.max(newRect.startY, newRect.currentY) - rect.top - pan.y) / zoom;
+
+          const CARD_W = 200;
+          const CARD_H = 140;
+          const startSel = lassoStartSelection.current;
+          const newSelection = new Set(startSel);
+
+          ideas.forEach((idea) => {
+            const cardRight = idea.x + CARD_W;
+            const cardBottom = idea.y + CARD_H;
+            const intersects = idea.x < lx2 && cardRight > lx1 && idea.y < ly2 && cardBottom > ly1;
+
+            if (intersects) {
+              // Toggle: if was in start selection, remove; if wasn't, add
+              if (startSel.has(idea.id)) {
+                newSelection.delete(idea.id);
+              } else {
+                newSelection.add(idea.id);
+              }
+            } else {
+              // Not in lasso — restore to start state
+              if (startSel.has(idea.id)) {
+                newSelection.add(idea.id);
+              } else {
+                newSelection.delete(idea.id);
+              }
+            }
+          });
+          setSelectedIds(newSelection);
+        }
       }
     }
 
@@ -532,6 +583,7 @@ export default function IdeasPage() {
       setDraggingId(null);
       setDragMouse(null);
       setIsPanning(false);
+      setLassoRect(null);
     }
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -540,7 +592,7 @@ export default function IdeasPage() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [draggingId, isPanning, zoom]);
+  }, [draggingId, isPanning, lassoRect, zoom, pan, ideas]);
 
   /* ── Pan (two-finger scroll) + Zoom (pinch / Ctrl+scroll) ── */
 
@@ -934,6 +986,19 @@ export default function IdeasPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Lasso selection rectangle */}
+        {lassoRect && (
+          <div
+            className="absolute border-2 border-accent/50 bg-accent/10 rounded-sm pointer-events-none z-20"
+            style={{
+              left: Math.min(lassoRect.startX, lassoRect.currentX),
+              top: Math.min(lassoRect.startY, lassoRect.currentY) - (canvasRef.current?.getBoundingClientRect().top ?? 0),
+              width: Math.abs(lassoRect.currentX - lassoRect.startX),
+              height: Math.abs(lassoRect.currentY - lassoRect.startY),
+            }}
+          />
         )}
 
         {/* Zoom controls — top-right */}
