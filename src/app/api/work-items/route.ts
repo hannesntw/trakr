@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { workItems, projects, statusHistory } from "@/db/schema";
-import { eq, and, ilike, or, sql, SQL } from "drizzle-orm";
+import { workItems, projects, statusHistory, workflowStates } from "@/db/schema";
+import { eq, and, ilike, or, sql, asc, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -82,7 +82,20 @@ export async function POST(request: NextRequest) {
 
   const displayId = `${project.key}-${project.sequence}`;
 
-  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId }).returning();
+  // Resolve valid workflow state for this project
+  const wfStates = await db
+    .select()
+    .from(workflowStates)
+    .where(eq(workflowStates.projectId, parsed.data.projectId))
+    .orderBy(asc(workflowStates.position));
+
+  let resolvedState = parsed.data.state;
+  if (wfStates.length > 0) {
+    const match = resolvedState && wfStates.find((s) => s.slug === resolvedState);
+    resolvedState = match ? match.slug : wfStates[0].slug;
+  }
+
+  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId, state: resolvedState ?? "new" }).returning();
 
   // Record initial status in status_history so the timeline shows the creation state
   await db.insert(statusHistory).values({

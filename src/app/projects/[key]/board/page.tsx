@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -19,10 +20,12 @@ export default async function BoardPage({
   if (!project) notFound();
 
   return (
-    <BoardClient
-      projectId={project.id}
-      projectKey={project.key}
-      projectName={project.name}
-    />
+    <Suspense>
+      <BoardClient
+        projectId={project.id}
+        projectKey={project.key}
+        projectName={project.name}
+      />
+    </Suspense>
   );
 }
