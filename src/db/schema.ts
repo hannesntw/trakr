@@ -3,6 +3,9 @@
  *
  * Deletion cascades (all enforced at the Postgres FK level):
  *
+ *   organization DELETE → cascades: organization_members, organization_invitations,
+ *                         org_roles
+ *   organization DELETE → SET NULL: projects.orgId
  *   project DELETE → cascades: work_items, sprints, workflow_states,
  *                    saved_queries, project_invites
  *   work_item DELETE → cascades: snapshots, comments, attachments,
@@ -57,6 +60,45 @@ export const verificationTokens = pgTable("verificationToken", {
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
+// --- Organization tables ---
+
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  plan: text("plan").notNull().default("free"), // free, developer, team, enterprise
+  ownerId: text("owner_id").notNull().references(() => users.id),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const organizationMembers = pgTable("organization_members", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"), // owner, admin, member, viewer, guest
+  joinedAt: text("joined_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const organizationInvitations = pgTable("organization_invitations", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("member"),
+  token: text("token").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const orgRoles = pgTable("org_roles", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  permissions: text("permissions").notNull(), // JSON string of permission array
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 // --- App tables ---
 
 export const projects = pgTable("projects", {
@@ -79,6 +121,7 @@ export const projects = pgTable("projects", {
   githubStatusChecks: boolean("github_status_checks").notNull().default(true),
   githubPrComments: boolean("github_pr_comments").notNull().default(true),
   makerMode: boolean("maker_mode").notNull().default(false),
+  orgId: integer("org_id").references(() => organizations.id, { onDelete: "set null" }),
 });
 
 export const apiKeys = pgTable("api_keys", {

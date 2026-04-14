@@ -26,6 +26,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+        // Org membership is resolved per-request in API routes via org-auth.ts,
+        // not stuffed into the session. This keeps the session lean.
       }
       return session;
     },

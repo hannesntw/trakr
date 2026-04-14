@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db";
+import { organizationMembers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { resolveApiUser } from "@/lib/api-auth";
+import { requireOrgRole, getRoleLevel } from "@/lib/org-auth";
+
+const updateSchema = z.object({
+  role: z.enum(["admin", "member", "viewer", "guest"]),
+});
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; memberId: string }> }
+) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, memberId } = await params;
+  const orgId = Number(id);
+
+  // Only admin+ can change roles
+  const actor = await requireOrgRole(orgId, user.id, "admin");
+  if (!actor) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  // Find target member
+  const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+  if (!target || target.orgId !== orgId) {
+    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  }
+
+  // Can't change the owner's role
+  if (target.role === "owner") {
+    return NextResponse.json({ error: "Cannot change owner role" }, { status: 403 });
+  }
+
+  const [row] = await db
+    .update(organizationMembers)
+    .set({ role: parsed.data.role })
+    .where(eq(organizationMembers.id, Number(memberId)))
+    .returning();
+
+  return NextResponse.json(row);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; memberId: string }> }
+) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id, memberId } = await params;
+  const orgId = Number(id);
+
+  // Only admin+ can remove members
+  const actor = await requireOrgRole(orgId, user.id, "admin");
+  if (!actor) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Find target member
+  const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+  if (!target || target.orgId !== orgId) {
+    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  }
+
+  // Can't remove the owner
+  if (target.role === "owner") {
+    return NextResponse.json({ error: "Cannot remove owner" }, { status: 403 });
+  }
+
+  await db.delete(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+
+  return NextResponse.json({ deleted: true });
+}
