@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Plus, Search, X, Mail, ChevronDown, ChevronRight, MoreHorizontal, Clock, UserMinus, ShieldCheck, ShieldAlert, Info, Monitor, Smartphone, Laptop, Activity, FolderKanban, Users } from "lucide-react";
 import { OrgTabNav } from "@/components/OrgTabNav";
+import { Pagination, paginate } from "@/components/Pagination";
 
 type OrgRole = "Owner" | "Admin" | "Member" | "Viewer" | "Guest";
 
@@ -285,6 +286,8 @@ export default function MembersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = members.filter((m) => {
     if (searchText) {
@@ -294,6 +297,11 @@ export default function MembersPage() {
     if (roleFilter && m.role !== roleFilter) return false;
     return true;
   });
+
+  const paginatedMembers = paginate(filtered, currentPage, pageSize);
+
+  // Reset to page 1 when filters change
+  const resetPage = () => setCurrentPage(1);
 
   function toggleSelect(id: string) {
     const next = new Set(selectedIds);
@@ -442,14 +450,14 @@ export default function MembersPage() {
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
               <input
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => { setSearchText(e.target.value); resetPage(); }}
                 placeholder="Search members..."
                 className="w-full h-8 pl-8 pr-3 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary"
               />
             </div>
             <div className="relative">
               <button
-                onClick={() => setRoleFilter(roleFilter ? null : "Member")}
+                onClick={() => { setRoleFilter(roleFilter ? null : "Member"); resetPage(); }}
                 className={`h-8 flex items-center gap-1.5 px-2.5 text-xs border rounded-md transition-colors ${
                   roleFilter ? "border-accent/50 bg-accent/5 text-accent" : "border-border text-text-secondary hover:border-border"
                 }`}
@@ -501,7 +509,7 @@ export default function MembersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((member) => {
+                {paginatedMembers.map((member) => {
                   const isExpanded = expandedId === member.id;
                   const visibleTeams = member.teams.slice(0, MAX_VISIBLE_TEAMS);
                   const hiddenCount = member.teams.length - MAX_VISIBLE_TEAMS;
@@ -801,6 +809,14 @@ export default function MembersPage() {
                 })}
               </tbody>
             </table>
+            <Pagination
+              totalItems={filtered.length}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              noun="members"
+            />
           </div>
 
           {/* Pending invitations */}

@@ -8,6 +8,7 @@ import {
   UserCheck, CreditCard, ExternalLink, Clock,
 } from "lucide-react";
 import { AdminTabNav } from "@/components/AdminTabNav";
+import { Pagination, paginate } from "@/components/Pagination";
 
 /* ── types ── */
 
@@ -105,12 +106,16 @@ export default function AdminOrgsPage() {
   const [planFilter, setPlanFilter] = useState<Plan | "all">("all");
   const [expandedOrg, setExpandedOrg] = useState<string | null>(null);
   const [actionMenuOrg, setActionMenuOrg] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = orgs.filter((org) => {
     if (planFilter !== "all" && org.plan !== planFilter) return false;
     if (search && !org.name.toLowerCase().includes(search.toLowerCase()) && !org.slug.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const paginatedOrgs = paginate(filtered, currentPage, pageSize);
 
   return (
     <>
@@ -139,13 +144,13 @@ export default function AdminOrgsPage() {
                 type="text"
                 placeholder="Search organizations..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-surface border border-border rounded-lg text-text-primary outline-none focus:border-accent"
               />
             </div>
             <select
               value={planFilter}
-              onChange={(e) => setPlanFilter(e.target.value as Plan | "all")}
+              onChange={(e) => { setPlanFilter(e.target.value as Plan | "all"); setCurrentPage(1); }}
               className="px-3 py-2 text-sm bg-surface border border-border rounded-lg text-text-primary outline-none focus:border-accent"
             >
               <option value="all">All plans</option>
@@ -178,7 +183,7 @@ export default function AdminOrgsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((org) => (
+                {paginatedOrgs.map((org) => (
                   <>
                     <tr
                       key={org.id}
@@ -265,15 +270,14 @@ export default function AdminOrgsPage() {
               </tbody>
             </table>
 
-            {/* Pagination */}
-            <div className="border-t border-border px-4 py-3 flex items-center justify-between text-xs text-text-tertiary">
-              <span>Showing {filtered.length} of {orgs.length} organizations</span>
-              <div className="flex items-center gap-2">
-                <button disabled className="px-3 py-1.5 border border-border rounded text-text-tertiary bg-surface opacity-50">Previous</button>
-                <span className="px-3 py-1.5 border border-accent bg-accent/5 text-accent rounded font-medium">1</span>
-                <button disabled className="px-3 py-1.5 border border-border rounded text-text-tertiary bg-surface opacity-50">Next</button>
-              </div>
-            </div>
+            <Pagination
+              totalItems={filtered.length}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              noun="organizations"
+            />
           </div>
         </div>
       </div>

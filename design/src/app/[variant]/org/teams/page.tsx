@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Plus, Users, FolderKanban, Search, ChevronRight, ChevronDown, X, Check, Trash2, UserPlus, ToggleLeft, ToggleRight, AlertTriangle } from "lucide-react";
 import { OrgTabNav } from "@/components/OrgTabNav";
+import { Pagination, paginate } from "@/components/Pagination";
 
 interface TeamMember {
   id: string;
@@ -91,12 +92,16 @@ export default function TeamsPage() {
   const [editDesc, setEditDesc] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = teams.filter((t) => {
     if (!searchText) return true;
     const q = searchText.toLowerCase();
     return t.name.toLowerCase().includes(q) || t.lead.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
   });
+
+  const paginatedTeams = paginate(filtered, currentPage, pageSize);
 
   function createTeam() {
     if (!newName.trim()) return;
@@ -239,7 +244,7 @@ export default function TeamsPage() {
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
               <input
                 value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={(e) => { setSearchText(e.target.value); setCurrentPage(1); }}
                 placeholder="Search teams..."
                 className="w-full h-8 pl-8 pr-3 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary"
               />
@@ -258,7 +263,7 @@ export default function TeamsPage() {
               <div />
             </div>
 
-            {filtered.map((team) => {
+            {paginatedTeams.map((team) => {
               const isExpanded = expandedId === team.id;
               const isEditing = editingTeamId === team.id;
               const availableToAdd = memberPool.filter(
@@ -472,9 +477,14 @@ export default function TeamsPage() {
             })}
           </div>
 
-          <div className="text-xs text-text-tertiary">
-            Showing {filtered.length} of {teams.length} teams
-          </div>
+          <Pagination
+            totalItems={filtered.length}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            noun="teams"
+          />
         </div>
       </div>
     </>

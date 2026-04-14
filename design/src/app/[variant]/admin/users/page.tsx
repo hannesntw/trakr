@@ -8,6 +8,7 @@ import {
   Key, Clock, Monitor, Activity,
 } from "lucide-react";
 import { AdminTabNav } from "@/components/AdminTabNav";
+import { Pagination, paginate } from "@/components/Pagination";
 
 /* ── types ── */
 
@@ -201,6 +202,8 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [actionMenuUser, setActionMenuUser] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = users.filter((user) => {
     if (!search) return true;
@@ -211,6 +214,8 @@ export default function AdminUsersPage() {
       user.orgs.some((o) => o.name.toLowerCase().includes(q))
     );
   });
+
+  const paginatedUsers = paginate(filtered, currentPage, pageSize);
 
   return (
     <>
@@ -239,7 +244,7 @@ export default function AdminUsersPage() {
                 type="text"
                 placeholder="Search by name, email, or organization..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-9 pr-3 py-2 text-sm bg-surface border border-border rounded-lg text-text-primary outline-none focus:border-accent"
               />
             </div>
@@ -262,7 +267,7 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((user) => (
+                {paginatedUsers.map((user) => (
                   <>
                     <tr
                       key={user.id}
@@ -379,15 +384,14 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
 
-            {/* Pagination */}
-            <div className="border-t border-border px-4 py-3 flex items-center justify-between text-xs text-text-tertiary">
-              <span>Showing {filtered.length} of {users.length} users</span>
-              <div className="flex items-center gap-2">
-                <button disabled className="px-3 py-1.5 border border-border rounded text-text-tertiary bg-surface opacity-50">Previous</button>
-                <span className="px-3 py-1.5 border border-accent bg-accent/5 text-accent rounded font-medium">1</span>
-                <button disabled className="px-3 py-1.5 border border-border rounded text-text-tertiary bg-surface opacity-50">Next</button>
-              </div>
-            </div>
+            <Pagination
+              totalItems={filtered.length}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              noun="users"
+            />
           </div>
         </div>
       </div>
