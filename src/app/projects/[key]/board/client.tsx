@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header, CreateButton } from "@/components/Header";
 import { BoardCard, type GitHubStatus } from "@/components/BoardCard";
@@ -9,7 +9,17 @@ import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
 import type { WorkflowState } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
-import { ChevronDown, ChevronRight, Filter, Rows3 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Filter,
+  Settings2,
+  GripVertical,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  Pencil,
+} from "lucide-react";
 
 interface WorkItem {
   id: number;
@@ -36,54 +46,108 @@ interface BoardClientProps {
   projectName: string;
 }
 
-// --- TRK-136: Card rule types (conditional styling) ---
-type CardRule = {
+// --- Card rule types (configurable, CRUD, localStorage-persisted) ---
+type CardRuleDef = {
+  id: string;
   label: string;
-  match: (item: WorkItem, workflowStates: WorkflowState[]) => boolean;
-  borderClass: string;
+  traql: string;       // stored expression string
+  color: string;        // tailwind bg class for swatch, e.g. "bg-red-500"
+  enabled: boolean;
 };
 
-const CARD_RULES: CardRule[] = [
-  {
-    label: "Bug",
-    match: (item) => item.type === "bug",
-    borderClass: "border-l-4 border-l-red-500",
-  },
-  {
-    label: "High effort (8+)",
-    match: (item) => item.points != null && item.points >= 8,
-    borderClass: "border-l-4 border-l-amber-500",
-  },
-  {
-    label: "Almost done",
-    match: (item, wfStates) => {
-      // Item is in the last column before "done" category
-      const doneStates = wfStates.filter((s) => s.category === "done");
-      const firstDonePos = doneStates.length > 0 ? Math.min(...doneStates.map((s) => s.position)) : Infinity;
-      const preDoneStates = wfStates.filter((s) => s.category !== "done");
-      if (preDoneStates.length === 0) return false;
-      const lastPreDone = preDoneStates.reduce((a, b) => (a.position > b.position ? a : b));
-      return item.state === lastPreDone.slug && lastPreDone.position < firstDonePos;
-    },
-    borderClass: "border-l-4 border-l-emerald-500",
-  },
+const RULE_COLOR_OPTIONS = [
+  { value: "bg-red-500", label: "Red" },
+  { value: "bg-blue-500", label: "Blue" },
+  { value: "bg-amber-400", label: "Amber" },
+  { value: "bg-emerald-500", label: "Green" },
+  { value: "bg-violet-500", label: "Violet" },
+  { value: "bg-orange-500", label: "Orange" },
+  { value: "bg-pink-500", label: "Pink" },
+  { value: "bg-cyan-500", label: "Cyan" },
 ];
 
-function getCardRuleClass(item: WorkItem, wfStates: WorkflowState[]): string {
-  for (const rule of CARD_RULES) {
-    if (rule.match(item, wfStates)) return rule.borderClass;
-  }
-  return "";
+/** Map a color swatch class to border + optional bg tint classes */
+function ruleStyleFromColor(color: string): string {
+  const map: Record<string, string> = {
+    "bg-red-500": "border-l-[3px] border-l-red-500",
+    "bg-blue-500": "border-l-[3px] border-l-blue-500",
+    "bg-amber-400": "border-l-[3px] border-l-amber-400 bg-amber-50/40",
+    "bg-emerald-500": "border-l-[3px] border-l-emerald-500",
+    "bg-violet-500": "border-l-[3px] border-l-violet-500",
+    "bg-orange-500": "border-l-[3px] border-l-orange-500",
+    "bg-pink-500": "border-l-[3px] border-l-pink-500",
+    "bg-cyan-500": "border-l-[3px] border-l-cyan-500",
+  };
+  return map[color] ?? "border-l-[3px] border-l-blue-500";
 }
 
-// --- TRK-135: Swimlane types ---
+/** Simple expression matcher — supports: type:X, points >= N, points > N, has:assignee, priority >= N */
+function matchRule(expr: string, item: WorkItem, _wfStates: WorkflowState[]): boolean {
+  const e = expr.trim().toLowerCase();
+  if (!e) return false;
+
+  // type:bug, type:story, type:task, type:epic, type:feature
+  const typeMatch = e.match(/^type\s*:\s*(\w+)$/);
+  if (typeMatch) return item.type === typeMatch[1];
+
+  // points > N or points >= N
+  const pointsGt = e.match(/^points\s*>\s*(\d+)$/);
+  if (pointsGt) return item.points != null && item.points > parseInt(pointsGt[1]);
+  const pointsGte = e.match(/^points\s*>=\s*(\d+)$/);
+  if (pointsGte) return item.points != null && item.points >= parseInt(pointsGte[1]);
+
+  // priority >= N or priority > N
+  const prioGte = e.match(/^priority\s*>=\s*(\d+)$/);
+  if (prioGte) return item.priority != null && item.priority >= parseInt(prioGte[1]);
+  const prioGt = e.match(/^priority\s*>\s*(\d+)$/);
+  if (prioGt) return item.priority != null && item.priority > parseInt(prioGt[1]);
+
+  // has:assignee
+  if (e === "has:assignee") return item.assignee != null && item.assignee !== "";
+  // no:assignee
+  if (e === "no:assignee") return item.assignee == null || item.assignee === "";
+
+  // assignee:Name (case insensitive contains)
+  const assigneeMatch = e.match(/^assignee\s*:\s*(.+)$/);
+  if (assigneeMatch) return (item.assignee ?? "").toLowerCase().includes(assigneeMatch[1].trim());
+
+  return false;
+}
+
+const DEFAULT_CARD_RULES: CardRuleDef[] = [
+  { id: "bug", label: "Bug", traql: "type:bug", color: "bg-red-500", enabled: true },
+  { id: "high-effort", label: "High effort (8+)", traql: "points >= 8", color: "bg-amber-400", enabled: true },
+];
+
+const CARD_RULES_STORAGE_KEY = "trakr-board-card-rules";
+const CARD_RULES_ENABLED_KEY = "trakr-board-card-rules-enabled";
+
+function loadCardRules(): CardRuleDef[] {
+  if (typeof window === "undefined") return DEFAULT_CARD_RULES;
+  try {
+    const raw = localStorage.getItem(CARD_RULES_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return DEFAULT_CARD_RULES;
+}
+
+function loadCardRulesEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = localStorage.getItem(CARD_RULES_ENABLED_KEY);
+    if (raw !== null) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return true;
+}
+
+// --- Swimlane types ---
 type SwimlaneSetting = "none" | "assignee" | "parent" | "type";
 
-const SWIMLANE_OPTIONS: { value: SwimlaneSetting; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "assignee", label: "By assignee" },
-  { value: "parent", label: "By parent" },
-  { value: "type", label: "By type" },
+const SWIMLANE_OPTIONS: { value: SwimlaneSetting; label: string; description: string }[] = [
+  { value: "none", label: "None", description: "" },
+  { value: "assignee", label: "By assignee", description: "GROUP BY assignee" },
+  { value: "parent", label: "By parent", description: "GROUP BY parent" },
+  { value: "type", label: "By type", description: "GROUP BY type" },
 ];
 
 export function BoardClient({
@@ -111,12 +175,62 @@ export function BoardClient({
   const swimlaneParam = (searchParams.get("swimlane") ?? "none") as SwimlaneSetting;
   const [swimlane, setSwimlane] = useState<SwimlaneSetting>(swimlaneParam);
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set());
-  const [swimlaneDropdownOpen, setSwimlaneDropdownOpen] = useState(false);
+  const [customSwimlaneExpr, setCustomSwimlaneExpr] = useState("");
+  const [showCustomSwimlane, setShowCustomSwimlane] = useState(false);
+
+  // Customize panel
+  const [customizePanelOpen, setCustomizePanelOpen] = useState(false);
+  const customizeBtnRef = useRef<HTMLButtonElement>(null);
+  const customizePanelRef = useRef<HTMLDivElement>(null);
+
+  // Card rules state (localStorage-persisted)
+  const [cardRules, setCardRules] = useState<CardRuleDef[]>(DEFAULT_CARD_RULES);
+  const [cardRulesEnabled, setCardRulesEnabled] = useState(true);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [dragRuleId, setDragRuleId] = useState<string | null>(null);
+  const [dragOverRuleId, setDragOverRuleId] = useState<string | null>(null);
+
+  // New rule form
+  const [newRuleLabel, setNewRuleLabel] = useState("");
+  const [newRuleTraql, setNewRuleTraql] = useState("");
+  const [newRuleColor, setNewRuleColor] = useState("bg-blue-500");
+
+  // Load card rules from localStorage on mount
+  useEffect(() => {
+    setCardRules(loadCardRules());
+    setCardRulesEnabled(loadCardRulesEnabled());
+  }, []);
+
+  // Persist card rules to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(CARD_RULES_STORAGE_KEY, JSON.stringify(cardRules));
+  }, [cardRules]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(CARD_RULES_ENABLED_KEY, JSON.stringify(cardRulesEnabled));
+  }, [cardRulesEnabled]);
+
+  // Close customize panel on outside click
+  useEffect(() => {
+    if (!customizePanelOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        customizePanelRef.current && !customizePanelRef.current.contains(e.target as Node) &&
+        customizeBtnRef.current && !customizeBtnRef.current.contains(e.target as Node)
+      ) {
+        setCustomizePanelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [customizePanelOpen]);
 
   function updateSwimlane(value: SwimlaneSetting) {
     setSwimlane(value);
-    setSwimlaneDropdownOpen(false);
     setCollapsedLanes(new Set());
+    setShowCustomSwimlane(false);
     const params = new URLSearchParams(searchParams.toString());
     if (value === "none") {
       params.delete("swimlane");
@@ -133,6 +247,73 @@ export function BoardClient({
       else next.add(key);
       return next;
     });
+  }
+
+  // Card rule CRUD
+  function toggleRuleEnabled(ruleId: string) {
+    setCardRules(prev => prev.map(r => r.id === ruleId ? { ...r, enabled: !r.enabled } : r));
+  }
+
+  function deleteRule(ruleId: string) {
+    setCardRules(prev => prev.filter(r => r.id !== ruleId));
+  }
+
+  function addRule() {
+    if (!newRuleLabel.trim() || !newRuleTraql.trim()) return;
+    const newRule: CardRuleDef = {
+      id: `custom-${Date.now()}`,
+      label: newRuleLabel.trim(),
+      traql: newRuleTraql.trim(),
+      color: newRuleColor,
+      enabled: true,
+    };
+    setCardRules(prev => [...prev, newRule]);
+    setNewRuleLabel("");
+    setNewRuleTraql("");
+    setNewRuleColor("bg-blue-500");
+  }
+
+  // Drag-and-drop reordering for rules
+  function handleRuleDragStart(ruleId: string) {
+    setDragRuleId(ruleId);
+  }
+
+  function handleRuleDragOver(e: React.DragEvent, ruleId: string) {
+    e.preventDefault();
+    if (dragRuleId && dragRuleId !== ruleId) {
+      setDragOverRuleId(ruleId);
+    }
+  }
+
+  function handleRuleDrop(targetRuleId: string) {
+    if (!dragRuleId || dragRuleId === targetRuleId) {
+      setDragRuleId(null);
+      setDragOverRuleId(null);
+      return;
+    }
+    setCardRules(prev => {
+      const fromIdx = prev.findIndex(r => r.id === dragRuleId);
+      const toIdx = prev.findIndex(r => r.id === targetRuleId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
+      return next;
+    });
+    setDragRuleId(null);
+    setDragOverRuleId(null);
+  }
+
+  /** Get the card rule style class for an item (first matching enabled rule wins) */
+  function getCardRuleClass(item: WorkItem): string {
+    if (!cardRulesEnabled) return "";
+    for (const rule of cardRules) {
+      if (!rule.enabled) continue;
+      if (matchRule(rule.traql, item, workflowStates)) {
+        return ruleStyleFromColor(rule.color);
+      }
+    }
+    return "";
   }
 
   const fetchData = useCallback(async () => {
@@ -313,7 +494,7 @@ export function BoardClient({
                     "cursor-grab active:cursor-grabbing",
                     draggingId === item.id && "opacity-50",
                     changedIds.has(item.id) && "realtime-highlight",
-                    getCardRuleClass(item, workflowStates)
+                    getCardRuleClass(item)
                   )}
                 >
                   <BoardCard
@@ -376,48 +557,226 @@ export function BoardClient({
               Stories & tasks only
             </button>
 
-            {/* TRK-135: Swimlane dropdown */}
+            {/* Customize board button + popover */}
             <div className="relative">
               <button
-                onClick={() => setSwimlaneDropdownOpen((v) => !v)}
+                ref={customizeBtnRef}
+                onClick={() => setCustomizePanelOpen(!customizePanelOpen)}
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border transition-colors",
-                  swimlane !== "none"
-                    ? "bg-accent/10 text-accent border-accent/30"
+                  customizePanelOpen || swimlane !== "none" || cardRulesEnabled
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
                     : "bg-surface text-text-secondary border-border hover:border-border-hover"
                 )}
               >
-                <Rows3 className="w-3 h-3" />
-                Swimlanes
-                {swimlane !== "none" && (
-                  <span className="text-[10px] opacity-70">
-                    ({SWIMLANE_OPTIONS.find((o) => o.value === swimlane)?.label})
-                  </span>
-                )}
+                <Settings2 className="w-3.5 h-3.5" />
+                Customize
               </button>
-              {swimlaneDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setSwimlaneDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-1 z-20 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[160px]">
-                    {SWIMLANE_OPTIONS.map((opt) => (
+
+              {/* Customize popover panel */}
+              {customizePanelOpen && (
+                <div
+                  ref={customizePanelRef}
+                  className="absolute right-0 top-full mt-1.5 z-40 w-[350px] bg-surface border border-border rounded-lg shadow-xl max-h-[calc(100vh-120px)] overflow-auto"
+                >
+                  {/* ── Swimlanes section ──────────────────────── */}
+                  <div className="p-4">
+                    <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold mb-2.5">Swimlanes</div>
+
+                    <div className="space-y-1">
+                      {SWIMLANE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => updateSwimlane(opt.value)}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-xs rounded-md transition-colors",
+                            swimlane === opt.value && !showCustomSwimlane
+                              ? "bg-indigo-50 text-indigo-700 font-medium"
+                              : "text-text-primary hover:bg-surface-hover"
+                          )}
+                        >
+                          <div className="font-medium">{opt.label}</div>
+                          {opt.description && (
+                            <code className="text-[10px] font-mono text-text-tertiary mt-0.5 block">{opt.description}</code>
+                          )}
+                        </button>
+                      ))}
+
+                      {/* Custom expression option */}
                       <button
-                        key={opt.value}
-                        onClick={() => updateSwimlane(opt.value)}
+                        onClick={() => setShowCustomSwimlane(!showCustomSwimlane)}
                         className={cn(
-                          "w-full text-left px-3 py-1.5 text-xs hover:bg-accent/5 transition-colors",
-                          swimlane === opt.value
-                            ? "text-accent font-medium"
-                            : "text-text-secondary"
+                          "w-full text-left px-3 py-2 text-xs rounded-md transition-colors",
+                          showCustomSwimlane
+                            ? "bg-indigo-50 text-indigo-700 font-medium"
+                            : "text-text-primary hover:bg-surface-hover"
                         )}
                       >
-                        {opt.label}
+                        <div className="font-medium">Custom...</div>
                       </button>
-                    ))}
+
+                      {showCustomSwimlane && (
+                        <div className="px-3 pt-1 pb-1">
+                          <input
+                            type="text"
+                            value={customSwimlaneExpr}
+                            onChange={(e) => setCustomSwimlaneExpr(e.target.value)}
+                            placeholder="GROUP BY field_name"
+                            className="w-full text-xs font-mono px-2.5 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </>
+
+                  {/* Divider */}
+                  <div className="border-t border-border" />
+
+                  {/* ── Card rules section ─────────────────────── */}
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Card rules</div>
+                      <button
+                        onClick={() => setCardRulesEnabled(!cardRulesEnabled)}
+                        className="text-text-tertiary hover:text-text-primary transition-colors"
+                        title={cardRulesEnabled ? "Disable all rules" : "Enable all rules"}
+                      >
+                        {cardRulesEnabled ? (
+                          <ToggleRight className="w-5 h-5 text-indigo-600" />
+                        ) : (
+                          <ToggleLeft className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Rule list */}
+                    <div className="space-y-0.5 mb-3">
+                      {cardRules.map((rule) => (
+                        <div
+                          key={rule.id}
+                          draggable
+                          onDragStart={() => handleRuleDragStart(rule.id)}
+                          onDragOver={(e) => handleRuleDragOver(e, rule.id)}
+                          onDrop={() => handleRuleDrop(rule.id)}
+                          onDragEnd={() => { setDragRuleId(null); setDragOverRuleId(null); }}
+                          className={cn(
+                            "group flex items-start gap-2 px-2.5 py-2 rounded-md hover:bg-surface-hover transition-colors",
+                            !rule.enabled && "opacity-50",
+                            dragOverRuleId === rule.id && "ring-1 ring-indigo-300"
+                          )}
+                        >
+                          {/* Drag handle */}
+                          <GripVertical className="w-3.5 h-3.5 text-text-tertiary/40 mt-0.5 shrink-0 cursor-grab" />
+
+                          {/* Color swatch */}
+                          <span className={cn("w-3 h-3 rounded-sm mt-0.5 shrink-0", rule.color)} />
+
+                          {/* Label + expression */}
+                          <div className="flex-1 min-w-0">
+                            {editingRuleId === rule.id ? (
+                              <input
+                                type="text"
+                                defaultValue={rule.label}
+                                autoFocus
+                                onBlur={(e) => {
+                                  setCardRules(prev => prev.map(r => r.id === rule.id ? { ...r, label: e.target.value || rule.label } : r));
+                                  setEditingRuleId(null);
+                                }}
+                                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                                className="text-xs font-medium text-text-primary bg-transparent border-b border-indigo-300 outline-none w-full"
+                              />
+                            ) : (
+                              <span
+                                className="text-xs font-medium text-text-primary cursor-text"
+                                onClick={() => setEditingRuleId(rule.id)}
+                                title="Click to edit"
+                              >
+                                {rule.label}
+                              </span>
+                            )}
+                            <code className="text-[10px] font-mono text-indigo-600/70 block mt-0.5 truncate">{rule.traql}</code>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            <button
+                              onClick={() => setEditingRuleId(rule.id)}
+                              className="text-text-tertiary hover:text-text-primary p-0.5"
+                              title="Edit rule"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => toggleRuleEnabled(rule.id)}
+                              className="text-text-tertiary hover:text-text-primary p-0.5"
+                              title={rule.enabled ? "Disable" : "Enable"}
+                            >
+                              {rule.enabled ? <ToggleRight className="w-3.5 h-3.5 text-indigo-600" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              onClick={() => deleteRule(rule.id)}
+                              className="text-text-tertiary hover:text-red-500 p-0.5"
+                              title="Delete rule"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {cardRules.length === 0 && (
+                        <p className="text-xs text-text-tertiary px-2.5 py-2">No rules defined.</p>
+                      )}
+                    </div>
+
+                    <div className="text-[10px] text-text-tertiary mb-2">First matching rule wins. Drag to reorder.</div>
+
+                    {/* Add rule form */}
+                    <div className="border-t border-border pt-3 space-y-2">
+                      <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Add rule</div>
+                      <div className="flex items-center gap-2">
+                        {/* Color picker */}
+                        <div className="flex gap-1 shrink-0">
+                          {RULE_COLOR_OPTIONS.slice(0, 4).map((c) => (
+                            <button
+                              key={c.value}
+                              onClick={() => setNewRuleColor(c.value)}
+                              className={cn(
+                                "w-4 h-4 rounded-sm",
+                                c.value,
+                                newRuleColor === c.value && "ring-2 ring-offset-1 ring-indigo-400"
+                              )}
+                              title={c.label}
+                            />
+                          ))}
+                        </div>
+                        <input
+                          type="text"
+                          value={newRuleLabel}
+                          onChange={(e) => setNewRuleLabel(e.target.value)}
+                          placeholder="Label"
+                          className="flex-1 text-xs px-2 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newRuleTraql}
+                          onChange={(e) => setNewRuleTraql(e.target.value)}
+                          placeholder="TraQL expression, e.g. type:bug"
+                          className="flex-1 text-xs font-mono px-2 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                          onKeyDown={(e) => { if (e.key === "Enter") addRule(); }}
+                        />
+                        <button
+                          onClick={addRule}
+                          disabled={!newRuleLabel.trim() || !newRuleTraql.trim()}
+                          className="px-2.5 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -547,7 +906,7 @@ export function BoardClient({
                         "cursor-grab active:cursor-grabbing",
                         draggingId === item.id && "opacity-50",
                         changedIds.has(item.id) && "realtime-highlight",
-                        getCardRuleClass(item, workflowStates)
+                        getCardRuleClass(item)
                       )}
                     >
                       <BoardCard
