@@ -46,6 +46,7 @@ interface OrgMember {
   projects: ProjectAccess[];
   recentActivity: AuditEntry[];
   sessions: SessionInfo[];
+  ssoManaged?: boolean;
 }
 
 interface Invitation {
@@ -85,7 +86,7 @@ const initialMembers: OrgMember[] = [
     ],
   },
   {
-    id: "2", name: "Sarah Chen", email: "sarah@example.com", avatar: "S", role: "Admin",
+    id: "2", name: "Sarah Chen", email: "sarah@thoughtworks.com", avatar: "S", role: "Admin", ssoManaged: true,
     teams: [{ team: "Platform Engineering", role: "Member" }, { team: "Product Design", role: "Member" }, { team: "QA & Release", role: "Lead" }],
     lastActive: "2 hours ago", joined: "Feb 3, 2025", status: "active",
     projects: [{ name: "Trakr", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }, { name: "Pulsr", key: "PLS", viaTeam: "QA & Release" }],
@@ -103,7 +104,7 @@ const initialMembers: OrgMember[] = [
     ],
   },
   {
-    id: "3", name: "Alex Rivera", email: "alex@example.com", avatar: "A", role: "Member",
+    id: "3", name: "Alex Rivera", email: "alex@thoughtworks.com", avatar: "A", role: "Member", ssoManaged: true,
     teams: [{ team: "Platform Engineering", role: "Member" }, { team: "QA & Release", role: "Member" }, { team: "Backend API", role: "Lead" }, { team: "DevOps", role: "Member" }],
     lastActive: "1 day ago", joined: "Mar 10, 2025", status: "active",
     projects: [{ name: "Trakr", key: "TRK", viaTeam: "Backend API" }, { name: "Pictura", key: "PIC", viaTeam: "Platform Engineering" }, { name: "Pulsr", key: "PLS", viaTeam: "DevOps" }],
@@ -119,7 +120,7 @@ const initialMembers: OrgMember[] = [
     ],
   },
   {
-    id: "4", name: "Peter Schmidt", email: "peter@example.com", avatar: "P", role: "Member",
+    id: "4", name: "Peter Schmidt", email: "peter@thoughtworks.com", avatar: "P", role: "Member", ssoManaged: true,
     teams: [{ team: "Platform Engineering", role: "Member" }, { team: "Customer Success", role: "Lead" }, { team: "Security", role: "Member" }],
     lastActive: "3 hours ago", joined: "Mar 15, 2025", status: "active",
     projects: [{ name: "Trakr", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Customer Success" }],
@@ -529,6 +530,9 @@ export default function MembersPage() {
                                   <p className="text-sm text-text-primary font-medium">{member.name}</p>
                                   <p className="text-xs text-text-tertiary">{member.email}</p>
                                 </div>
+                                {member.ssoManaged && (
+                                  <span className="px-1.5 py-0.5 text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-200 rounded font-medium">SSO</span>
+                                )}
                                 {member.status === "deactivated" && (
                                   <span className="px-1.5 py-0.5 text-[10px] bg-red-50 text-red-500 border border-red-200 rounded">Deactivated</span>
                                 )}
@@ -577,9 +581,11 @@ export default function MembersPage() {
                                         <button onClick={() => deactivateMember(member.id)} className="w-full text-left px-3 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2">
                                           <ShieldAlert className="w-3 h-3" /> {member.status === "active" ? "Deactivate" : "Reactivate"}
                                         </button>
-                                        <button onClick={() => removeMember(member.id)} className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 flex items-center gap-2">
-                                          <UserMinus className="w-3 h-3" /> Remove
-                                        </button>
+                                        {!member.ssoManaged && (
+                                          <button onClick={() => removeMember(member.id)} className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 flex items-center gap-2">
+                                            <UserMinus className="w-3 h-3" /> Remove
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -752,20 +758,36 @@ export default function MembersPage() {
                                   {member.role !== "Owner" && (
                                     <div className="border border-red-200 rounded-lg p-3 space-y-2">
                                       <h4 className="text-xs font-medium text-red-600">Actions</h4>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => deactivateMember(member.id)}
-                                          className="px-3 py-1.5 text-xs text-amber-600 border border-amber-200 rounded-md hover:bg-amber-50 transition-colors"
-                                        >
-                                          {member.status === "active" ? "Deactivate" : "Reactivate"}
-                                        </button>
-                                        <button
-                                          onClick={() => removeMember(member.id)}
-                                          className="px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
-                                        >
-                                          Remove from Organization
-                                        </button>
-                                      </div>
+                                      {member.ssoManaged ? (
+                                        <>
+                                          <div className="flex gap-2">
+                                            <button
+                                              onClick={() => deactivateMember(member.id)}
+                                              className="px-3 py-1.5 text-xs text-amber-600 border border-amber-200 rounded-md hover:bg-amber-50 transition-colors"
+                                            >
+                                              {member.status === "active" ? "Deactivate" : "Reactivate"}
+                                            </button>
+                                          </div>
+                                          <p className="text-[10px] text-text-tertiary">
+                                            This user&apos;s identity is managed by your SSO provider. They won&apos;t be able to access Trakr, but their account remains until removed from your identity provider.
+                                          </p>
+                                        </>
+                                      ) : (
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => deactivateMember(member.id)}
+                                            className="px-3 py-1.5 text-xs text-amber-600 border border-amber-200 rounded-md hover:bg-amber-50 transition-colors"
+                                          >
+                                            {member.status === "active" ? "Deactivate" : "Reactivate"}
+                                          </button>
+                                          <button
+                                            onClick={() => removeMember(member.id)}
+                                            className="px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                                          >
+                                            Remove from Organization
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>

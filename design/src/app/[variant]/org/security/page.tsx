@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Shield, Key, Globe, AlertTriangle, ToggleLeft, ToggleRight, Check, X, Plus, Monitor } from "lucide-react";
+import { Shield, Key, Globe, AlertTriangle, ToggleLeft, ToggleRight, Check, X, Plus, Monitor, BadgeCheck, Clock, Copy, RefreshCw, Link2 } from "lucide-react";
 import { OrgTabNav } from "@/components/OrgTabNav";
 
 export default function SecurityPage() {
@@ -25,6 +25,19 @@ export default function SecurityPage() {
   const [ipEntries, setIpEntries] = useState(["192.168.1.0/24", "10.0.0.0/8"]);
   const [newIp, setNewIp] = useState("");
 
+  // Verified domains
+  const [domains, setDomains] = useState([
+    { domain: "thoughtworks.com", status: "verified" as const, requireSso: true, blockMagicLink: false, autoCapture: true },
+    { domain: "tw-consulting.com", status: "pending" as const, requireSso: false, blockMagicLink: false, autoCapture: false },
+  ]);
+  const [newDomain, setNewDomain] = useState("");
+  const [showAddDomain, setShowAddDomain] = useState(false);
+
+  // SCIM
+  const [scimEnabled, setScimEnabled] = useState(false);
+  const [scimTokenGenerated, setScimTokenGenerated] = useState(false);
+  const [scimTokenVisible, setScimTokenVisible] = useState(false);
+
   // Sessions summary
   const [sessionsRevoked, setSessionsRevoked] = useState(false);
 
@@ -38,6 +51,17 @@ export default function SecurityPage() {
     setIpEntries(ipEntries.filter((e) => e !== ip));
   }
 
+  function addDomain() {
+    if (!newDomain.trim()) return;
+    setDomains([...domains, { domain: newDomain.trim(), status: "pending", requireSso: false, blockMagicLink: false, autoCapture: false }]);
+    setNewDomain("");
+    setShowAddDomain(false);
+  }
+
+  function toggleDomainPolicy(domain: string, policy: "requireSso" | "blockMagicLink" | "autoCapture") {
+    setDomains(domains.map((d) => d.domain === domain ? { ...d, [policy]: !d[policy] } : d));
+  }
+
   return (
     <>
       <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
@@ -48,6 +72,131 @@ export default function SecurityPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-8">
           <OrgTabNav variant={variant} activeTab="security" />
+
+          {/* Verified Domains */}
+          <section>
+            <h2 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <BadgeCheck className="w-4 h-4 text-text-tertiary" />
+              Verified Domains
+            </h2>
+            <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+              <p className="text-xs text-text-tertiary">
+                Verify ownership of your email domains to enable domain-based authentication policies and auto-capture new sign-ups.
+              </p>
+
+              {/* Domain list */}
+              <div className="space-y-3">
+                {domains.map((d) => (
+                  <div key={d.domain} className="border border-border rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2.5 bg-content-bg">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-3.5 h-3.5 text-text-tertiary" />
+                        <span className="text-sm text-text-primary font-mono">{d.domain}</span>
+                      </div>
+                      {d.status === "verified" ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full">
+                          <Check className="w-3 h-3" /> Verified
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 rounded-full">
+                          <Clock className="w-3 h-3" /> Pending verification
+                        </span>
+                      )}
+                    </div>
+
+                    {d.status === "pending" && (
+                      <div className="px-3 py-3 border-t border-border space-y-2">
+                        <p className="text-xs text-text-secondary">Add this DNS TXT record to verify ownership:</p>
+                        <div className="flex items-center gap-2 px-3 py-2 bg-content-bg border border-border rounded-md">
+                          <code className="text-xs font-mono text-text-primary flex-1">
+                            _trakr-verify.{d.domain} → trk-verify=abc123
+                          </code>
+                          <button className="p-1 text-text-tertiary hover:text-accent transition-colors">
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <button className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover text-white rounded-md transition-colors">
+                          Verify
+                        </button>
+                      </div>
+                    )}
+
+                    {d.status === "verified" && (
+                      <div className="px-3 py-3 border-t border-border space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-text-primary font-medium">Require SSO for this domain</p>
+                            <p className="text-[10px] text-text-tertiary">
+                              {ssoEnabled ? "Users with this domain must sign in via SSO" : "Configure SSO first to enable this policy"}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => ssoEnabled && toggleDomainPolicy(d.domain, "requireSso")}
+                            className={!ssoEnabled ? "opacity-40 cursor-not-allowed" : ""}
+                          >
+                            {d.requireSso ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-text-primary font-medium">Block magic link sign-in</p>
+                            <p className="text-[10px] text-text-tertiary">Prevent passwordless email login for this domain</p>
+                          </div>
+                          <button onClick={() => toggleDomainPolicy(d.domain, "blockMagicLink")}>
+                            {d.blockMagicLink ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-text-primary font-medium">Auto-capture new sign-ups</p>
+                            <p className="text-[10px] text-text-tertiary">Automatically add new users with this domain to your organization</p>
+                          </div>
+                          <button onClick={() => toggleDomainPolicy(d.domain, "autoCapture")}>
+                            {d.autoCapture ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add domain form */}
+              {showAddDomain ? (
+                <div className="border border-accent/30 rounded-lg p-3 space-y-2">
+                  <label className="text-xs text-text-tertiary block">Domain name</label>
+                  <div className="flex gap-2">
+                    <input
+                      autoFocus
+                      value={newDomain}
+                      onChange={(e) => setNewDomain(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addDomain()}
+                      placeholder="e.g. acme-corp.com"
+                      className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    />
+                    <button onClick={addDomain} disabled={!newDomain.trim()} className="px-3 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-sm rounded-md transition-colors">
+                      Add Domain
+                    </button>
+                    <button onClick={() => { setShowAddDomain(false); setNewDomain(""); }} className="px-3 py-1.5 text-sm text-text-tertiary hover:text-text-secondary">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddDomain(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-accent hover:text-accent-hover transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add domain
+                </button>
+              )}
+
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-blue-500 shrink-0" />
+                <p className="text-xs text-blue-700">Public email domains (gmail.com, outlook.com, etc.) cannot be verified.</p>
+              </div>
+            </div>
+          </section>
 
           {/* SSO Configuration */}
           <section>
@@ -120,6 +269,98 @@ export default function SecurityPage() {
                       <p className="text-xs text-emerald-700 font-medium">SSO is active</p>
                       <p className="text-[10px] text-emerald-600">Connected to Okta. Last metadata refresh: Apr 13, 2026 09:42 AM</p>
                     </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* SCIM Provisioning */}
+          <section>
+            <h2 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-text-tertiary" />
+              SCIM Provisioning
+            </h2>
+            <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-text-primary font-medium">SCIM User & Group Sync</p>
+                  <p className="text-xs text-text-tertiary">Automatically sync users and groups from your identity provider</p>
+                </div>
+                <button onClick={() => setScimEnabled(!scimEnabled)}>
+                  {scimEnabled ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
+                </button>
+              </div>
+
+              {scimEnabled && (
+                <>
+                  <div className="border-t border-border pt-4 space-y-3">
+                    <div>
+                      <label className="text-xs text-text-tertiary block mb-1">SCIM Endpoint URL</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          readOnly
+                          value="https://trakr-five.vercel.app/api/scim/v2"
+                          className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono text-text-secondary focus:outline-none"
+                        />
+                        <button className="p-1.5 text-text-tertiary hover:text-accent border border-border rounded-md transition-colors">
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-text-tertiary block mb-1">SCIM Bearer Token</label>
+                      {scimTokenGenerated ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              readOnly
+                              value={scimTokenVisible ? "scim_trk_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" : "scim_trk_••••••••••••••••••••••••••••••"}
+                              className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono text-text-secondary focus:outline-none"
+                            />
+                            <button
+                              onClick={() => setScimTokenVisible(!scimTokenVisible)}
+                              className="p-1.5 text-text-tertiary hover:text-accent border border-border rounded-md transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-amber-600">This token was shown once when generated. Store it securely in your IdP.</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setScimTokenGenerated(true); setScimTokenVisible(true); }}
+                          className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover text-white rounded-md transition-colors"
+                        >
+                          Generate Token
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border pt-3">
+                    {scimTokenGenerated ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-md p-3 flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <p className="text-xs text-emerald-700 font-medium">Connected — last sync 5 minutes ago</p>
+                          <p className="text-[10px] text-emerald-600">24 users, 6 groups synced from Okta</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-md p-3 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-gray-400 shrink-0" />
+                        <p className="text-xs text-gray-500">Not connected — generate a bearer token and configure it in your identity provider.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-blue-500 shrink-0" />
+                    <p className="text-xs text-blue-700">
+                      SCIM automatically syncs users and groups from your identity provider. Users removed from your IdP are deactivated in Trakr.
+                    </p>
                   </div>
                 </>
               )}

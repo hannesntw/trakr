@@ -31,6 +31,7 @@ const noOrg = {
   auditLog: false,
   sso: false,
   billing: false,
+  superAdmin: false,
 };
 
 const noGithub = {
@@ -127,6 +128,7 @@ const enterprise: VariantConfig = {
     auditLog: true,
     sso: true,
     billing: true,
+    superAdmin: true,
   },
   tabs: [
     { slug: "board", label: "Board" },

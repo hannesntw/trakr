@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useVariant } from "./VariantContext";
-import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2, Building2 } from "lucide-react";
+import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2, Building2, Shield } from "lucide-react";
 
 const mockProjects = [
   { key: "PIC", name: "Pictura", owned: false },
@@ -190,6 +190,22 @@ export function SidebarNav({ variant }: { variant: string }) {
             <Building2 className="w-4 h-4 shrink-0" />
             <span className={`whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
               Organization
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* Platform Admin nav */}
+      {config.features.superAdmin && (
+        <div className={`${hasOrg ? "" : "border-t border-sidebar-border"} py-2 px-2`}>
+          <Link
+            href={`/${variant}/admin`}
+            title={isCollapsed ? "Admin" : undefined}
+            className="flex items-center gap-2.5 pl-2 py-1.5 rounded-md text-sm text-amber-400 hover:bg-sidebar-hover hover:text-amber-300 transition-colors"
+          >
+            <Shield className="w-4 h-4 shrink-0" />
+            <span className={`whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
+              Admin
             </span>
           </Link>
         </div>

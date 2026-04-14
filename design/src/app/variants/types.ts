@@ -38,6 +38,8 @@ export interface VariantConfig {
     auditLog: boolean;
     sso: boolean;
     billing: boolean;
+    // Platform super-admin
+    superAdmin: boolean;
   };
   tabs: Array<{ slug: string; label: string }>;
 }
