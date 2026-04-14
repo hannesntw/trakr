@@ -542,7 +542,7 @@ export default function IdeasPage() {
     };
   }, [draggingId, isPanning, zoom]);
 
-  /* ── Zoom (scroll wheel) ────────────────────────────────── */
+  /* ── Pan (two-finger scroll) + Zoom (pinch / Ctrl+scroll) ── */
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -550,25 +550,33 @@ export default function IdeasPage() {
 
     function handleWheel(e: WheelEvent) {
       e.preventDefault();
-      const rect = el!.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
 
-      // Trackpad-friendly: small multiplier, clamped per event
-      const raw = -e.deltaY * 0.001;
-      const delta = Math.max(-0.05, Math.min(0.05, raw));
-      if (Math.abs(delta) < 0.0001) return;
+      if (e.ctrlKey || e.metaKey) {
+        // Pinch-to-zoom (trackpad) or Ctrl+scroll (mouse)
+        const rect = el!.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-      setZoom((prevZoom) => {
-        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prevZoom + delta));
-        const scale = newZoom / prevZoom;
-        // Zoom toward mouse position
-        setPan((prevPan) => ({
-          x: mouseX - scale * (mouseX - prevPan.x),
-          y: mouseY - scale * (mouseY - prevPan.y),
+        const raw = -e.deltaY * 0.01;
+        const delta = Math.max(-0.1, Math.min(0.1, raw));
+        if (Math.abs(delta) < 0.001) return;
+
+        setZoom((prevZoom) => {
+          const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prevZoom + delta));
+          const scale = newZoom / prevZoom;
+          setPan((prevPan) => ({
+            x: mouseX - scale * (mouseX - prevPan.x),
+            y: mouseY - scale * (mouseY - prevPan.y),
+          }));
+          return newZoom;
+        });
+      } else {
+        // Two-finger scroll = pan
+        setPan((prev) => ({
+          x: prev.x - e.deltaX,
+          y: prev.y - e.deltaY,
         }));
-        return newZoom;
-      });
+      }
     }
 
     el.addEventListener("wheel", handleWheel, { passive: false });
