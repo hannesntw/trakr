@@ -2,32 +2,8 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Shield, Key, Globe, Laptop, Smartphone, Monitor, X, Plus, Check, AlertTriangle, ToggleLeft, ToggleRight, ExternalLink } from "lucide-react";
+import { Shield, Key, Globe, AlertTriangle, ToggleLeft, ToggleRight, Check, X, Plus, Monitor } from "lucide-react";
 import { OrgTabNav } from "@/components/OrgTabNav";
-
-interface Session {
-  id: string;
-  device: string;
-  deviceType: "desktop" | "mobile" | "tablet";
-  browser: string;
-  ip: string;
-  location: string;
-  lastActive: string;
-  current: boolean;
-}
-
-const initialSessions: Session[] = [
-  { id: "1", device: "MacBook Pro", deviceType: "desktop", browser: "Chrome 124", ip: "192.168.1.42", location: "Berlin, DE", lastActive: "Active now", current: true },
-  { id: "2", device: "iPhone 15", deviceType: "mobile", browser: "Safari 18", ip: "10.0.0.101", location: "Berlin, DE", lastActive: "2 hours ago", current: false },
-  { id: "3", device: "Windows Desktop", deviceType: "desktop", browser: "Firefox 132", ip: "172.16.0.55", location: "Munich, DE", lastActive: "1 day ago", current: false },
-  { id: "4", device: "iPad Air", deviceType: "tablet", browser: "Safari 18", ip: "10.0.0.88", location: "Berlin, DE", lastActive: "3 days ago", current: false },
-];
-
-const deviceIcons = {
-  desktop: Monitor,
-  mobile: Smartphone,
-  tablet: Laptop,
-};
 
 export default function SecurityPage() {
   const params = useParams();
@@ -44,28 +20,13 @@ export default function SecurityPage() {
   const [mfaEnforced, setMfaEnforced] = useState(false);
   const [mfaGracePeriod, setMfaGracePeriod] = useState("7");
 
-  // Sessions
-  const [sessions, setSessions] = useState<Session[]>(initialSessions);
-
   // IP allowlist
   const [ipAllowlistEnabled, setIpAllowlistEnabled] = useState(false);
   const [ipEntries, setIpEntries] = useState(["192.168.1.0/24", "10.0.0.0/8"]);
   const [newIp, setNewIp] = useState("");
 
-  // Password policy
-  const [minLength, setMinLength] = useState("12");
-  const [requireUppercase, setRequireUppercase] = useState(true);
-  const [requireNumbers, setRequireNumbers] = useState(true);
-  const [requireSpecial, setRequireSpecial] = useState(false);
-  const [expireDays, setExpireDays] = useState("90");
-
-  function revokeSession(id: string) {
-    setSessions(sessions.filter((s) => s.id !== id));
-  }
-
-  function revokeAllSessions() {
-    setSessions(sessions.filter((s) => s.current));
-  }
+  // Sessions summary
+  const [sessionsRevoked, setSessionsRevoked] = useState(false);
 
   function addIp() {
     if (!newIp.trim()) return;
@@ -146,7 +107,7 @@ export default function SecurityPage() {
                   <div className="border-t border-border pt-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm text-text-primary">Enforce SSO</p>
-                      <p className="text-xs text-text-tertiary">Require all members to sign in via SSO (disable password login)</p>
+                      <p className="text-xs text-text-tertiary">Require all members to sign in via SSO (disable other login methods)</p>
                     </div>
                     <button onClick={() => setSsoEnforced(!ssoEnforced)}>
                       {ssoEnforced ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
@@ -207,46 +168,43 @@ export default function SecurityPage() {
             </div>
           </section>
 
-          {/* Session Management */}
+          {/* Active Sessions — summary view */}
           <section>
-            <h2 className="text-sm font-semibold text-text-primary mb-4">Active Sessions</h2>
-            <div className="bg-surface border border-border rounded-lg overflow-hidden">
-              {sessions.map((session) => {
-                const DeviceIcon = deviceIcons[session.deviceType];
-                return (
-                  <div key={session.id} className="flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-b-0">
-                    <DeviceIcon className="w-5 h-5 text-text-tertiary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-primary flex items-center gap-2">
-                        {session.device}
-                        {session.current && (
-                          <span className="px-1.5 py-0.5 text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 rounded">Current</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-text-tertiary">
-                        {session.browser} &middot; {session.location} &middot; {session.ip}
-                      </p>
+            <h2 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-text-tertiary" />
+              Active Sessions
+            </h2>
+            <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
+              {!sessionsRevoked ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-text-primary font-medium">47 active sessions across 18 users</p>
+                      <p className="text-xs text-text-tertiary mt-1">Sessions are automatically expired after 30 days of inactivity.</p>
                     </div>
-                    <span className="text-xs text-text-tertiary shrink-0">{session.lastActive}</span>
-                    {!session.current && (
-                      <button
-                        onClick={() => revokeSession(session.id)}
-                        className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50 transition-colors"
-                      >
-                        Revoke
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setSessionsRevoked(true)}
+                      className="px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                    >
+                      Revoke all sessions
+                    </button>
                   </div>
-                );
-              })}
-              <div className="px-4 py-2.5 bg-content-bg/50 flex justify-end">
-                <button
-                  onClick={revokeAllSessions}
-                  className="text-xs text-red-500 hover:text-red-600 transition-colors"
-                >
-                  Revoke all other sessions
-                </button>
-              </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-blue-500 shrink-0" />
+                    <p className="text-xs text-blue-700">
+                      Manage individual sessions from the member detail page. Click any member in the <span className="font-medium">Members</span> tab to view and revoke their sessions.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-md p-3 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-xs text-emerald-700 font-medium">All sessions revoked</p>
+                    <p className="text-[10px] text-emerald-600">All users will need to sign in again. 0 active sessions across 0 users.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -296,56 +254,6 @@ export default function SecurityPage() {
                   </div>
                 </div>
               )}
-            </div>
-          </section>
-
-          {/* Password Policy */}
-          <section>
-            <h2 className="text-sm font-semibold text-text-primary mb-4">Password Policy</h2>
-            <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
-              <p className="text-xs text-text-tertiary">Applies to members who sign in with email/password (not SSO).</p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-text-tertiary block mb-1">Minimum length</label>
-                  <select value={minLength} onChange={(e) => setMinLength(e.target.value)} className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg">
-                    <option value="8">8 characters</option>
-                    <option value="10">10 characters</option>
-                    <option value="12">12 characters</option>
-                    <option value="16">16 characters</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-text-tertiary block mb-1">Password expiry</label>
-                  <select value={expireDays} onChange={(e) => setExpireDays(e.target.value)} className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg">
-                    <option value="0">Never</option>
-                    <option value="30">Every 30 days</option>
-                    <option value="60">Every 60 days</option>
-                    <option value="90">Every 90 days</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {[
-                  { label: "Require uppercase letter", value: requireUppercase, toggle: () => setRequireUppercase(!requireUppercase) },
-                  { label: "Require number", value: requireNumbers, toggle: () => setRequireNumbers(!requireNumbers) },
-                  { label: "Require special character", value: requireSpecial, toggle: () => setRequireSpecial(!requireSpecial) },
-                ].map((rule) => (
-                  <label key={rule.label} className="flex items-center gap-3 cursor-pointer">
-                    <button onClick={rule.toggle}>
-                      {rule.value ? <ToggleRight className="w-5 h-5 text-accent" /> : <ToggleLeft className="w-5 h-5 text-text-tertiary" />}
-                    </button>
-                    <span className="text-sm text-text-primary">{rule.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="flex justify-end">
-                <button className="px-4 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-md transition-colors">
-                  Save Policy
-                </button>
-              </div>
             </div>
           </section>
         </div>
