@@ -39,6 +39,7 @@ interface BacklogClientProps {
   projectId: number;
   projectKey: string;
   projectName: string;
+  makerMode?: boolean;
 }
 
 /* ─── State icon mapping (category-based) ─── */
@@ -158,6 +159,7 @@ export function BacklogClient({
   projectId,
   projectKey,
   projectName,
+  makerMode,
 }: BacklogClientProps) {
   const [items, setItems] = useState<WorkItem[]>([]);
   const [sprintMap, setSprintMap] = useState<Map<number, string>>(new Map());
@@ -534,9 +536,11 @@ export function BacklogClient({
               <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase tracking-wider w-28">
                 State
               </th>
-              <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase tracking-wider w-48">
-                Sprint
-              </th>
+              {!makerMode && (
+                <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase tracking-wider w-48">
+                  Sprint
+                </th>
+              )}
               <th className="px-3 py-2.5 text-xs font-medium text-text-tertiary uppercase tracking-wider w-36">
                 Assignee
               </th>
@@ -611,9 +615,11 @@ export function BacklogClient({
                       <StateBadge state={item.state} workflowStates={workflowStates} />
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-xs text-text-secondary truncate">
-                    {item.sprintId ? sprintMap.get(item.sprintId) : "—"}
-                  </td>
+                  {!makerMode && (
+                    <td className="px-3 py-2.5 text-xs text-text-secondary truncate">
+                      {item.sprintId ? sprintMap.get(item.sprintId) : "—"}
+                    </td>
+                  )}
                   <td className="px-3 py-2.5">
                     {item.assignee ? (
                       <div className="flex items-center gap-1.5">

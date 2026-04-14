@@ -23,6 +23,7 @@ export default async function BacklogPage({
       projectId={project.id}
       projectKey={project.key}
       projectName={project.name}
+      makerMode={project.makerMode}
     />
   );
 }

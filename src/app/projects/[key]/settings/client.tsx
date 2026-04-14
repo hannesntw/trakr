@@ -33,6 +33,7 @@ interface Project {
   githubRepo: string | null;
   githubStatusChecks: boolean;
   githubPrComments: boolean;
+  makerMode: boolean;
 }
 
 interface Invite {
@@ -57,6 +58,9 @@ export function SettingsClient({ project }: { project: Project }) {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  // Maker mode state
+  const [makerMode, setMakerMode] = useState(project.makerMode);
 
   // GitHub integration state
   const [githubLinked, setGithubLinked] = useState(!!(project.githubOwner && project.githubRepo));
@@ -192,6 +196,17 @@ export function SettingsClient({ project }: { project: Project }) {
     });
   }
 
+  async function toggleMakerMode() {
+    const newVal = !makerMode;
+    setMakerMode(newVal);
+    await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ makerMode: newVal }),
+    });
+    router.refresh();
+  }
+
   async function saveGeneral() {
     setSaving(true);
     await fetch(`/api/projects/${project.id}`, {
@@ -277,6 +292,28 @@ export function SettingsClient({ project }: { project: Project }) {
                   {saving ? "Saving..." : "Save"}
                 </button>
               </div>
+            </div>
+          </section>
+
+          {/* Project Mode */}
+          <section>
+            <h2 className="text-sm font-semibold text-text-primary mb-4">Project Mode</h2>
+            <div className="bg-surface border border-border rounded-lg p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <ToggleButton enabled={makerMode} onClick={toggleMakerMode} />
+                <div>
+                  <p className="text-sm text-text-primary">Maker Mode</p>
+                  <p className="text-xs text-text-tertiary">Simplified project without sprints — designed for solo development with AI tools</p>
+                </div>
+              </label>
+              {makerMode && (
+                <div className="mt-3 p-3 bg-accent/5 border border-accent/20 rounded-md">
+                  <p className="text-xs text-text-secondary">
+                    Sprints and timeline are hidden. The board shows all items without sprint filtering.
+                    An <strong>Ideas</strong> tab is available for capturing ideas before promoting them to the backlog.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

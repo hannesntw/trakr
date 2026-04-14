@@ -9,7 +9,7 @@ import { resolveApiUser } from "@/lib/api-auth";
 const createSchema = z.object({
   projectId: z.number().int().positive(),
   title: z.string().min(1),
-  type: z.enum(["epic", "feature", "story", "bug", "task"]),
+  type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]),
   state: z.string().optional(),
   description: z.string().optional(),
   parentId: z.number().int().positive().nullable().optional(),
@@ -19,6 +19,9 @@ const createSchema = z.object({
     message: "Points must be one of: 1, 2, 3, 5, 8, 13",
   }).nullable().optional(),
   priority: z.number().int().optional(),
+  canvasX: z.number().int().nullable().optional(),
+  canvasY: z.number().int().nullable().optional(),
+  canvasColor: z.string().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -95,7 +98,20 @@ export async function POST(request: NextRequest) {
     resolvedState = match ? match.slug : wfStates[0].slug;
   }
 
-  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId, state: resolvedState ?? "new" }).returning();
+  // Auto-place ideas if no position given
+  let canvasX = parsed.data.canvasX ?? null;
+  let canvasY = parsed.data.canvasY ?? null;
+  if (parsed.data.type === "idea" && canvasX == null && canvasY == null) {
+    const existingIdeas = await db
+      .select({ canvasY: workItems.canvasY })
+      .from(workItems)
+      .where(and(eq(workItems.projectId, parsed.data.projectId), eq(workItems.type, "idea")));
+    const maxY = existingIdeas.reduce((max, i) => Math.max(max, i.canvasY ?? 0), 0);
+    canvasX = 200;
+    canvasY = existingIdeas.length > 0 ? maxY + 220 : 100;
+  }
+
+  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId, state: resolvedState ?? "new", canvasX, canvasY }).returning();
 
   // Record initial status in status_history so the timeline shows the creation state
   await db.insert(statusHistory).values({

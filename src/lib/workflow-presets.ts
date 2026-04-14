@@ -15,6 +15,11 @@ export const PRESETS: Record<string, PresetState[]> = {
     { slug: "in_progress", displayName: "In Progress", category: "in_progress", color: "#6366F1" },
     { slug: "done", displayName: "Done", category: "done", color: "#10B981" },
   ],
+  maker: [
+    { slug: "todo", displayName: "To Do", category: "todo", color: "#9CA3AF" },
+    { slug: "doing", displayName: "Doing", category: "in_progress", color: "#6366F1" },
+    { slug: "done", displayName: "Done", category: "done", color: "#10B981" },
+  ],
   standard: [
     { slug: "new", displayName: "New", category: "todo", color: "#9CA3AF" },
     { slug: "ready", displayName: "Ready", category: "todo", color: "#F59E0B" },

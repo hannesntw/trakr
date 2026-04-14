@@ -21,7 +21,7 @@ async function resolveWorkItemId(idParam: string): Promise<number | null> {
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
-  type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
+  type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]).optional(),
   state: z.string().optional(),
   description: z.string().optional(),
   parentId: z.number().int().positive().nullable().optional(),
@@ -31,6 +31,9 @@ const updateSchema = z.object({
     message: "Points must be one of: 1, 2, 3, 5, 8, 13",
   }).nullable().optional(),
   priority: z.number().int().optional(),
+  canvasX: z.number().int().nullable().optional(),
+  canvasY: z.number().int().nullable().optional(),
+  canvasColor: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -94,9 +97,17 @@ export async function PATCH(
   const apiUser = await resolveApiUser(request);
   const changedBy = apiUser?.name ?? apiUser?.email ?? "system";
 
+  // When promoting from idea to story, clear canvas position fields
+  const updateData: Record<string, unknown> = { ...parsed.data, updatedAt: new Date().toISOString() };
+  if (parsed.data.type && parsed.data.type !== "idea" && current.type === "idea") {
+    updateData.canvasX = null;
+    updateData.canvasY = null;
+    updateData.canvasColor = null;
+  }
+
   const [row] = await db
     .update(workItems)
-    .set({ ...parsed.data, updatedAt: new Date().toISOString() })
+    .set(updateData)
     .where(eq(workItems.id, resolvedId))
     .returning();
 

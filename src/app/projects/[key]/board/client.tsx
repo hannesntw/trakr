@@ -44,6 +44,7 @@ interface BoardClientProps {
   projectId: number;
   projectKey: string;
   projectName: string;
+  makerMode?: boolean;
 }
 
 // --- Card rule types (configurable, CRUD, localStorage-persisted) ---
@@ -156,6 +157,7 @@ export function BoardClient({
   projectId,
   projectKey,
   projectName,
+  makerMode,
 }: BoardClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -343,11 +345,14 @@ export function BoardClient({
     const pMap = new Map(allItems.map((i) => [i.id, i.title]));
     setParentMap(pMap);
 
-    const boardItems = sprint
-      ? allItems.filter((i) => i.sprintId === sprint.id)
-      : allItems;
+    // In maker mode, show all items (no sprint filtering)
+    const boardItems = makerMode
+      ? allItems
+      : sprint
+        ? allItems.filter((i) => i.sprintId === sprint.id)
+        : allItems;
     setItems(boardItems);
-  }, [projectId]);
+  }, [projectId, makerMode]);
 
   useEffect(() => {
     fetchData();
@@ -542,7 +547,7 @@ export function BoardClient({
     <>
       <Header
         title={projectName}
-        subtitle={activeSprint ? activeSprint.name : "Board"}
+        subtitle={makerMode ? "Board" : (activeSprint ? activeSprint.name : "Board")}
         actions={
           <div className="flex items-center gap-2">
             {/* TRK-137: Type filter toggle */}

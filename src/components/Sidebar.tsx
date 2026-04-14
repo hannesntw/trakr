@@ -9,6 +9,7 @@ import {
   Code2,
   CalendarRange,
   GanttChart,
+  Lightbulb,
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
@@ -24,6 +25,7 @@ interface Project {
   name: string;
   key: string;
   ownerId?: string | null;
+  makerMode?: boolean;
 }
 
 interface UserInfo {
@@ -104,12 +106,15 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction }: Si
     setSubmitting(false);
   }
 
+  const isMaker = currentProject?.makerMode === true;
+
   const navItems = [
     { slug: "board", label: "Board", icon: LayoutDashboard, show: true },
     { slug: "backlog", label: "Backlog", icon: List, show: true },
+    { slug: "ideas", label: "Ideas", icon: Lightbulb, show: isMaker },
     { slug: "queries", label: "Queries", icon: Code2, show: true },
-    { slug: "sprints", label: "Sprints", icon: CalendarRange, show: true },
-    { slug: "timeline", label: "Timeline", icon: GanttChart, show: true },
+    { slug: "sprints", label: "Sprints", icon: CalendarRange, show: !isMaker },
+    { slug: "timeline", label: "Timeline", icon: GanttChart, show: !isMaker },
     { slug: "settings", label: "Settings", icon: Settings, show: isOwned },
   ];
 

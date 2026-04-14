@@ -4,6 +4,7 @@ import { projects } from "@/db/schema";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { applyPreset } from "@/lib/workflow-presets";
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -14,6 +15,7 @@ const createSchema = z.object({
     .transform((v) => v.toUpperCase()),
   description: z.string().optional(),
   visibility: z.enum(["public", "private"]).optional(),
+  makerMode: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -43,8 +45,15 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       visibility: parsed.data.visibility ?? "private",
       ownerId: user.id,
+      makerMode: parsed.data.makerMode ?? false,
     })
     .returning();
+
+  // TRK-139: Auto-create simplified workflow for maker mode projects
+  if (parsed.data.makerMode) {
+    await applyPreset(row.id, "maker");
+  }
+
   emit({ type: "project", action: "created", id: row.id, projectId: row.id });
   return NextResponse.json(row, { status: 201 });
 }

@@ -19,6 +19,7 @@ const updateSchema = z.object({
   ownerId: z.string().optional(),
   githubStatusChecks: z.boolean().optional(),
   githubPrComments: z.boolean().optional(),
+  makerMode: z.boolean().optional(),
 });
 
 export async function GET(

@@ -78,6 +78,7 @@ export const projects = pgTable("projects", {
   githubWebhookSecret: text("github_webhook_secret"),
   githubStatusChecks: boolean("github_status_checks").notNull().default(true),
   githubPrComments: boolean("github_pr_comments").notNull().default(true),
+  makerMode: boolean("maker_mode").notNull().default(false),
 });
 
 export const apiKeys = pgTable("api_keys", {
@@ -151,6 +152,9 @@ export const workItems = pgTable("work_items", {
   updatedAt: text("updated_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
+  canvasX: integer("canvas_x"),
+  canvasY: integer("canvas_y"),
+  canvasColor: text("canvas_color"),
 });
 
 export const workItemSnapshots = pgTable("work_item_snapshots", {
