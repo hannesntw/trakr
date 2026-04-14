@@ -66,19 +66,21 @@ const RULE_COLOR_OPTIONS = [
   { value: "bg-cyan-500", label: "Cyan" },
 ];
 
-/** Map a color swatch class to border + optional bg tint classes */
-function ruleStyleFromColor(color: string): string {
-  const map: Record<string, string> = {
-    "bg-red-500": "border-l-[3px] border-l-red-500 rounded-lg overflow-hidden",
-    "bg-blue-500": "border-l-[3px] border-l-blue-500 rounded-lg overflow-hidden",
-    "bg-amber-400": "border-l-[3px] border-l-amber-400 bg-amber-50/40 rounded-lg overflow-hidden",
-    "bg-emerald-500": "border-l-[3px] border-l-emerald-500 rounded-lg overflow-hidden",
-    "bg-violet-500": "border-l-[3px] border-l-violet-500 rounded-lg overflow-hidden",
-    "bg-orange-500": "border-l-[3px] border-l-orange-500 rounded-lg overflow-hidden",
-    "bg-pink-500": "border-l-[3px] border-l-pink-500 rounded-lg overflow-hidden",
-    "bg-cyan-500": "border-l-[3px] border-l-cyan-500 rounded-lg overflow-hidden",
-  };
-  return map[color] ?? "border-l-[3px] border-l-blue-500 rounded-lg overflow-hidden";
+/** Map a color swatch class to an inline style for borderLeftColor */
+const COLOR_TO_HEX: Record<string, string> = {
+  "bg-red-500": "#ef4444",
+  "bg-blue-500": "#3b82f6",
+  "bg-amber-400": "#fbbf24",
+  "bg-emerald-500": "#10b981",
+  "bg-violet-500": "#8b5cf6",
+  "bg-orange-500": "#f97316",
+  "bg-pink-500": "#ec4899",
+  "bg-cyan-500": "#06b6d4",
+};
+
+function ruleStyleFromColor(color: string): React.CSSProperties {
+  const hex = COLOR_TO_HEX[color] ?? "#3b82f6";
+  return { borderLeftWidth: "3px", borderLeftColor: hex, borderLeftStyle: "solid" };
 }
 
 /** Simple expression matcher — supports: type:X, points >= N, points > N, has:assignee, priority >= N */
@@ -305,15 +307,15 @@ export function BoardClient({
   }
 
   /** Get the card rule style class for an item (first matching enabled rule wins) */
-  function getCardRuleClass(item: WorkItem): string {
-    if (!cardRulesEnabled) return "";
+  function getCardRuleStyle(item: WorkItem): React.CSSProperties | undefined {
+    if (!cardRulesEnabled) return undefined;
     for (const rule of cardRules) {
       if (!rule.enabled) continue;
       if (matchRule(rule.traql, item, workflowStates)) {
         return ruleStyleFromColor(rule.color);
       }
     }
-    return "";
+    return undefined;
   }
 
   const fetchData = useCallback(async () => {
@@ -491,11 +493,11 @@ export function BoardClient({
                   }}
                   onClick={() => setSelectedId(item.id)}
                   className={cn(
-                    "cursor-grab active:cursor-grabbing",
+                    "cursor-grab active:cursor-grabbing rounded-lg",
                     draggingId === item.id && "opacity-50",
                     changedIds.has(item.id) && "realtime-highlight",
-                    getCardRuleClass(item)
                   )}
+                  style={getCardRuleStyle(item)}
                 >
                   <BoardCard
                     id={item.id}
@@ -911,11 +913,11 @@ export function BoardClient({
                       }}
                       onClick={() => setSelectedId(item.id)}
                       className={cn(
-                        "cursor-grab active:cursor-grabbing",
+                        "cursor-grab active:cursor-grabbing rounded-lg",
                         draggingId === item.id && "opacity-50",
                         changedIds.has(item.id) && "realtime-highlight",
-                        getCardRuleClass(item)
                       )}
+                      style={getCardRuleStyle(item)}
                     >
                       <BoardCard
                         id={item.id}

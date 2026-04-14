@@ -142,7 +142,7 @@ const enterprise: VariantConfig = {
 
 const simple: VariantConfig = {
   id: "simple",
-  label: "Simple Mode",
+  label: "Maker Mode",
   features: {
     sprintCapacity: false,
     velocityTracking: false,
