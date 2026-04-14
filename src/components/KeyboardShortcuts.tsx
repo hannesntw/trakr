@@ -35,7 +35,7 @@ export function KeyboardShortcuts() {
         case "c": {
           e.preventDefault();
           // Dispatch custom event that board/backlog clients listen to
-          window.dispatchEvent(new CustomEvent("trakr:create-item"));
+          window.dispatchEvent(new CustomEvent("stori:create-item"));
           break;
         }
         case "?": {
@@ -69,7 +69,7 @@ export function KeyboardShortcuts() {
             setCheatSheetOpen(false);
           } else {
             // Dispatch close event for dialogs/panels
-            window.dispatchEvent(new CustomEvent("trakr:close-panel"));
+            window.dispatchEvent(new CustomEvent("stori:close-panel"));
           }
           break;
         }

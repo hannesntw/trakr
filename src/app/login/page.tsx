@@ -16,7 +16,7 @@ export default async function LoginPage() {
             <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
             <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
           </svg>
-          <h1 className="text-2xl font-bold text-text-primary">Trakr</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Stori</h1>
           <p className="text-sm text-text-secondary mt-1">Sign in to manage your projects</p>
         </div>
         <div className="bg-surface border border-border rounded-xl p-6 space-y-4">

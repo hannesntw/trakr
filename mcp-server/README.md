@@ -1,6 +1,6 @@
-# trakr-mcp
+# stori-mcp
 
-MCP server for [Trakr](https://trakr-five.vercel.app) — manage agile work items, sprints, and backlogs from Claude Code.
+MCP server for [Stori](https://stori.zone) — manage agile work items, sprints, and backlogs from Claude Code.
 
 ## Quick Start
 
@@ -9,23 +9,23 @@ Add to your `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "trakr": {
+    "stori": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "trakr-mcp"]
+      "args": ["-y", "stori-mcp"]
     }
   }
 }
 ```
 
-On first run, the MCP server will open your browser to authorize. Sign in to Trakr, click **Authorize**, and you're connected.
+On first run, the MCP server will open your browser to authorize. Sign in to Stori, click **Authorize**, and you're connected.
 
 ## Configuration
 
 | Env var | Description | Default |
 |---------|-------------|---------|
-| `TRAKR_URL` | Trakr server URL | `https://trakr-five.vercel.app` |
-| `TRAKR_API_KEY` | Personal API key (skip device flow) | Auto via device flow |
+| `STORI_URL` | Stori server URL | `https://stori.zone` |
+| `STORI_API_KEY` | Personal API key (skip device flow) | Auto via device flow |
 
 ## Available Tools
 

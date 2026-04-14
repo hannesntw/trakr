@@ -117,7 +117,7 @@ export function AccountClient({ user }: AccountClientProps) {
           <section>
             <h2 className="text-sm font-semibold text-text-primary mb-4">API Keys</h2>
             <p className="text-xs text-text-secondary mb-3">
-              API keys let MCP servers and scripts access Trakr as you. They work across all projects you have access to.
+              API keys let MCP servers and scripts access Stori as you. They work across all projects you have access to.
             </p>
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
               {keys.map(k => (
@@ -155,7 +155,7 @@ export function AccountClient({ user }: AccountClientProps) {
                     </button>
                   </div>
                   <p className="text-[11px] text-amber-700">
-                    Add to your MCP config: <code className="bg-white/50 px-1 rounded">TRAKR_API_KEY={newKey.slice(0, 12)}...</code>
+                    Add to your MCP config: <code className="bg-white/50 px-1 rounded">STORI_API_KEY={newKey.slice(0, 12)}...</code>
                   </p>
                   <button onClick={() => setNewKey(null)} className="mt-2 text-xs text-amber-600 hover:text-amber-800">
                     I've copied it, dismiss

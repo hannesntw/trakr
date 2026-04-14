@@ -44,7 +44,7 @@ export default function AccountPage() {
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
   function generateKey() {
-    const key = "trk_" + Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
+    const key = "str_" + Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
     setNewKeyValue(key);
     setShowNewKey(true);
   }
@@ -210,7 +210,7 @@ export default function AccountPage() {
               API Keys
             </h2>
             <p className="text-xs text-text-secondary mb-3">
-              API keys let MCP servers and scripts access Trakr as you. They work across all projects you have access to.
+              API keys let MCP servers and scripts access Stori as you. They work across all projects you have access to.
             </p>
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
               {/* Existing key */}
@@ -222,7 +222,7 @@ export default function AccountPage() {
                   <p className="text-sm font-medium text-text-primary">Claude Code — MacBook</p>
                   <p className="text-xs text-text-tertiary">Created Apr 11, 2026 · Last used just now</p>
                 </div>
-                <code className="text-xs text-text-tertiary font-mono">trk_••••••••k7w2</code>
+                <code className="text-xs text-text-tertiary font-mono">str_••••••••k7w2</code>
                 <button className="px-2 py-1 text-xs text-red-500 hover:text-red-600 border border-red-200 rounded transition-colors">
                   Revoke
                 </button>
@@ -244,7 +244,7 @@ export default function AccountPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-amber-700">
-                    Add this to your MCP config: <code className="bg-white/50 px-1 rounded">{"\"env\": { \"TRAKR_API_KEY\": \"" + newKeyValue.slice(0, 12) + "...\" }"}</code>
+                    Add this to your MCP config: <code className="bg-white/50 px-1 rounded">{"\"env\": { \"STORI_API_KEY\": \"" + newKeyValue.slice(0, 12) + "...\" }"}</code>
                   </p>
                 </div>
               ) : (
@@ -265,7 +265,7 @@ export default function AccountPage() {
               Theme
             </h2>
             <div className="bg-surface border border-border rounded-lg p-4">
-              <p className="text-xs text-text-tertiary mb-3">Choose how Trakr looks for you.</p>
+              <p className="text-xs text-text-tertiary mb-3">Choose how Stori looks for you.</p>
               <div className="flex gap-3">
                 {[
                   { id: "light" as const, label: "Light", icon: Sun },

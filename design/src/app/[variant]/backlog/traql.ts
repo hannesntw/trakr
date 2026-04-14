@@ -1,10 +1,10 @@
-// TraQL — Trakr Query Language
+// TraQL — Stori Query Language
 // A complete query language for work items that can traverse
 // the hierarchy, query sprint properties, aggregate results,
 // and use date arithmetic.
 
 // This file serves as the language reference for the click dummy.
-// The actual parser would live in the Trakr backend.
+// The actual parser would live in the Stori backend.
 
 export const traqlReference = {
   sections: [

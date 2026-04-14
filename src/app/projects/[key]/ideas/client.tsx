@@ -68,7 +68,7 @@ function relativeTime(iso: string): string {
   return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/* -- Sticky note color palette (Trakr brand tints) ------------ */
+/* -- Sticky note color palette (Stori brand tints) ------------ */
 
 const BRAND_COLORS = [
   { hex: "#ef4444", label: "red" },
@@ -363,7 +363,7 @@ export function IdeasClient({
     async (id: number, data: Record<string, unknown>) => {
       await fetch(`/api/work-items/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-trakr-channel": "web" },
+        headers: { "Content-Type": "application/json", "x-stori-channel": "web" },
         body: JSON.stringify(data),
       });
     },
@@ -779,7 +779,7 @@ export function IdeasClient({
     try {
       const res = await fetch("/api/work-items", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-trakr-channel": "web" },
+        headers: { "Content-Type": "application/json", "x-stori-channel": "web" },
         body: JSON.stringify({
           projectId,
           title,

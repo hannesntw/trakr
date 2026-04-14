@@ -265,7 +265,7 @@ export default function TraqlReferencePage() {
         {/* Header */}
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-accent transition-colors mb-6">
-            <ArrowLeft className="w-3 h-3" /> Back to Trakr
+            <ArrowLeft className="w-3 h-3" /> Back to Stori
           </Link>
           <div className="flex items-center gap-3 mb-3">
             <svg width="32" height="32" viewBox="0 0 32 32" className="shrink-0">
@@ -277,7 +277,7 @@ export default function TraqlReferencePage() {
             <h1 className="text-2xl font-bold text-text-primary">TraQL Language Reference</h1>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed">
-            TraQL (Trakr Query Language) is a structured query language for work items.
+            TraQL (Stori Query Language) is a structured query language for work items.
             It supports field filtering, hierarchy traversal, date arithmetic, cross-project queries,
             aggregations, and formatted text output.
           </p>

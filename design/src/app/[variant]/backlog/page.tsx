@@ -21,7 +21,7 @@ interface BacklogItem {
 }
 
 const initialItems: BacklogItem[] = [
-  { id: 300, title: "Trakr Core", type: "epic", state: "active", assignee: "Hannes", parentId: null, points: null },
+  { id: 300, title: "Stori Core", type: "epic", state: "active", assignee: "Hannes", parentId: null, points: null },
   { id: 301, title: "Work Item Management", type: "feature", state: "active", assignee: "Hannes", parentId: 300, points: null },
   { id: 302, title: "Create Work Item", type: "story", state: "done", assignee: "Peter", parentId: 301, points: 3 },
   { id: 303, title: "View Sprint Board", type: "story", state: "done", assignee: "Peter", parentId: 301, points: 5 },
@@ -205,7 +205,7 @@ export default function BacklogPage() {
     <>
       <header className="px-6 border-b border-border bg-surface shrink-0">
         <div className="h-14 flex items-center">
-          <h1 className="text-sm font-semibold text-text-primary">{isSimple ? "My Project" : "Trakr"}</h1>
+          <h1 className="text-sm font-semibold text-text-primary">{isSimple ? "My Project" : "Stori"}</h1>
           <span className="text-text-tertiary mx-3">/</span>
           <span className="text-sm text-text-secondary">Backlog</span>
           <span className="ml-auto flex items-center gap-3">

@@ -27,7 +27,7 @@ const defaultFlags: FeatureFlag[] = [
 export default function AdminSettingsPage() {
   const [flags, setFlags] = useState(defaultFlags);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState("Trakr is currently undergoing scheduled maintenance.");
+  const [maintenanceMessage, setMaintenanceMessage] = useState("Stori is currently undergoing scheduled maintenance.");
   const [openSignup, setOpenSignup] = useState(true);
   const [allowedDomains, setAllowedDomains] = useState("");
   const [apiRateLimit, setApiRateLimit] = useState("1000");

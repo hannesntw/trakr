@@ -34,7 +34,7 @@ interface TeamRow {
 }
 
 const allProjects: ProjectAccess[] = [
-  { id: "p1", name: "Trakr", key: "TRK", enabled: true },
+  { id: "p1", name: "Stori", key: "TRK", enabled: true },
   { id: "p2", name: "Pictura", key: "PIC", enabled: true },
   { id: "p3", name: "Pulsr", key: "PLS", enabled: false },
 ];

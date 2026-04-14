@@ -144,7 +144,7 @@ function relativeTime(iso: string): string {
   return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/* ── Sticky note color palette (Trakr brand tints) ────────── */
+/* ── Sticky note color palette (Stori brand tints) ────────── */
 
 const BRAND_COLORS = [
   { hex: "#ef4444", label: "red" },

@@ -230,7 +230,7 @@ export default function SprintsPage() {
     return (
       <>
         <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
-          <h1 className="text-sm font-semibold text-text-primary">Trakr</h1>
+          <h1 className="text-sm font-semibold text-text-primary">Stori</h1>
           <span className="text-text-tertiary mx-3">/</span>
           <span className="text-sm text-text-secondary">Sprint Planning</span>
         </header>
@@ -274,7 +274,7 @@ export default function SprintsPage() {
     <>
       <header className="h-14 px-6 flex items-center justify-between border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-text-primary">Trakr</h1>
+          <h1 className="text-sm font-semibold text-text-primary">Stori</h1>
           <span className="text-text-tertiary">/</span>
           <span className="text-sm text-text-secondary">Sprint Planning</span>
         </div>

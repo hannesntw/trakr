@@ -601,7 +601,7 @@ export default function ApiReferencePage() {
             <h1 className="text-2xl font-bold text-text-primary">REST API Reference</h1>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed">
-            Complete reference for the Trakr REST API. All endpoints accept and return JSON unless
+            Complete reference for the Stori REST API. All endpoints accept and return JSON unless
             noted otherwise. Base URL: <code className="text-xs bg-content-bg border border-border rounded px-1.5 py-0.5 font-mono">http://localhost:3100/api</code>
           </p>
         </div>

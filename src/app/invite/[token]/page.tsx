@@ -29,7 +29,7 @@ export default async function InviteAcceptPage({
             This invitation link is invalid or has already been used.
           </p>
           <Link href="/" className="inline-block px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm rounded-md transition-colors">
-            Go to Trakr
+            Go to Stori
           </Link>
         </div>
       </div>
@@ -47,7 +47,7 @@ export default async function InviteAcceptPage({
             This invitation has expired. Please ask your organization admin to send a new one.
           </p>
           <Link href="/" className="inline-block px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm rounded-md transition-colors">
-            Go to Trakr
+            Go to Stori
           </Link>
         </div>
       </div>

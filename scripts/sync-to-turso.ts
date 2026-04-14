@@ -4,7 +4,7 @@
 import { createClient } from "@libsql/client";
 
 const LOCAL_API = "http://localhost:3100";
-const LOCAL_KEY = "trk_saBiJA_Zt4PMRmstYdpvxUUOXQ-UWMQa";
+const LOCAL_KEY = "str_saBiJA_Zt4PMRmstYdpvxUUOXQ-UWMQa";
 
 async function localGet(path: string) {
   const r = await fetch(`${LOCAL_API}${path}`, { headers: { Authorization: `Bearer ${LOCAL_KEY}` } });

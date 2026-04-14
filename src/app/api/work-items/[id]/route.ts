@@ -98,7 +98,7 @@ export async function PATCH(
   }
 
   // Detect channel and user
-  const channel = (request.headers.get("x-trakr-channel") ?? "api") as "web" | "api" | "mcp";
+  const channel = (request.headers.get("x-stori-channel") ?? "api") as "web" | "api" | "mcp";
   const { resolveApiUser } = await import("@/lib/api-auth");
   const apiUser = await resolveApiUser(request);
   const changedBy = apiUser?.name ?? apiUser?.email ?? "system";

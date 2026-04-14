@@ -15,7 +15,7 @@ export default function AuthorizePage() {
           </div>
           <h1 className="text-xl font-bold text-text-primary mb-2">Authorized</h1>
           <p className="text-sm text-text-secondary">
-            Claude Code is now connected to Trakr as <strong>hannes@example.com</strong>. You can close this window.
+            Claude Code is now connected to Stori as <strong>hannes@example.com</strong>. You can close this window.
           </p>
         </div>
       </div>
@@ -37,7 +37,7 @@ export default function AuthorizePage() {
             </div>
             <div>
               <p className="text-sm font-medium text-text-primary">Claude Code (MCP)</p>
-              <p className="text-xs text-text-tertiary">wants to access Trakr on your behalf</p>
+              <p className="text-xs text-text-tertiary">wants to access Stori on your behalf</p>
             </div>
           </div>
 

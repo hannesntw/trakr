@@ -189,7 +189,7 @@ export default function QueriesPage() {
     <>
       <header className="px-6 border-b border-border bg-surface shrink-0">
         <div className="h-14 flex items-center">
-          <h1 className="text-sm font-semibold text-text-primary">Trakr</h1>
+          <h1 className="text-sm font-semibold text-text-primary">Stori</h1>
           <span className="text-text-tertiary mx-3">/</span>
           <span className="text-sm text-text-secondary">Queries</span>
         </div>

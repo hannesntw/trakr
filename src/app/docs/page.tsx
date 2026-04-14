@@ -34,7 +34,7 @@ const concepts = [
   {
     title: "TraQL",
     description:
-      "Trakr Query Language \u2014 a structured query language for searching and aggregating work items. Supports field filters, hierarchy traversal, date arithmetic, cross-project queries, sorting, and aggregations. See the TraQL Reference for full syntax.",
+      "Stori Query Language \u2014 a structured query language for searching and aggregating work items. Supports field filters, hierarchy traversal, date arithmetic, cross-project queries, sorting, and aggregations. See the TraQL Reference for full syntax.",
   },
 ];
 
@@ -51,10 +51,10 @@ export default function DocsGettingStartedPage() {
               <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7" />
               <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5" />
             </svg>
-            <h1 className="text-2xl font-bold text-text-primary">Getting Started with Trakr</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Getting Started with Stori</h1>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed">
-            Trakr is an agile project management tool with boards, backlogs, sprints, configurable
+            Stori is an agile project management tool with boards, backlogs, sprints, configurable
             workflows, and TraQL &mdash; a powerful query language for work items.
           </p>
         </div>
@@ -163,13 +163,13 @@ export default function DocsGettingStartedPage() {
           </h2>
           <div className="bg-surface border border-border rounded-lg p-5 space-y-4">
             <p className="text-xs text-text-secondary leading-relaxed">
-              The Trakr MCP server lets AI assistants like Claude interact with Trakr directly &mdash;
+              The Stori MCP server lets AI assistants like Claude interact with Stori directly &mdash;
               creating projects, managing work items, running TraQL queries, and more.
             </p>
             <div>
               <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">1. Install the MCP server</p>
               <pre className="text-xs text-text-secondary font-mono bg-content-bg rounded-md p-3 overflow-x-auto">
-{`cd trakr/mcp-server && npm install`}
+{`cd stori/mcp-server && npm install`}
               </pre>
             </div>
             <div>
@@ -178,10 +178,10 @@ export default function DocsGettingStartedPage() {
 {`// .mcp.json
 {
   "mcpServers": {
-    "trakr": {
+    "stori": {
       "command": "node",
-      "args": ["trakr/mcp-server/index.ts"],
-      "env": { "TRAKR_URL": "http://localhost:3100" }
+      "args": ["stori/mcp-server/index.ts"],
+      "env": { "STORI_URL": "http://localhost:3100" }
     }
   }
 }`}
@@ -207,7 +207,7 @@ export default function DocsGettingStartedPage() {
         </div>
 
         <div className="mt-6 text-center text-xs text-text-tertiary">
-          Trakr &mdash; Agile project management, built for teams and AI.
+          Stori &mdash; Agile project management, built for teams and AI.
         </div>
       </div>
     </div>

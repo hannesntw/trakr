@@ -806,7 +806,7 @@ export function SettingsClient({ project }: { project: Project }) {
                 <div className="bg-surface border border-border rounded-lg p-4 mb-4">
                   <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider block mb-3">GitHub Feedback</span>
                   <p className="text-xs text-text-secondary mb-3">
-                    Push Trakr context back into GitHub so developers see work item info without leaving their PR.
+                    Push Stori context back into GitHub so developers see work item info without leaving their PR.
                   </p>
 
                   <div className="space-y-3">

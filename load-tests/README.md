@@ -1,6 +1,6 @@
-# Trakr Load Tests
+# Stori Load Tests
 
-Load tests for the Trakr API using [k6](https://k6.io/).
+Load tests for the Stori API using [k6](https://k6.io/).
 
 ## Install k6
 
@@ -25,7 +25,7 @@ Hits `GET /api/projects`, `GET /api/work-items`, `GET /api/sprints`, and `POST /
 
 ### Audience demo
 
-Simulates 100 conference attendees using Trakr simultaneously. Each virtual user creates a project, sets up workflow states, builds a small hierarchy (epic > features > stories), queries data via TraQL, and cleans up.
+Simulates 100 conference attendees using Stori simultaneously. Each virtual user creates a project, sets up workflow states, builds a small hierarchy (epic > features > stories), queries data via TraQL, and cleans up.
 
 ```bash
 npm run load-test
@@ -49,20 +49,20 @@ Runs for 2 minutes at a constant 50 VUs.
 
 ## Overriding the target URL
 
-By default, tests target `https://trakr-five.vercel.app`. Override with the `K6_BASE_URL` environment variable:
+By default, tests target `https://stori.zone`. Override with the `K6_BASE_URL` environment variable:
 
 ```bash
 # Test against local dev server
 K6_BASE_URL=http://localhost:3100 npm run load-test:smoke
 
 # Test against staging
-K6_BASE_URL=https://staging.trakr.app npm run load-test
+K6_BASE_URL=https://staging.stori.zone npm run load-test
 ```
 
 You can also override the API key:
 
 ```bash
-K6_API_KEY=trk_your_key_here npm run load-test:smoke
+K6_API_KEY=str_your_key_here npm run load-test:smoke
 ```
 
 ## Reading the output

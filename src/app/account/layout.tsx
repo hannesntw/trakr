@@ -19,7 +19,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
             <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
             <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
           </svg>
-          <span className="font-semibold text-sidebar-text-active text-sm">Trakr</span>
+          <span className="font-semibold text-sidebar-text-active text-sm">Stori</span>
         </div>
         <div className="px-3 py-3">
           <Link href="/" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active transition-colors">

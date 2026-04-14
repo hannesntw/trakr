@@ -7,7 +7,7 @@ import { OrgTabNav } from "@/components/OrgTabNav";
 const sparklineData = [18, 20, 19, 22, 21, 24, 23, 24]; // active users per week
 
 const storageByProject = [
-  { name: "Trakr", storage: 1.8, color: "bg-accent" },
+  { name: "Stori", storage: 1.8, color: "bg-accent" },
   { name: "Pictura", storage: 0.9, color: "bg-purple-500" },
   { name: "Infrastructure", storage: 0.3, color: "bg-emerald-500" },
   { name: "Design System", storage: 0.2, color: "bg-amber-500" },
@@ -99,7 +99,7 @@ export default function OrgDashboardPage() {
                 </div>
                 <div className="space-y-2">
                   {[
-                    { project: "Trakr", count: 14, color: "bg-accent" },
+                    { project: "Stori", count: 14, color: "bg-accent" },
                     { project: "Pictura", count: 8, color: "bg-purple-500" },
                     { project: "Infrastructure", count: 3, color: "bg-emerald-500" },
                     { project: "Design System", count: 2, color: "bg-amber-500" },

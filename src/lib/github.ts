@@ -6,9 +6,9 @@
  */
 
 const GITHUB_API = "https://api.github.com";
-const USER_AGENT = "trakr-app";
-const TRAKR_BASE = "https://trakr-five.vercel.app";
-const COMMENT_MARKER = "<!-- trakr-bot -->";
+const USER_AGENT = "stori-app";
+const STORI_BASE = "https://stori.zone";
+const COMMENT_MARKER = "<!-- stori-bot -->";
 
 interface WorkItemInfo {
   id: number;
@@ -56,14 +56,14 @@ function headers(token: string): Record<string, string> {
 
 /**
  * Post a commit status check on a SHA for a single work item.
- * Context: `trakr/{displayId}` — one status per work item.
+ * Context: `stori/{displayId}` — one status per work item.
  */
 export async function postStatusCheck(params: StatusCheckParams): Promise<void> {
   const token = getToken();
   if (!token) return;
 
   const { owner, repo, sha, projectKey, workItem } = params;
-  const targetUrl = `${TRAKR_BASE}/projects/${projectKey}/work-items/${workItem.id}`;
+  const targetUrl = `${STORI_BASE}/projects/${projectKey}/work-items/${workItem.id}`;
   const pointsSuffix = workItem.points != null ? `, ${workItem.points}pts` : "";
   const description = `${workItem.displayId} — ${workItem.title} (${workItem.state}${pointsSuffix})`;
 
@@ -75,7 +75,7 @@ export async function postStatusCheck(params: StatusCheckParams): Promise<void> 
         state: "success",
         target_url: targetUrl,
         description: description.slice(0, 140), // GitHub limit
-        context: `trakr/${workItem.displayId}`,
+        context: `stori/${workItem.displayId}`,
       }),
     });
     if (!res.ok) {
@@ -103,13 +103,13 @@ function extractAcceptanceCriteria(description: string | null): string | null {
  */
 function buildCommentBody(params: PrCommentParams): string {
   const { projectKey, workItems, sprint } = params;
-  const lines: string[] = [COMMENT_MARKER, "## Trakr Work Items", ""];
+  const lines: string[] = [COMMENT_MARKER, "## Stori Work Items", ""];
 
   // Work items table
   lines.push("| Item | Title | State | Points |");
   lines.push("|------|-------|-------|--------|");
   for (const wi of workItems) {
-    const link = `[${wi.displayId}](${TRAKR_BASE}/projects/${projectKey}/work-items/${wi.id})`;
+    const link = `[${wi.displayId}](${STORI_BASE}/projects/${projectKey}/work-items/${wi.id})`;
     const pts = wi.points != null ? String(wi.points) : "—";
     lines.push(`| ${link} | ${wi.title} | ${wi.state} | ${pts} |`);
   }
@@ -149,7 +149,7 @@ export async function postPrComment(params: PrCommentParams): Promise<void> {
   const body = buildCommentBody(params);
 
   try {
-    // Check for existing Trakr comment
+    // Check for existing Stori comment
     const listRes = await fetch(
       `${GITHUB_API}/repos/${owner}/${repo}/issues/${prNumber}/comments?per_page=100`,
       { headers: headers(token) }

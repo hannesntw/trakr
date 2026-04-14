@@ -96,10 +96,10 @@ export async function POST(
   try {
     const resend = new Resend(process.env.AUTH_RESEND_KEY);
     await resend.emails.send({
-      from: process.env.AUTH_EMAIL_FROM ?? "Trakr <noreply@resend.dev>",
+      from: process.env.AUTH_EMAIL_FROM ?? "Stori <noreply@resend.dev>",
       to: parsed.data.email,
-      subject: `You're invited to join ${orgName} on Trakr`,
-      html: `<p><strong>${inviterName}</strong> invited you to join <strong>${orgName}</strong> on Trakr.</p>
+      subject: `You're invited to join ${orgName} on Stori`,
+      html: `<p><strong>${inviterName}</strong> invited you to join <strong>${orgName}</strong> on Stori.</p>
         <p>Role: ${role}</p>
         <p><a href="${inviteUrl}">Accept invitation</a></p>
         <p>This invitation expires in 7 days.</p>`,

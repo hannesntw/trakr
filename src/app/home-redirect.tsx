@@ -7,7 +7,7 @@ export function HomeRedirect({ projectKeys }: { projectKeys: string[] }) {
   const router = useRouter();
 
   useEffect(() => {
-    const stored = localStorage.getItem("trakr-last-project");
+    const stored = localStorage.getItem("stori-last-project");
     const key = stored && projectKeys.includes(stored) ? stored : projectKeys[0];
     router.replace(`/projects/${key}/board`);
   }, [projectKeys, router]);

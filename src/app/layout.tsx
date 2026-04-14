@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Trakr",
+  title: "Stori",
   description: "Agile project management — boards, backlogs, and sprints.",
 };
 

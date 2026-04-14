@@ -55,7 +55,7 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction, hasO
   const router = useRouter();
   const currentProject = projects.find((p) => p.key === currentProjectKey);
   const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("trakr-sidebar-collapsed") === "true";
+    if (typeof window !== "undefined") return localStorage.getItem("stori-sidebar-collapsed") === "true";
     return false;
   });
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -63,13 +63,13 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction, hasO
   const toggleCollapsed = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem("trakr-sidebar-collapsed", String(next));
+      localStorage.setItem("stori-sidebar-collapsed", String(next));
       return next;
     });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("trakr-last-project", currentProjectKey);
+    localStorage.setItem("stori-last-project", currentProjectKey);
   }, [currentProjectKey]);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -137,7 +137,7 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction, hasO
             <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
           </svg>
           <span className={cn("font-semibold text-sidebar-text-active text-sm tracking-tight whitespace-nowrap transition-opacity duration-150", collapsed ? "opacity-0" : "opacity-100")}>
-            Trakr
+            Stori
           </span>
         </div>
       </div>

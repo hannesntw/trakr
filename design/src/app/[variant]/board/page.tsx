@@ -447,7 +447,7 @@ export default function BoardPage() {
     <>
       <header className="h-14 px-6 flex items-center justify-between border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-text-primary">{isSimple ? "My Project" : "Trakr"}</h1>
+          <h1 className="text-sm font-semibold text-text-primary">{isSimple ? "My Project" : "Stori"}</h1>
           {!isSimple && (
             <>
               <span className="text-text-tertiary">/</span>

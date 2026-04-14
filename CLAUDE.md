@@ -1,4 +1,4 @@
-# Trakr — Project Management Tool
+# Stori — Project Management Tool
 
 Agile PM tool with boards, backlogs, and sprint planning. Built with Next.js 16, Tailwind v4, Drizzle ORM, Neon Postgres.
 

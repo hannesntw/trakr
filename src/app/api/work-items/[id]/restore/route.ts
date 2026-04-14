@@ -43,10 +43,10 @@ export async function POST(
   const snapshotData = JSON.parse(snapshot.snapshot);
 
   // Apply the snapshot fields via internal PATCH (which triggers a new snapshot)
-  const channel = request.headers.get("x-trakr-channel") ?? "api";
+  const channel = request.headers.get("x-stori-channel") ?? "api";
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Trakr-Channel": channel,
+    "X-Stori-Channel": channel,
   };
   // Forward auth header so the internal PATCH call is authenticated
   const authHeader = request.headers.get("authorization");

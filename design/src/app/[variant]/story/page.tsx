@@ -155,7 +155,7 @@ const mockUsers = [
 
 const mockParentOptions = [
   { id: "69", label: "User Management", secondary: "Epic TRK-69" },
-  { id: "38", label: "Trakr Core", secondary: "Epic TRK-38" },
+  { id: "38", label: "Stori Core", secondary: "Epic TRK-38" },
   { id: "39", label: "Work Item Management", secondary: "Feature TRK-39" },
   { id: "44", label: "Sprint Planning", secondary: "Feature TRK-44" },
   { id: "50", label: "Timeline Planning", secondary: "Feature TRK-50" },
@@ -595,7 +595,7 @@ export default function StoryDetailPage() {
                         <span className="w-2 h-2 rounded-full bg-blue-500" />
                         Open
                       </span>
-                      <span>hannesntw/trakr</span>
+                      <span>hannesntw/stori</span>
                       <span className="flex items-center gap-1 text-red-500">
                         <XCircle className="w-3 h-3" />
                         CI failing

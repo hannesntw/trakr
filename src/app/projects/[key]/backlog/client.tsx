@@ -225,11 +225,11 @@ export function BacklogClient({
       setCreateOpen(false);
       setSelectedId(null);
     };
-    window.addEventListener("trakr:create-item", handleCreate);
-    window.addEventListener("trakr:close-panel", handleClose);
+    window.addEventListener("stori:create-item", handleCreate);
+    window.addEventListener("stori:close-panel", handleClose);
     return () => {
-      window.removeEventListener("trakr:create-item", handleCreate);
-      window.removeEventListener("trakr:close-panel", handleClose);
+      window.removeEventListener("stori:create-item", handleCreate);
+      window.removeEventListener("stori:close-panel", handleClose);
     };
   }, []);
 

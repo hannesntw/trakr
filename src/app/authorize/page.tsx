@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 async function approveDeviceCode(userId: string, code: string) {
   // Generate API key
-  const rawKey = "trk_" + randomBytes(24).toString("base64url");
+  const rawKey = "str_" + randomBytes(24).toString("base64url");
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
   const keyPrefix = rawKey.slice(0, 8);
 
@@ -28,7 +28,7 @@ async function approveDeviceCode(userId: string, code: string) {
     .where(eq(deviceCodes.code, code));
 }
 
-function TrakrLogo() {
+function StoriLogo() {
   return (
     <svg width="40" height="40" viewBox="0 0 32 32">
       <rect width="32" height="32" rx="6" fill="#6366F1" />
@@ -51,7 +51,7 @@ export default async function AuthorizePage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-content-bg">
         <div className="w-full max-w-sm text-center">
-          <TrakrLogo />
+          <StoriLogo />
           <p className="text-sm text-text-secondary mt-4">Missing authorization code.</p>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default async function AuthorizePage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-content-bg">
         <div className="w-full max-w-sm text-center">
-          <TrakrLogo />
+          <StoriLogo />
           <p className="text-sm text-text-secondary mt-4">
             Invalid authorization code. Please try again from Claude Code.
           </p>
@@ -81,7 +81,7 @@ export default async function AuthorizePage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-content-bg">
         <div className="w-full max-w-sm text-center">
-          <TrakrLogo />
+          <StoriLogo />
           <p className="text-sm text-text-secondary mt-4">
             This authorization has expired. Please try again from Claude Code.
           </p>
@@ -115,8 +115,8 @@ function SuccessState() {
     <div className="min-h-screen flex items-center justify-center bg-content-bg">
       <div className="w-full max-w-sm text-center">
         <div className="flex flex-col items-center mb-6">
-          <TrakrLogo />
-          <h1 className="text-lg font-semibold text-text-primary mt-3">Trakr</h1>
+          <StoriLogo />
+          <h1 className="text-lg font-semibold text-text-primary mt-3">Stori</h1>
         </div>
         <div className="bg-surface border border-border rounded-xl p-8">
           <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
@@ -124,13 +124,13 @@ function SuccessState() {
           </div>
           <h2 className="text-xl font-bold text-text-primary mb-2">Connected!</h2>
           <p className="text-sm text-text-secondary mb-4">
-            Claude Code can now access Trakr on your behalf.
+            Claude Code can now access Stori on your behalf.
           </p>
           <a
             href="/"
             className="inline-block px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Open Trakr
+            Open Stori
           </a>
           <p className="text-xs text-text-tertiary mt-3">
             or close this tab and return to Claude Code
@@ -183,8 +183,8 @@ function ApproveView({
     <div className="min-h-screen flex items-center justify-center bg-content-bg">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-6">
-          <TrakrLogo />
-          <h1 className="text-lg font-semibold text-text-primary mt-3">Trakr</h1>
+          <StoriLogo />
+          <h1 className="text-lg font-semibold text-text-primary mt-3">Stori</h1>
         </div>
         <div className="bg-surface border border-border rounded-xl p-6">
           <div className="flex items-center gap-3 p-3 bg-content-bg rounded-lg mb-5">
@@ -193,7 +193,7 @@ function ApproveView({
             </div>
             <div>
               <p className="text-sm font-medium text-text-primary">Claude Code (MCP)</p>
-              <p className="text-xs text-text-tertiary">wants to access Trakr on your behalf</p>
+              <p className="text-xs text-text-tertiary">wants to access Stori on your behalf</p>
             </div>
           </div>
 
@@ -249,8 +249,8 @@ function SignInView({ code }: { code: string }) {
     <div className="min-h-screen flex items-center justify-center bg-content-bg">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-6">
-          <TrakrLogo />
-          <h1 className="text-lg font-semibold text-text-primary mt-3">Trakr</h1>
+          <StoriLogo />
+          <h1 className="text-lg font-semibold text-text-primary mt-3">Stori</h1>
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-6 mb-4">
@@ -260,7 +260,7 @@ function SignInView({ code }: { code: string }) {
             </div>
             <div>
               <p className="text-sm font-medium text-text-primary">Claude Code (MCP)</p>
-              <p className="text-xs text-text-tertiary">wants to access Trakr on your behalf</p>
+              <p className="text-xs text-text-tertiary">wants to access Stori on your behalf</p>
             </div>
           </div>
 

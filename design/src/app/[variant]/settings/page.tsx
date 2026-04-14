@@ -86,7 +86,7 @@ export default function SettingsPage() {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   // GitHub integration state
-  const [linkedRepo, setLinkedRepo] = useState(config.features.githubLinks ? "hannesntw/trakr" : "");
+  const [linkedRepo, setLinkedRepo] = useState(config.features.githubLinks ? "hannesntw/stori" : "");
   const [repoInput, setRepoInput] = useState("");
   const [automations, setAutomations] = useState([
     { id: "1", event: "PR opened", targetState: "In Review", enabled: true },
@@ -166,7 +166,7 @@ export default function SettingsPage() {
               <div className="flex gap-4 flex-wrap">
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-xs text-text-tertiary block mb-1">Project Name</label>
-                  <input defaultValue="Trakr" className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
+                  <input defaultValue="Stori" className="w-full px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
                 </div>
                 <div>
                   <label className="text-xs text-text-tertiary block mb-1">Key</label>
@@ -518,7 +518,7 @@ export default function SettingsPage() {
                     <div className="bg-surface border border-border rounded-lg p-4">
                       <span className="text-xs font-medium text-text-tertiary uppercase tracking-wider block mb-3">GitHub Feedback</span>
                       <p className="text-xs text-text-secondary mb-3">
-                        Push Trakr context back into GitHub so developers see work item info without leaving their PR.
+                        Push Stori context back into GitHub so developers see work item info without leaving their PR.
                       </p>
 
                       <div className="space-y-3">

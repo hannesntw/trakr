@@ -1,5 +1,5 @@
 /**
- * Drizzle ORM schema for Trakr.
+ * Drizzle ORM schema for Stori.
  *
  * Deletion cascades (all enforced at the Postgres FK level):
  *

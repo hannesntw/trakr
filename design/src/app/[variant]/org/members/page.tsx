@@ -73,7 +73,7 @@ const initialMembers: OrgMember[] = [
     id: "1", name: "Hannes", email: "hannes@example.com", avatar: "H", role: "Owner",
     teams: [{ team: "Platform Engineering", role: "Lead" }],
     lastActive: "Just now", joined: "Jan 15, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Platform Engineering" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Platform Engineering" }],
     recentActivity: [
       { action: "Updated work item", target: "TRK-142 API rate limiting", timestamp: "2 min ago" },
       { action: "Created sprint", target: "Sprint 24", timestamp: "1 hour ago" },
@@ -90,7 +90,7 @@ const initialMembers: OrgMember[] = [
     id: "2", name: "Sarah Chen", email: "sarah@thoughtworks.com", avatar: "S", role: "Admin", ssoManaged: true,
     teams: [{ team: "Platform Engineering", role: "Member" }, { team: "Product Design", role: "Member" }, { team: "QA & Release", role: "Lead" }],
     lastActive: "2 hours ago", joined: "Feb 3, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }, { name: "Pulsr", key: "PLS", viaTeam: "QA & Release" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }, { name: "Pulsr", key: "PLS", viaTeam: "QA & Release" }],
     recentActivity: [
       { action: "Reviewed PR", target: "TRK-140 Fix pagination", timestamp: "2 hours ago" },
       { action: "Updated work item", target: "PIC-88 Gallery view", timestamp: "5 hours ago" },
@@ -108,7 +108,7 @@ const initialMembers: OrgMember[] = [
     id: "3", name: "Alex Rivera", email: "alex@thoughtworks.com", avatar: "A", role: "Member", ssoManaged: true,
     teams: [{ team: "Platform Engineering", role: "Member" }, { team: "QA & Release", role: "Member" }, { team: "Backend API", role: "Lead" }, { team: "DevOps", role: "Member" }],
     lastActive: "1 day ago", joined: "Mar 10, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Backend API" }, { name: "Pictura", key: "PIC", viaTeam: "Platform Engineering" }, { name: "Pulsr", key: "PLS", viaTeam: "DevOps" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Backend API" }, { name: "Pictura", key: "PIC", viaTeam: "Platform Engineering" }, { name: "Pulsr", key: "PLS", viaTeam: "DevOps" }],
     recentActivity: [
       { action: "Deployed", target: "TRK v2.4.1 to production", timestamp: "1 day ago" },
       { action: "Created work item", target: "TRK-143 DB migration", timestamp: "1 day ago" },
@@ -124,7 +124,7 @@ const initialMembers: OrgMember[] = [
     id: "4", name: "Peter Schmidt", email: "peter@thoughtworks.com", avatar: "P", role: "Member", ssoManaged: true,
     teams: [{ team: "Platform Engineering", role: "Member" }, { team: "Customer Success", role: "Lead" }, { team: "Security", role: "Member" }],
     lastActive: "3 hours ago", joined: "Mar 15, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Customer Success" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Platform Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Customer Success" }],
     recentActivity: [
       { action: "Commented on", target: "TRK-142 API rate limiting", timestamp: "3 hours ago" },
       { action: "Updated work item", target: "PIC-89 Onboarding flow", timestamp: "Yesterday" },
@@ -141,7 +141,7 @@ const initialMembers: OrgMember[] = [
     id: "5", name: "Maya Patel", email: "maya@example.com", avatar: "M", role: "Admin",
     teams: [{ team: "Product Design", role: "Lead" }],
     lastActive: "5 hours ago", joined: "Apr 1, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Product Design" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Product Design" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }],
     recentActivity: [
       { action: "Updated work item", target: "TRK-140 Design review", timestamp: "5 hours ago" },
       { action: "Commented on", target: "PIC-88 Gallery view", timestamp: "Yesterday" },
@@ -157,7 +157,7 @@ const initialMembers: OrgMember[] = [
     id: "6", name: "Jordan Lee", email: "jordan@example.com", avatar: "J", role: "Member",
     teams: [{ team: "Product Design", role: "Member" }, { team: "Data Engineering", role: "Lead" }],
     lastActive: "1 day ago", joined: "Apr 8, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Data Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Data Engineering" }, { name: "Pictura", key: "PIC", viaTeam: "Product Design" }],
     recentActivity: [
       { action: "Updated work item", target: "TRK-141 Data pipeline", timestamp: "1 day ago" },
       { action: "Commented on", target: "PIC-88 Gallery view", timestamp: "2 days ago" },
@@ -189,7 +189,7 @@ const initialMembers: OrgMember[] = [
     id: "8", name: "Chris Evans", email: "chris@example.com", avatar: "C", role: "Member",
     teams: [{ team: "Growth", role: "Lead" }, { team: "Data Engineering", role: "Member" }, { team: "Customer Success", role: "Member" }],
     lastActive: "2 days ago", joined: "Jun 1, 2025", status: "active",
-    projects: [{ name: "Pictura", key: "PIC", viaTeam: "Growth" }, { name: "Trakr", key: "TRK", viaTeam: "Data Engineering" }],
+    projects: [{ name: "Pictura", key: "PIC", viaTeam: "Growth" }, { name: "Stori", key: "TRK", viaTeam: "Data Engineering" }],
     recentActivity: [
       { action: "Updated work item", target: "PIC-89 Onboarding", timestamp: "2 days ago" },
       { action: "Commented on", target: "PIC-87 Analytics", timestamp: "3 days ago" },
@@ -205,7 +205,7 @@ const initialMembers: OrgMember[] = [
     id: "9", name: "Dana White", email: "dana@example.com", avatar: "D", role: "Viewer",
     teams: [{ team: "Growth", role: "Member" }, { team: "Security", role: "Lead" }],
     lastActive: "1 week ago", joined: "Jul 15, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "Security" }, { name: "Pictura", key: "PIC", viaTeam: "Growth" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "Security" }, { name: "Pictura", key: "PIC", viaTeam: "Growth" }],
     recentActivity: [
       { action: "Viewed board", target: "TRK project board", timestamp: "1 week ago" },
       { action: "Viewed work item", target: "TRK-140 Security audit", timestamp: "1 week ago" },
@@ -221,7 +221,7 @@ const initialMembers: OrgMember[] = [
     id: "10", name: "Robin Park", email: "robin@example.com", avatar: "R", role: "Member",
     teams: [{ team: "QA & Release", role: "Lead" }, { team: "Backend API", role: "Member" }, { team: "DevOps", role: "Member" }],
     lastActive: "6 hours ago", joined: "Aug 3, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "QA & Release" }, { name: "Pictura", key: "PIC", viaTeam: "QA & Release" }, { name: "Pulsr", key: "PLS", viaTeam: "QA & Release" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "QA & Release" }, { name: "Pictura", key: "PIC", viaTeam: "QA & Release" }, { name: "Pulsr", key: "PLS", viaTeam: "QA & Release" }],
     recentActivity: [
       { action: "Changed status", target: "TRK-141 to QA", timestamp: "6 hours ago" },
       { action: "Commented on", target: "TRK-140 Test results", timestamp: "Yesterday" },
@@ -238,7 +238,7 @@ const initialMembers: OrgMember[] = [
     id: "11", name: "Sam Torres", email: "sam@example.com", avatar: "S", role: "Member",
     teams: [{ team: "QA & Release", role: "Member" }, { team: "DevOps", role: "Lead" }, { team: "Security", role: "Member" }],
     lastActive: "3 days ago", joined: "Sep 12, 2025", status: "active",
-    projects: [{ name: "Trakr", key: "TRK", viaTeam: "DevOps" }, { name: "Pictura", key: "PIC", viaTeam: "QA & Release" }, { name: "Pulsr", key: "PLS", viaTeam: "DevOps" }],
+    projects: [{ name: "Stori", key: "TRK", viaTeam: "DevOps" }, { name: "Pictura", key: "PIC", viaTeam: "QA & Release" }, { name: "Pulsr", key: "PLS", viaTeam: "DevOps" }],
     recentActivity: [
       { action: "Deployed", target: "PIC v1.8.0 to staging", timestamp: "3 days ago" },
       { action: "Updated work item", target: "TRK-139 CI pipeline", timestamp: "4 days ago" },
@@ -777,7 +777,7 @@ export default function MembersPage() {
                                             </button>
                                           </div>
                                           <p className="text-[10px] text-text-tertiary">
-                                            This user&apos;s identity is managed by your SSO provider. They won&apos;t be able to access Trakr, but their account remains until removed from your identity provider.
+                                            This user&apos;s identity is managed by your SSO provider. They won&apos;t be able to access Stori, but their account remains until removed from your identity provider.
                                           </p>
                                         </>
                                       ) : (

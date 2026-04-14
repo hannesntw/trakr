@@ -86,7 +86,7 @@ export async function POST(
 
   return NextResponse.json({
     ...row,
-    dnsRecord: `_trakr-verify.${parsed.data.domain.toLowerCase()} TXT ${token}`,
+    dnsRecord: `_stori-verify.${parsed.data.domain.toLowerCase()} TXT ${token}`,
   }, { status: 201 });
 }
 

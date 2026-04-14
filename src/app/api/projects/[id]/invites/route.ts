@@ -55,17 +55,17 @@ export async function POST(
   // Send invite email
   try {
     await resend.emails.send({
-      from: process.env.AUTH_EMAIL_FROM ?? "Trakr <noreply@resend.dev>",
+      from: process.env.AUTH_EMAIL_FROM ?? "Stori <noreply@resend.dev>",
       to: parsed.data.email,
-      subject: `You've been invited to ${projectName} on Trakr`,
+      subject: `You've been invited to ${projectName} on Stori`,
       html: `
         <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
           <h2 style="font-size: 20px; margin-bottom: 8px;">You're invited to <strong>${projectName}</strong></h2>
           <p style="color: #666; font-size: 14px; line-height: 1.5;">
-            Someone invited you to collaborate on their project in Trakr. Sign in to get started.
+            Someone invited you to collaborate on their project in Stori. Sign in to get started.
           </p>
           <a href="${appUrl}/login" style="display: inline-block; margin-top: 16px; padding: 10px 24px; background: #6366F1; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
-            Sign in to Trakr
+            Sign in to Stori
           </a>
           <p style="color: #999; font-size: 12px; margin-top: 24px;">
             If you didn't expect this invitation, you can ignore this email.

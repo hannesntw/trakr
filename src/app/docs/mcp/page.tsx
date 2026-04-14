@@ -39,12 +39,12 @@ const categories: ToolCategory[] = [
     tools: [
       {
         name: "list_projects",
-        description: "List all projects in Trakr",
+        description: "List all projects in Stori",
         params: [],
         example: `// List all projects\nawait mcp.list_projects()`,
         response: `[
   { "id": 1, "name": "Pictura", "key": "PIC", "description": "Photo sharing app" },
-  { "id": 2, "name": "Trakr", "key": "TRK", "description": "Project management tool" }
+  { "id": 2, "name": "Stori", "key": "TRK", "description": "Project management tool" }
 ]`,
       },
       {
@@ -569,8 +569,8 @@ export default function McpToolsPage() {
           <h1 className="text-2xl font-bold text-text-primary">MCP Tools Reference</h1>
         </div>
         <p className="text-sm text-text-secondary leading-relaxed">
-          The <code className="px-1.5 py-0.5 bg-surface border border-border rounded text-xs font-mono">trakr-mcp</code> server
-          exposes Trakr&apos;s full API as MCP tools for use in Claude Code, Claude Desktop, and other MCP-compatible
+          The <code className="px-1.5 py-0.5 bg-surface border border-border rounded text-xs font-mono">stori-mcp</code> server
+          exposes Stori&apos;s full API as MCP tools for use in Claude Code, Claude Desktop, and other MCP-compatible
           clients. This page documents every available tool, its parameters, and example usage.
         </p>
       </div>
@@ -588,7 +588,7 @@ export default function McpToolsPage() {
               <p className="text-xs text-text-secondary mb-2">
                 No install needed. The MCP server runs via <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">npx</code>:
               </p>
-              <CodeBlock code="npx trakr-mcp" />
+              <CodeBlock code="npx stori-mcp" />
             </div>
 
             <div>
@@ -601,11 +601,11 @@ export default function McpToolsPage() {
                 label=".mcp.json"
                 code={`{
   "mcpServers": {
-    "trakr": {
+    "stori": {
       "command": "npx",
-      "args": ["trakr-mcp"],
+      "args": ["stori-mcp"],
       "env": {
-        "TRAKR_URL": "https://trakr-five.vercel.app"
+        "STORI_URL": "https://stori.zone"
       }
     }
   }
@@ -616,17 +616,17 @@ export default function McpToolsPage() {
             <div>
               <h3 className="text-xs font-semibold text-text-primary mb-2">Local Development</h3>
               <p className="text-xs text-text-secondary mb-2">
-                When running Trakr locally, point the MCP server at your dev instance:
+                When running Stori locally, point the MCP server at your dev instance:
               </p>
               <CodeBlock
                 label=".mcp.json (local)"
                 code={`{
   "mcpServers": {
-    "trakr": {
+    "stori": {
       "command": "npx",
       "args": ["tsx", "mcp-server/index.ts"],
       "env": {
-        "TRAKR_URL": "http://localhost:3100"
+        "STORI_URL": "http://localhost:3100"
       }
     }
   }
@@ -647,12 +647,12 @@ export default function McpToolsPage() {
             <ol className="list-decimal list-inside space-y-1.5 ml-1">
               <li>
                 <strong className="text-text-primary">Environment variable</strong> --
-                set <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">TRAKR_API_KEY</code> in
+                set <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">STORI_API_KEY</code> in
                 the <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">env</code> block of your MCP config.
               </li>
               <li>
                 <strong className="text-text-primary">Stored credentials</strong> --
-                reads from <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.trakr/credentials.json</code>,
+                reads from <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.stori/credentials.json</code>,
                 keyed by server URL.
               </li>
               <li>
@@ -663,11 +663,11 @@ export default function McpToolsPage() {
             <div className="bg-content-bg rounded-md p-3 space-y-1.5 ml-4">
               <p>1. The server creates a device code via <code className="font-mono text-[11px]">POST /api/auth/device</code></p>
               <p>2. It opens a verification URL in your browser</p>
-              <p>3. You approve the connection in the Trakr UI</p>
-              <p>4. The server polls until authorized, then stores the API key in <code className="font-mono text-[11px]">~/.trakr/credentials.json</code></p>
+              <p>3. You approve the connection in the Stori UI</p>
+              <p>4. The server polls until authorized, then stores the API key in <code className="font-mono text-[11px]">~/.stori/credentials.json</code></p>
             </div>
             <p>
-              Once authenticated, the key persists across sessions. To re-authenticate, delete <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.trakr/credentials.json</code> and
+              Once authenticated, the key persists across sessions. To re-authenticate, delete <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.stori/credentials.json</code> and
               restart the MCP server.
             </p>
           </div>
@@ -805,7 +805,7 @@ await mcp.upload_attachment({
       </div>
 
       <div className="mt-8 text-center text-xs text-text-tertiary">
-        All tools communicate with Trakr&apos;s REST API. The MCP server adds no additional business logic.
+        All tools communicate with Stori&apos;s REST API. The MCP server adds no additional business logic.
       </div>
     </div>
   );

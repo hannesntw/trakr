@@ -1,10 +1,10 @@
 {
-  "name": "trakr-mcp",
+  "name": "stori-mcp",
   "version": "1.0.1",
-  "description": "MCP server for Trakr — agile project management via Claude Code",
+  "description": "MCP server for Stori — agile project management via Claude Code",
   "type": "module",
   "bin": {
-    "trakr-mcp": "./dist/index.js"
+    "stori-mcp": "./dist/index.js"
   },
   "files": [
     "dist",
@@ -16,7 +16,7 @@
   },
   "keywords": [
     "mcp",
-    "trakr",
+    "stori",
     "project-management",
     "claude-code",
     "anthropic"
@@ -24,7 +24,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hannesntw/trakr"
+    "url": "https://github.com/hannesntw/stori"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

@@ -201,7 +201,7 @@ export default function WorkflowGuidePage() {
           <h1 className="text-2xl font-bold text-text-primary">Workflows Guide</h1>
         </div>
         <p className="text-sm text-text-secondary leading-relaxed">
-          Every Trakr project has its own configurable workflow -- a set of states that work items
+          Every Stori project has its own configurable workflow -- a set of states that work items
           move through from creation to completion. This guide explains how workflows work, how to
           set them up, and how they integrate with boards, TraQL, and the API.
         </p>
@@ -549,7 +549,7 @@ await mcp.delete_workflow_state({
                 <span className="text-emerald-500 shrink-0 mt-0.5">&#10003;</span>
                 <div>
                   <strong className="text-text-primary">Each category needs at least one state.</strong>{" "}
-                  Trakr enforces a minimum of one state per category (To Do, In Progress, Done).
+                  Stori enforces a minimum of one state per category (To Do, In Progress, Done).
                   This ensures the board always has a complete flow.
                 </div>
               </li>

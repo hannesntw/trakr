@@ -30,7 +30,7 @@ interface TimelineItem {
 
 const timelineData: TimelineItem[] = [
   {
-    id: 300, title: "Trakr Core", type: "epic", startWeek: 0, durationWeeks: 8, state: "active",
+    id: 300, title: "Stori Core", type: "epic", startWeek: 0, durationWeeks: 8, state: "active",
     children: [
       {
         id: 301, title: "Work Item Management", type: "feature", startWeek: 0, durationWeeks: 4, state: "active",
@@ -319,7 +319,7 @@ export default function TimelinePage() {
     <>
       <header className="h-14 px-6 flex items-center justify-between border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-text-primary">Trakr</h1>
+          <h1 className="text-sm font-semibold text-text-primary">Stori</h1>
           <span className="text-text-tertiary">/</span>
           <span className="text-sm text-text-secondary">Timeline</span>
           {advanced && (

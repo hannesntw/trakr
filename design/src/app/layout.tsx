@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Trakr — Design Variants",
-  description: "Click dummy for Trakr design exploration.",
+  title: "Stori — Design Variants",
+  description: "Click dummy for Stori design exploration.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

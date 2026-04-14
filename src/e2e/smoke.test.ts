@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Smoke tests (no auth required)", () => {
-  test("login page renders with Trakr heading and sign-in form", async ({
+  test("login page renders with Stori heading and sign-in form", async ({
     page,
   }) => {
     await page.goto("/login");
 
     // Heading
-    await expect(page.locator("h1")).toContainText("Trakr");
+    await expect(page.locator("h1")).toContainText("Stori");
 
     // Email input and send-link button
     await expect(page.locator('input[name="email"]')).toBeVisible();
@@ -43,7 +43,7 @@ test.describe("Smoke tests (no auth required)", () => {
 
     // The app redirects unauthenticated users to /login
     await page.waitForURL("**/login**");
-    await expect(page.locator("h1")).toContainText("Trakr");
+    await expect(page.locator("h1")).toContainText("Stori");
   });
 
   test("API /api/traql returns 401 without auth", async ({ request }) => {

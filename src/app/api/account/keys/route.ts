@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
 
-  const rawKey = "trk_" + randomBytes(24).toString("base64url");
+  const rawKey = "str_" + randomBytes(24).toString("base64url");
   const keyHash = hashKey(rawKey);
   const keyPrefix = rawKey.slice(0, 8);
 

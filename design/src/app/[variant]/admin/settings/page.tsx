@@ -38,13 +38,13 @@ export default function AdminSettingsPage() {
   const variant = params.variant as string;
   const [flags, setFlags] = useState(initialFlags);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState("Trakr is currently undergoing scheduled maintenance. We'll be back shortly.");
+  const [maintenanceMessage, setMaintenanceMessage] = useState("Stori is currently undergoing scheduled maintenance. We'll be back shortly.");
   const [openSignup, setOpenSignup] = useState(true);
   const [allowedDomains, setAllowedDomains] = useState("");
 
   // Email settings
   const [resendApiKey, setResendApiKey] = useState("re_**********************abc");
-  const [defaultSender, setDefaultSender] = useState("notifications@trakr.app");
+  const [defaultSender, setDefaultSender] = useState("notifications@stori.app");
 
   // Rate limits
   const [apiRateLimit, setApiRateLimit] = useState("1000");

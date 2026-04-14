@@ -350,10 +350,10 @@ export default function SecurityPage() {
                         <p className="text-xs text-text-secondary">Add this DNS TXT record to verify ownership:</p>
                         <div className="flex items-center gap-2 px-3 py-2 bg-content-bg border border-border rounded-md">
                           <code className="text-xs font-mono text-text-primary flex-1">
-                            _trakr-verify.{d.domain} → {d.verificationToken}
+                            _stori-verify.{d.domain} → {d.verificationToken}
                           </code>
                           <button
-                            onClick={() => navigator.clipboard.writeText(`_trakr-verify.${d.domain} TXT ${d.verificationToken}`)}
+                            onClick={() => navigator.clipboard.writeText(`_stori-verify.${d.domain} TXT ${d.verificationToken}`)}
                             className="p-1 text-text-tertiary hover:text-accent transition-colors"
                           >
                             <Copy className="w-3.5 h-3.5" />
@@ -566,11 +566,11 @@ export default function SecurityPage() {
                       <div className="flex items-center gap-2">
                         <input
                           readOnly
-                          value="https://trakr-five.vercel.app/api/scim/v2"
+                          value="https://stori.zone/api/scim/v2"
                           className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono text-text-secondary focus:outline-none"
                         />
                         <button
-                          onClick={() => navigator.clipboard.writeText("https://trakr-five.vercel.app/api/scim/v2")}
+                          onClick={() => navigator.clipboard.writeText("https://stori.zone/api/scim/v2")}
                           className="p-1.5 text-text-tertiary hover:text-accent border border-border rounded-md transition-colors"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -585,7 +585,7 @@ export default function SecurityPage() {
                           <div className="flex items-center gap-2">
                             <input
                               readOnly
-                              value={scimTokenVisible ? "scim_trk_placeholder_token_value" : "scim_trk_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
+                              value={scimTokenVisible ? "scim_str_placeholder_token_value" : "scim_str_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
                               className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono text-text-secondary focus:outline-none"
                             />
                             <button
@@ -628,7 +628,7 @@ export default function SecurityPage() {
                   <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-blue-500 shrink-0" />
                     <p className="text-xs text-blue-700">
-                      SCIM automatically syncs users and groups from your identity provider. Users removed from your IdP are deactivated in Trakr.
+                      SCIM automatically syncs users and groups from your identity provider. Users removed from your IdP are deactivated in Stori.
                     </p>
                   </div>
                 </>

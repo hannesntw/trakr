@@ -36,10 +36,10 @@ async function seed() {
     })
     .returning();
 
-  const [trakr] = await db
+  const [stori] = await db
     .insert(projects)
     .values({
-      name: "Trakr",
+      name: "Stori",
       key: "TRK",
       description:
         "Project management tool — agile work item tracking with boards, backlogs, and sprints.",
@@ -48,7 +48,7 @@ async function seed() {
 
   // Initialize sequence counters
   sequenceCounters.set(pictura.id, { key: "PIC", seq: 0 });
-  sequenceCounters.set(trakr.id, { key: "TRK", seq: 0 });
+  sequenceCounters.set(stori.id, { key: "TRK", seq: 0 });
 
   // --- Sprints ---
   const [picSprint1] = await db
@@ -90,7 +90,7 @@ async function seed() {
   const [trkSprint1] = await db
     .insert(sprints)
     .values({
-      projectId: trakr.id,
+      projectId: stori.id,
       name: "TRK Sprint 1 — Foundation",
       goal: "Core work item CRUD, board view, and backlog table.",
       startDate: "2026-03-30",
@@ -102,7 +102,7 @@ async function seed() {
   const [trkSprint2] = await db
     .insert(sprints)
     .values({
-      projectId: trakr.id,
+      projectId: stori.id,
       name: "TRK Sprint 2 — Sprint Planning",
       goal: "Sprint management and planning view.",
       startDate: "2026-04-14",
@@ -310,15 +310,15 @@ async function seed() {
     })
     .returning();
 
-  // === TRAKR WORK ITEMS ===
+  // === STORI WORK ITEMS ===
 
-  // Epic: Trakr Core
+  // Epic: Stori Core
   const [trkEpic1] = await db
     .insert(workItems)
     .values({
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
-      title: "Trakr Core",
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
+      title: "Stori Core",
       type: "epic",
       state: "active",
       description:
@@ -331,8 +331,8 @@ async function seed() {
   const [trkFeatWI] = await db
     .insert(workItems)
     .values({
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Work Item Management",
       type: "feature",
       state: "active",
@@ -345,8 +345,8 @@ async function seed() {
 
   await db.insert(workItems).values([
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Create Work Item",
       type: "story",
       state: "done",
@@ -358,8 +358,8 @@ async function seed() {
       priority: 1,
     },
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "View Sprint Board",
       type: "story",
       state: "done",
@@ -371,8 +371,8 @@ async function seed() {
       priority: 2,
     },
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "View Backlog Table",
       type: "story",
       state: "done",
@@ -384,8 +384,8 @@ async function seed() {
       priority: 3,
     },
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "View Work Item Detail",
       type: "story",
       state: "in_progress",
@@ -402,8 +402,8 @@ async function seed() {
   const [trkFeatSprint] = await db
     .insert(workItems)
     .values({
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Sprint Planning",
       type: "feature",
       state: "in_progress",
@@ -416,8 +416,8 @@ async function seed() {
 
   await db.insert(workItems).values([
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Plan Sprint",
       type: "story",
       state: "in_progress",
@@ -429,8 +429,8 @@ async function seed() {
       priority: 1,
     },
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Create and Manage Sprints",
       type: "story",
       state: "ready",
@@ -447,8 +447,8 @@ async function seed() {
   const [trkFeatComments] = await db
     .insert(workItems)
     .values({
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Work Item Comments",
       type: "feature",
       state: "new",
@@ -460,8 +460,8 @@ async function seed() {
 
   await db.insert(workItems).values([
     {
-      projectId: trakr.id,
-      displayId: nextDisplayId(trakr.id),
+      projectId: stori.id,
+      displayId: nextDisplayId(stori.id),
       title: "Add and View Comments",
       type: "story",
       state: "new",
@@ -538,7 +538,7 @@ async function seed() {
 
   console.log("Seed complete!");
   console.log(
-    `  Projects: ${pictura.id} (${pictura.key}), ${trakr.id} (${trakr.key})`
+    `  Projects: ${pictura.id} (${pictura.key}), ${stori.id} (${stori.key})`
   );
   const itemCount = await db.select().from(workItems);
   const sprintCount = await db.select().from(sprints);

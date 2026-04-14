@@ -159,7 +159,7 @@ export function WorkItemDetailFull({
   async function updateField(field: string, value: unknown) {
     await fetch(`/api/work-items/${workItemId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "X-Trakr-Channel": "web" },
+      headers: { "Content-Type": "application/json", "X-Stori-Channel": "web" },
       body: JSON.stringify({ [field]: value }),
     });
     fetchData();
@@ -300,7 +300,7 @@ export function WorkItemDetailFull({
                   onRestore={async (version) => {
                     await fetch(`/api/work-items/${workItemId}/restore`, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json", "X-Trakr-Channel": "web" },
+                      headers: { "Content-Type": "application/json", "X-Stori-Channel": "web" },
                       body: JSON.stringify({ version }),
                     });
                     fetchData();

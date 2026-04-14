@@ -7,7 +7,7 @@ import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, Panel
 
 const mockProjects = [
   { key: "PIC", name: "Pictura", owned: false },
-  { key: "TRK", name: "Trakr", owned: false },
+  { key: "TRK", name: "Stori", owned: false },
 ];
 
 // Shared layout: all rows align icons at 16px from sidebar left edge.
@@ -82,7 +82,7 @@ export function SidebarNav({ variant }: { variant: string }) {
             <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
           </svg>
           <span className={`font-semibold text-sidebar-text-active text-sm tracking-tight whitespace-nowrap transition-opacity duration-150 ${isCollapsed ? "opacity-0" : "opacity-100"}`}>
-            Trakr
+            Stori
           </span>
         </div>
       </div>

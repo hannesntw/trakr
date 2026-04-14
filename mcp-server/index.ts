@@ -7,11 +7,11 @@ import { join } from "path";
 import { homedir } from "os";
 import { execSync } from "child_process";
 
-const BASE_URL = process.env.TRAKR_URL ?? "https://trakr-five.vercel.app";
-let API_KEY = process.env.TRAKR_API_KEY;
+const BASE_URL = process.env.STORI_URL ?? "https://stori.zone";
+let API_KEY = process.env.STORI_API_KEY;
 
 // Credential storage
-const CRED_DIR = join(homedir(), ".trakr");
+const CRED_DIR = join(homedir(), ".stori");
 const CRED_FILE = join(CRED_DIR, "credentials.json");
 
 function loadStoredKey(): string | null {
@@ -40,7 +40,7 @@ async function deviceFlow(): Promise<string | null> {
     const { code, verification_url } = await res.json();
 
     // Log to stderr (stdout is reserved for MCP protocol)
-    process.stderr.write(`\n🔐 Authorize Trakr: ${verification_url}\n\n`);
+    process.stderr.write(`\n🔐 Authorize Stori: ${verification_url}\n\n`);
 
     // Try to open browser
     try {
@@ -82,7 +82,7 @@ if (!API_KEY) {
 async function api(path: string, options?: RequestInit) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Trakr-Channel": "mcp",
+    "X-Stori-Channel": "mcp",
     ...options?.headers as Record<string, string>,
   };
   if (API_KEY) {
@@ -102,7 +102,7 @@ function textResult(data: unknown) {
 }
 
 const server = new McpServer({
-  name: "trakr",
+  name: "stori",
   version: "1.0.0",
 });
 
@@ -110,7 +110,7 @@ const server = new McpServer({
 
 server.tool(
   "list_projects",
-  "List all projects in Trakr",
+  "List all projects in Stori",
   {},
   async () => textResult(await api("/api/projects"))
 );

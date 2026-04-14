@@ -88,7 +88,7 @@ export function MockDetailPanel({ itemId, title, type, state, onClose }: MockDet
                   <GitPullRequest className="w-4 h-4 text-blue-600" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-text-primary truncate">#47 feat: detail panel with markdown preview</p>
-                    <p className="text-[11px] text-text-tertiary">hannesntw/trakr &middot; Open</p>
+                    <p className="text-[11px] text-text-tertiary">hannesntw/stori &middot; Open</p>
                   </div>
                   <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
                 </div>
@@ -103,7 +103,7 @@ export function MockDetailPanel({ itemId, title, type, state, onClose }: MockDet
                   <GitPullRequest className="w-4 h-4 text-purple-600" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-text-primary truncate">#38 feat: work item CRUD</p>
-                    <p className="text-[11px] text-text-tertiary">hannesntw/trakr &middot; Merged</p>
+                    <p className="text-[11px] text-text-tertiary">hannesntw/stori &middot; Merged</p>
                   </div>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 </div>

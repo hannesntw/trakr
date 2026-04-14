@@ -20,7 +20,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
             <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
           </svg>
-          <span className="text-sm font-semibold text-text-primary">Trakr Docs</span>
+          <span className="text-sm font-semibold text-text-primary">Stori Docs</span>
         </Link>
         <ul className="space-y-1">
           {NAV.map(item => (
@@ -36,7 +36,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         </ul>
         <div className="mt-8 pt-4 border-t border-border">
           <Link href="/" className="text-xs text-text-tertiary hover:text-accent transition-colors">
-            Back to Trakr
+            Back to Stori
           </Link>
         </div>
       </nav>

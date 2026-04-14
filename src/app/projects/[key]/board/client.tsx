@@ -122,8 +122,8 @@ const DEFAULT_CARD_RULES: CardRuleDef[] = [
   { id: "high-effort", label: "High effort (8+)", traql: "points >= 8", color: "bg-amber-400", enabled: true },
 ];
 
-const CARD_RULES_STORAGE_KEY = "trakr-board-card-rules";
-const CARD_RULES_ENABLED_KEY = "trakr-board-card-rules-enabled";
+const CARD_RULES_STORAGE_KEY = "stori-board-card-rules";
+const CARD_RULES_ENABLED_KEY = "stori-board-card-rules-enabled";
 
 function loadCardRules(): CardRuleDef[] {
   if (typeof window === "undefined") return DEFAULT_CARD_RULES;
@@ -366,11 +366,11 @@ export function BoardClient({
       setSelectedId(null);
       setCustomizePanelOpen(false);
     };
-    window.addEventListener("trakr:create-item", handleCreate);
-    window.addEventListener("trakr:close-panel", handleClose);
+    window.addEventListener("stori:create-item", handleCreate);
+    window.addEventListener("stori:close-panel", handleClose);
     return () => {
-      window.removeEventListener("trakr:create-item", handleCreate);
-      window.removeEventListener("trakr:close-panel", handleClose);
+      window.removeEventListener("stori:create-item", handleCreate);
+      window.removeEventListener("stori:close-panel", handleClose);
     };
   }, []);
 
