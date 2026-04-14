@@ -2,7 +2,17 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useStateOverride } from "@/components/StateOverrideContext";
-import { Search, X, Plus, ArrowUpRight, Trash2, GripVertical, Lightbulb } from "lucide-react";
+import {
+  Search,
+  X,
+  Plus,
+  ArrowUpRight,
+  Trash2,
+  Lightbulb,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+} from "lucide-react";
 
 /* ── Types ──────────────────────────────────────────────────── */
 
@@ -11,11 +21,13 @@ interface Idea {
   title: string;
   body: string;
   createdAt: string; // ISO date
+  x: number;
+  y: number;
 }
 
 /* ── Mock data ──────────────────────────────────────────────── */
 
-const defaultIdeas: Idea[] = [
+const RAW_IDEAS = [
   {
     id: 1,
     title: "Dark mode support",
@@ -30,7 +42,7 @@ const defaultIdeas: Idea[] = [
   },
   {
     id: 3,
-    title: "API rate limiting \u2014 token bucket approach",
+    title: "API rate limiting — token bucket approach",
     body: "Need rate limiting before opening the API publicly. Token bucket algorithm per user and per endpoint. Redis for counters.",
     createdAt: "2026-04-12T16:45:00Z",
   },
@@ -78,8 +90,7 @@ const defaultIdeas: Idea[] = [
   },
 ];
 
-const manyIdeas: Idea[] = [
-  ...defaultIdeas,
+const EXTRA_IDEAS = [
   { id: 11, title: "Custom fields on work items", body: "Let users add their own fields: text, number, dropdown, date. Store as JSON.", createdAt: "2026-04-05T09:00:00Z" },
   { id: 12, title: "Time tracking integration", body: "Track time spent on items. Manual entry or timer-based. Report hours per sprint.", createdAt: "2026-04-04T14:00:00Z" },
   { id: 13, title: "Email notifications for mentions", body: "When someone @mentions you in a comment, send an email. Batch digest option.", createdAt: "2026-04-03T11:00:00Z" },
@@ -93,10 +104,30 @@ const manyIdeas: Idea[] = [
   { id: 21, title: "Drag and drop file attachments", body: "Drop files onto a work item to attach them. Show thumbnails for images.", createdAt: "2026-03-26T14:00:00Z" },
 ];
 
+/* Assign positions in a scattered layout */
+function assignPositions(items: typeof RAW_IDEAS): Idea[] {
+  const CARD_W = 210;
+  const CARD_H = 160;
+  const GAP = 30;
+  const COLS = 5;
+  return items.map((item, i) => {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    // Add some jitter so it looks organic, not a perfect grid
+    const jitterX = ((item.id * 37) % 60) - 30;
+    const jitterY = ((item.id * 53) % 40) - 20;
+    return {
+      ...item,
+      x: 60 + col * (CARD_W + GAP) + jitterX,
+      y: 60 + row * (CARD_H + GAP) + jitterY,
+    };
+  });
+}
+
 /* ── Helpers ─────────────────────────────────────────────────── */
 
 function relativeTime(iso: string): string {
-  const now = new Date("2026-04-13T12:00:00Z"); // fixed "now" for the click dummy
+  const now = new Date("2026-04-13T12:00:00Z");
   const then = new Date(iso);
   const diffMs = now.getTime() - then.getTime();
   const diffMin = Math.floor(diffMs / 60000);
@@ -110,22 +141,29 @@ function relativeTime(iso: string): string {
   return then.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/* ── Sticky note color palette (rotate through) ─────────────── */
+/* ── Sticky note color palette ─────────────────────────────── */
 
 const cardColors = [
-  "bg-amber-50 border-amber-200/60",
-  "bg-sky-50 border-sky-200/60",
-  "bg-violet-50 border-violet-200/60",
-  "bg-emerald-50 border-emerald-200/60",
-  "bg-rose-50 border-rose-200/60",
-  "bg-orange-50 border-orange-200/60",
-  "bg-teal-50 border-teal-200/60",
-  "bg-indigo-50 border-indigo-200/60",
+  { bg: "#fffbeb", border: "rgba(253,230,138,0.6)" }, // amber
+  { bg: "#f0f9ff", border: "rgba(186,230,253,0.6)" }, // sky
+  { bg: "#f5f3ff", border: "rgba(221,214,254,0.6)" }, // violet
+  { bg: "#ecfdf5", border: "rgba(167,243,208,0.6)" }, // emerald
+  { bg: "#fff1f2", border: "rgba(254,205,211,0.6)" }, // rose
+  { bg: "#fff7ed", border: "rgba(253,186,116,0.6)" }, // orange
+  { bg: "#f0fdfa", border: "rgba(153,246,228,0.6)" }, // teal
+  { bg: "#eef2ff", border: "rgba(199,210,254,0.6)" }, // indigo
 ];
 
 function cardColor(id: number) {
   return cardColors[id % cardColors.length];
 }
+
+/* ── Constants ─────────────────────────────────────────────── */
+
+const CARD_WIDTH = 200;
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.1;
 
 /* ── Promote dialog ──────────────────────────────────────────── */
 
@@ -154,7 +192,6 @@ function PromoteDialog({
       }}
     >
       <div className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
-        {/* Header */}
         <div className="px-5 pt-5 pb-3 border-b border-border">
           <div className="flex items-center gap-2">
             <ArrowUpRight className="w-4 h-4 text-accent" />
@@ -164,8 +201,6 @@ function PromoteDialog({
             This idea will become a story and appear on your board and backlog.
           </p>
         </div>
-
-        {/* Body */}
         <div className="px-5 py-4 space-y-3">
           <div>
             <label className="block text-xs font-medium text-text-secondary mb-1">Title</label>
@@ -226,8 +261,6 @@ function PromoteDialog({
             </div>
           </div>
         </div>
-
-        {/* Footer */}
         <div className="px-5 py-3 border-t border-border flex items-center justify-end gap-2 bg-content-bg/50">
           <button
             onClick={onCancel}
@@ -253,25 +286,56 @@ function PromoteDialog({
 export default function IdeasPage() {
   const ideasState = useStateOverride("ideas");
 
-  const initialIdeas = ideasState === "many" ? manyIdeas : ideasState === "empty" ? [] : defaultIdeas;
-  const [ideas, setIdeas] = useState<Idea[]>(initialIdeas);
+  const initialRaw =
+    ideasState === "many"
+      ? [...RAW_IDEAS, ...EXTRA_IDEAS]
+      : ideasState === "empty"
+      ? []
+      : RAW_IDEAS;
+
+  const [ideas, setIdeas] = useState<Idea[]>(() => assignPositions(initialRaw));
   const [searchText, setSearchText] = useState("");
-  const [dragId, setDragId] = useState<number | null>(null);
+
+  // Canvas state
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+
+  // Interaction state
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, origX: 0, origY: 0 });
+  const panStart = useRef({ x: 0, y: 0, origPanX: 0, origPanY: 0 });
 
   // Quick-add state
   const [quickTitle, setQuickTitle] = useState("");
   const [quickBody, setQuickBody] = useState("");
   const [quickExpanded, setQuickExpanded] = useState(false);
-  const titleRef = useRef<HTMLInputElement>(null);
   const addFormRef = useRef<HTMLDivElement>(null);
 
   // Promote dialog
   const [promoteIdea, setPromoteIdea] = useState<Idea | null>(null);
 
+  // Canvas ref
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Filtered ideas
+  const filtered = useMemo(() => {
+    if (!searchText) return ideas;
+    const q = searchText.toLowerCase();
+    return ideas.filter(
+      (i) =>
+        i.title.toLowerCase().includes(q) || i.body.toLowerCase().includes(q)
+    );
+  }, [ideas, searchText]);
+
   // Close quick-add form when clicking outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (addFormRef.current && !addFormRef.current.contains(e.target as Node)) {
+      if (
+        addFormRef.current &&
+        !addFormRef.current.contains(e.target as Node)
+      ) {
         if (!quickTitle.trim() && !quickBody.trim()) {
           setQuickExpanded(false);
         }
@@ -281,26 +345,177 @@ export default function IdeasPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [quickTitle, quickBody]);
 
-  const filtered = useMemo(() => {
-    if (!searchText) return ideas;
-    const q = searchText.toLowerCase();
-    return ideas.filter(
-      (i) =>
-        i.title.toLowerCase().includes(q) ||
-        i.body.toLowerCase().includes(q)
-    );
-  }, [ideas, searchText]);
+  /* ── Card drag ─────────────────────────────────────────── */
+
+  const handleCardMouseDown = useCallback(
+    (e: React.MouseEvent, idea: Idea) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setDraggingId(idea.id);
+      setSelectedId(idea.id);
+      dragStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        origX: idea.x,
+        origY: idea.y,
+      };
+    },
+    []
+  );
+
+  /* ── Canvas pan ────────────────────────────────────────── */
+
+  const handleCanvasMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Only start pan if clicking on the canvas itself (not a card)
+      if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.canvasBg === "true") {
+        setIsPanning(true);
+        setSelectedId(null);
+        panStart.current = {
+          x: e.clientX,
+          y: e.clientY,
+          origPanX: pan.x,
+          origPanY: pan.y,
+        };
+      }
+    },
+    [pan]
+  );
+
+  /* ── Mouse move (card drag or pan) ─────────────────────── */
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (draggingId !== null) {
+        const dx = (e.clientX - dragStart.current.x) / zoom;
+        const dy = (e.clientY - dragStart.current.y) / zoom;
+        setIdeas((prev) =>
+          prev.map((idea) =>
+            idea.id === draggingId
+              ? { ...idea, x: dragStart.current.origX + dx, y: dragStart.current.origY + dy }
+              : idea
+          )
+        );
+      } else if (isPanning) {
+        const dx = e.clientX - panStart.current.x;
+        const dy = e.clientY - panStart.current.y;
+        setPan({
+          x: panStart.current.origPanX + dx,
+          y: panStart.current.origPanY + dy,
+        });
+      }
+    }
+
+    function handleMouseUp() {
+      setDraggingId(null);
+      setIsPanning(false);
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [draggingId, isPanning, zoom]);
+
+  /* ── Zoom (scroll wheel) ────────────────────────────────── */
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+
+    function handleWheel(e: WheelEvent) {
+      e.preventDefault();
+      const rect = el!.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      setZoom((prevZoom) => {
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prevZoom + delta));
+        const scale = newZoom / prevZoom;
+        // Zoom toward mouse position
+        setPan((prevPan) => ({
+          x: mouseX - scale * (mouseX - prevPan.x),
+          y: mouseY - scale * (mouseY - prevPan.y),
+        }));
+        return newZoom;
+      });
+    }
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  /* ── Zoom controls ──────────────────────────────────────── */
+
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(MAX_ZOOM, z + ZOOM_STEP));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(MIN_ZOOM, z - ZOOM_STEP));
+  }, []);
+
+  const handleFitAll = useCallback(() => {
+    if (filtered.length === 0) return;
+    const el = canvasRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    for (const idea of filtered) {
+      minX = Math.min(minX, idea.x);
+      minY = Math.min(minY, idea.y);
+      maxX = Math.max(maxX, idea.x + CARD_WIDTH);
+      maxY = Math.max(maxY, idea.y + 140);
+    }
+
+    const contentW = maxX - minX + 80;
+    const contentH = maxY - minY + 80;
+    const scaleX = rect.width / contentW;
+    const scaleY = rect.height / contentH;
+    const newZoom = Math.min(Math.max(MIN_ZOOM, Math.min(scaleX, scaleY)), 1.5);
+
+    setPan({
+      x: (rect.width - contentW * newZoom) / 2 - minX * newZoom + 40 * newZoom,
+      y: (rect.height - contentH * newZoom) / 2 - minY * newZoom + 40 * newZoom,
+    });
+    setZoom(newZoom);
+  }, [filtered]);
+
+  /* ── Quick add ──────────────────────────────────────────── */
 
   function handleQuickAdd() {
     const title = quickTitle.trim();
     if (!title) return;
+
+    // Place new card near center of current viewport
+    const el = canvasRef.current;
+    let cx = 200,
+      cy = 200;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      cx = (rect.width / 2 - pan.x) / zoom;
+      cy = (rect.height / 2 - pan.y) / zoom;
+    }
+    // Add small random offset so stacked additions don't overlap exactly
+    cx += (Math.random() - 0.5) * 80;
+    cy += (Math.random() - 0.5) * 60;
+
     const newIdea: Idea = {
       id: Date.now(),
       title,
       body: quickBody.trim(),
       createdAt: new Date("2026-04-13T12:00:00Z").toISOString(),
+      x: cx,
+      y: cy,
     };
-    setIdeas((prev) => [newIdea, ...prev]);
+    setIdeas((prev) => [...prev, newIdea]);
     setQuickTitle("");
     setQuickBody("");
     setQuickExpanded(false);
@@ -315,34 +530,11 @@ export default function IdeasPage() {
     setPromoteIdea(null);
   }
 
-  // Drag reorder
-  const handleDragStart = useCallback((id: number) => {
-    setDragId(id);
-  }, []);
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, targetId: number) => {
-      e.preventDefault();
-      if (dragId === null || dragId === targetId) return;
-      setIdeas((prev) => {
-        const fromIdx = prev.findIndex((i) => i.id === dragId);
-        const toIdx = prev.findIndex((i) => i.id === targetId);
-        if (fromIdx === -1 || toIdx === -1) return prev;
-        const next = [...prev];
-        const [moved] = next.splice(fromIdx, 1);
-        next.splice(toIdx, 0, moved);
-        return next;
-      });
-    },
-    [dragId]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDragId(null);
-  }, []);
+  const showEmpty = filtered.length === 0;
 
   return (
     <>
+      {/* Header bar */}
       <header className="px-6 border-b border-border bg-surface shrink-0">
         <div className="h-14 flex items-center">
           <h1 className="text-sm font-semibold text-text-primary">Ideas</h1>
@@ -372,21 +564,173 @@ export default function IdeasPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto">
-        {/* Quick capture */}
-        <div className="px-6 pt-5 pb-2">
+      {/* Canvas area */}
+      <div
+        ref={canvasRef}
+        className="flex-1 relative overflow-hidden"
+        style={{
+          cursor: isPanning ? "grabbing" : draggingId ? "grabbing" : "default",
+          background:
+            "radial-gradient(circle, var(--color-text-tertiary) 0.5px, transparent 0.5px)",
+          backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+          backgroundPosition: `${pan.x}px ${pan.y}px`,
+          backgroundColor: "var(--color-content-bg)",
+        }}
+        onMouseDown={handleCanvasMouseDown}
+        data-canvas-bg="true"
+      >
+        {/* Transformed card layer */}
+        {!showEmpty && (
+          <div
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: "0 0",
+              position: "absolute",
+              top: 0,
+              left: 0,
+            }}
+          >
+            {filtered.map((idea) => {
+              const color = cardColor(idea.id);
+              const isSelected = selectedId === idea.id;
+              const isDragging = draggingId === idea.id;
+              return (
+                <div
+                  key={idea.id}
+                  onMouseDown={(e) => handleCardMouseDown(e, idea)}
+                  style={{
+                    position: "absolute",
+                    left: idea.x,
+                    top: idea.y,
+                    width: CARD_WIDTH,
+                    backgroundColor: color.bg,
+                    borderColor: isSelected ? "var(--color-accent)" : color.border,
+                    zIndex: isDragging ? 999 : isSelected ? 100 : 1,
+                    transition: isDragging ? "none" : "box-shadow 0.15s, border-color 0.15s",
+                  }}
+                  className={`group rounded-lg border p-3 select-none ${
+                    isDragging
+                      ? "shadow-xl scale-[1.03] rotate-[1deg]"
+                      : isSelected
+                      ? "shadow-lg"
+                      : "shadow-md hover:shadow-lg"
+                  }`}
+                >
+                  {/* Title */}
+                  <h3
+                    className="text-[13px] font-medium text-text-primary leading-snug line-clamp-2"
+                    style={{ cursor: "grab" }}
+                  >
+                    {idea.title}
+                  </h3>
+
+                  {/* Description preview */}
+                  {idea.body && (
+                    <p className="text-[11px] text-text-secondary/80 mt-1.5 leading-relaxed line-clamp-2">
+                      {idea.body}
+                    </p>
+                  )}
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-black/[0.04]">
+                    <span className="text-[10px] text-text-tertiary">
+                      {relativeTime(idea.createdAt)}
+                    </span>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPromoteIdea(idea);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-white/60 transition-colors"
+                        title="Promote to story"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(idea.id);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="p-1 text-text-tertiary hover:text-red-500 rounded hover:bg-white/60 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {showEmpty && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <Lightbulb className="w-8 h-8 mx-auto text-text-tertiary/40 mb-3" />
+              <p className="text-sm text-text-tertiary">
+                {searchText
+                  ? "No ideas match your search."
+                  : "No ideas yet. Capture your first thought below."}
+              </p>
+              {searchText && (
+                <button
+                  onClick={() => setSearchText("")}
+                  className="mt-2 text-xs text-accent hover:text-accent-hover"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Zoom controls — top-right */}
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-surface/90 backdrop-blur border border-border rounded-lg shadow-sm px-1 py-1 z-10">
+          <button
+            onClick={handleZoomOut}
+            className="p-1.5 text-text-secondary hover:text-text-primary rounded hover:bg-content-bg transition-colors"
+            title="Zoom out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[11px] text-text-tertiary w-10 text-center tabular-nums">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            className="p-1.5 text-text-secondary hover:text-text-primary rounded hover:bg-content-bg transition-colors"
+            title="Zoom in"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <div className="w-px h-4 bg-border mx-0.5" />
+          <button
+            onClick={handleFitAll}
+            className="p-1.5 text-text-secondary hover:text-text-primary rounded hover:bg-content-bg transition-colors"
+            title="Fit all cards"
+          >
+            <Maximize className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Floating capture bar — bottom-center */}
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10" style={{ width: 420 }}>
           <div ref={addFormRef}>
             <div
-              className={`bg-surface border rounded-lg transition-all ${
+              className={`bg-surface border rounded-xl transition-all ${
                 quickExpanded
-                  ? "border-accent shadow-sm"
-                  : "border-border hover:border-border-hover"
+                  ? "border-accent shadow-lg"
+                  : "border-border shadow-md hover:border-border-hover hover:shadow-lg"
               }`}
             >
               <div className="flex items-center">
-                <Plus className="w-4 h-4 ml-3 text-text-tertiary shrink-0" />
+                <Plus className="w-4 h-4 ml-3.5 text-text-tertiary shrink-0" />
                 <input
-                  ref={titleRef}
                   type="text"
                   value={quickTitle}
                   onChange={(e) => setQuickTitle(e.target.value)}
@@ -399,20 +743,20 @@ export default function IdeasPage() {
                     }
                   }}
                   placeholder="Capture an idea..."
-                  className="flex-1 h-10 px-2 text-sm bg-transparent outline-none text-text-primary placeholder:text-text-tertiary"
+                  className="flex-1 h-11 px-2.5 text-sm bg-transparent outline-none text-text-primary placeholder:text-text-tertiary"
                 />
                 {quickExpanded && (
                   <button
                     onClick={handleQuickAdd}
                     disabled={!quickTitle.trim()}
-                    className="mr-2 h-7 px-3 text-xs font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="mr-3 h-7 px-3 text-xs font-medium rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     Add
                   </button>
                 )}
               </div>
               {quickExpanded && (
-                <div className="px-3 pb-3">
+                <div className="px-3.5 pb-3">
                   <textarea
                     value={quickBody}
                     onChange={(e) => setQuickBody(e.target.value)}
@@ -423,102 +767,13 @@ export default function IdeasPage() {
                     }}
                     rows={2}
                     placeholder="Add a description (optional)... Cmd+Enter to save"
-                    className="w-full px-2 py-1.5 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary resize-none"
+                    className="w-full px-2.5 py-2 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary resize-none"
                   />
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* Card grid */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <Lightbulb className="w-8 h-8 mx-auto text-text-tertiary/40 mb-3" />
-            <p className="text-sm text-text-tertiary">
-              {searchText
-                ? "No ideas match your search."
-                : "No ideas yet. Capture your first thought above."}
-            </p>
-            {searchText && (
-              <button
-                onClick={() => setSearchText("")}
-                className="mt-2 text-xs text-accent hover:text-accent-hover"
-              >
-                Clear search
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-              {filtered.map((idea) => (
-                <div
-                  key={idea.id}
-                  draggable
-                  onDragStart={() => handleDragStart(idea.id)}
-                  onDragOver={(e) => handleDragOver(e, idea.id)}
-                  onDragEnd={handleDragEnd}
-                  className={`group relative rounded-lg border p-3.5 cursor-grab active:cursor-grabbing transition-all select-none ${cardColor(
-                    idea.id
-                  )} ${
-                    dragId === idea.id
-                      ? "opacity-50 scale-95 rotate-1"
-                      : "hover:shadow-md hover:-translate-y-0.5"
-                  }`}
-                >
-                  {/* Drag handle (visible on hover) */}
-                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <GripVertical className="w-3.5 h-3.5 text-text-tertiary/50" />
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="text-[13px] font-medium text-text-primary leading-snug pr-4 line-clamp-2">
-                    {idea.title}
-                  </h3>
-
-                  {/* Description preview */}
-                  {idea.body && (
-                    <p className="text-xs text-text-secondary/80 mt-1.5 leading-relaxed line-clamp-3">
-                      {idea.body}
-                    </p>
-                  )}
-
-                  {/* Footer: time + hover actions */}
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/[0.04]">
-                    <span className="text-[11px] text-text-tertiary">
-                      {relativeTime(idea.createdAt)}
-                    </span>
-
-                    {/* Hover actions */}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPromoteIdea(idea);
-                        }}
-                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-white/60 transition-colors"
-                        title="Promote to story"
-                      >
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(idea.id);
-                        }}
-                        className="p-1 text-text-tertiary hover:text-red-500 rounded hover:bg-white/60 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Promote dialog */}
