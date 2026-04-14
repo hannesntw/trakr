@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { RealtimeRefresh } from "@/components/RealtimeRefresh";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { auth, signOut } from "@/auth";
+import { isPlatformAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function ProjectLayout({
     .from(organizationMembers)
     .where(eq(organizationMembers.userId, session.user!.id!));
   const hasOrg = orgMemberships.length > 0;
+  const isAdmin = await isPlatformAdmin(session.user!.id!);
 
   return (
     <div className="h-full flex">
@@ -61,6 +63,7 @@ export default async function ProjectLayout({
         currentProjectKey={currentProject.key}
         user={session.user}
         hasOrg={hasOrg}
+        isPlatformAdmin={isAdmin}
         signOutAction={async () => {
           "use server";
           await signOut({ redirectTo: "/login" });
