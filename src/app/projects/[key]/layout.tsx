@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { projects, projectInvites } from "@/db/schema";
+import { projects, projectInvites, organizationMembers } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
@@ -45,6 +45,13 @@ export default async function ProjectLayout({
     notFound();
   }
 
+  // Check if user belongs to an org
+  const orgMemberships = await db
+    .select({ orgId: organizationMembers.orgId })
+    .from(organizationMembers)
+    .where(eq(organizationMembers.userId, session.user!.id!));
+  const hasOrg = orgMemberships.length > 0;
+
   return (
     <div className="h-full flex">
       <RealtimeRefresh />
@@ -53,6 +60,7 @@ export default async function ProjectLayout({
         projects={visibleProjects}
         currentProjectKey={currentProject.key}
         user={session.user}
+        hasOrg={hasOrg}
         signOutAction={async () => {
           "use server";
           await signOut({ redirectTo: "/login" });

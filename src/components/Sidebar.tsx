@@ -17,6 +17,7 @@ import {
   Plus,
   Check,
   X,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,13 +41,14 @@ interface SidebarProps {
   currentProjectKey: string;
   user?: UserInfo | null;
   signOutAction?: () => Promise<void>;
+  hasOrg?: boolean;
 }
 
 // Shared layout: all rows align icons at 16px from sidebar left edge.
 // Container px-2 (8px) + row pl-2 (8px) = 16px to icon left edge.
 // Labels fade via opacity, never change layout → no jump on collapse.
 
-export function Sidebar({ projects, currentProjectKey, user, signOutAction }: SidebarProps) {
+export function Sidebar({ projects, currentProjectKey, user, signOutAction, hasOrg }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const currentProject = projects.find((p) => p.key === currentProjectKey);
@@ -225,6 +227,20 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction }: Si
           );
         })}
       </nav>
+
+      {/* Organization link */}
+      {hasOrg && (
+        <div className="px-2 mt-1 mb-1">
+          <Link
+            href="/org"
+            title={collapsed ? "Organization" : undefined}
+            className={cn("flex items-center gap-2.5 pl-2 py-1.5 rounded-md text-sm transition-colors", pathname.startsWith("/org") ? "bg-sidebar-hover text-sidebar-text-active" : "hover:bg-sidebar-hover hover:text-sidebar-text-active")}
+          >
+            <Building2 className="w-4 h-4 shrink-0" />
+            <span className={cn("whitespace-nowrap transition-opacity duration-150", collapsed ? "opacity-0" : "opacity-100")}>Organization</span>
+          </Link>
+        </div>
+      )}
 
       {/* User */}
       {user && (
