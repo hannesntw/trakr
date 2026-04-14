@@ -2,18 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useOrg } from "@/lib/use-org";
 
-const tabs = [
+interface Tab {
+  id: string;
+  label: string;
+  path: string;
+  /** Minimum role required to see this tab */
+  minRole?: "owner" | "admin" | "member";
+}
+
+const tabs: Tab[] = [
   { id: "dashboard", label: "Dashboard", path: "" },
   { id: "members", label: "Members", path: "/members" },
   { id: "teams", label: "Teams", path: "/teams" },
   { id: "roles", label: "Roles", path: "/roles" },
-  { id: "billing", label: "Plans & Billing", path: "/billing" },
-  { id: "settings", label: "Settings", path: "/settings" },
+  { id: "billing", label: "Plans & Billing", path: "/billing", minRole: "owner" },
+  { id: "settings", label: "Settings", path: "/settings", minRole: "owner" },
 ];
+
+const ROLE_LEVEL: Record<string, number> = {
+  guest: 0,
+  viewer: 1,
+  member: 2,
+  admin: 3,
+  owner: 4,
+};
 
 export function OrgTabNav() {
   const pathname = usePathname();
+  const org = useOrg();
+
+  const userLevel = ROLE_LEVEL[org.role] ?? 0;
 
   function getActiveTab() {
     // Match most specific first
@@ -26,9 +46,14 @@ export function OrgTabNav() {
 
   const activeTab = getActiveTab();
 
+  const visibleTabs = tabs.filter((tab) => {
+    if (!tab.minRole) return true;
+    return userLevel >= (ROLE_LEVEL[tab.minRole] ?? 0);
+  });
+
   return (
     <nav className="flex gap-1 border-b border-border -mt-2 mb-2">
-      {tabs.map((tab) => (
+      {visibleTabs.map((tab) => (
         <Link
           key={tab.id}
           href={`/org${tab.path}`}

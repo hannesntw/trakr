@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { organizationInvitations } from "@/db/schema";
+import { organizationInvitations, organizations, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { Resend } from "resend";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole } from "@/lib/org-auth";
 
@@ -79,8 +80,34 @@ export async function POST(
     })
     .returning();
 
-  // Stub: log the invite URL instead of sending email
-  const inviteUrl = `/invite/${token}`;
+  // Send invite email via Resend
+  const baseUrl = process.env.NEXTAUTH_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3100");
+  const inviteUrl = `${baseUrl}/invite/${token}`;
+
+  // Look up org name and inviter name for the email
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId));
+  const [inviter] = await db.select().from(users).where(eq(users.id, user.id));
+  const inviterName = inviter?.name ?? inviter?.email ?? "Someone";
+  const orgName = org?.name ?? "an organization";
+  const role = parsed.data.role ?? "member";
+
+  try {
+    const resend = new Resend(process.env.AUTH_RESEND_KEY);
+    await resend.emails.send({
+      from: process.env.AUTH_EMAIL_FROM ?? "Trakr <noreply@resend.dev>",
+      to: parsed.data.email,
+      subject: `You're invited to join ${orgName} on Trakr`,
+      html: `<p><strong>${inviterName}</strong> invited you to join <strong>${orgName}</strong> on Trakr.</p>
+        <p>Role: ${role}</p>
+        <p><a href="${inviteUrl}">Accept invitation</a></p>
+        <p>This invitation expires in 7 days.</p>`,
+    });
+  } catch (err) {
+    console.error("[org-invite] Failed to send email:", err);
+    // Don't fail the request — the invitation is still created
+  }
+
   console.log(`[org-invite] Invite for ${parsed.data.email} to org ${orgId}: ${inviteUrl}`);
 
   return NextResponse.json({ ...row, inviteUrl }, { status: 201 });

@@ -11,7 +11,9 @@
  *   work_item DELETE → cascades: snapshots, comments, attachments,
  *                      status_history, links
  *   work_item DELETE → SET NULL: children's parentId
- *   project DELETE → cascades: github_automations, github_events
+ *   team DELETE → cascades: team_members, team_project_access
+ *   project DELETE → cascades: github_automations, github_events,
+ *                    team_project_access
  *   work_item DELETE → cascades: github_events (nullable FK)
  *
  * No app-side cascade logic is needed — route handlers just delete
@@ -97,6 +99,28 @@ export const orgRoles = pgTable("org_roles", {
   isDefault: boolean("is_default").notNull().default(false),
   permissions: text("permissions").notNull(), // JSON string of permission array
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"), // lead, member
+  joinedAt: text("joined_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export const teamProjectAccess = pgTable("team_project_access", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
 });
 
 // --- App tables ---
