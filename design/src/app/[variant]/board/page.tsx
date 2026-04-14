@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useVariant } from "@/components/VariantContext";
 import { useStateOverride } from "@/components/StateOverrideContext";
 import { MockDetailPanel } from "@/components/MockDetailPanel";
-import { Bug, CheckSquare, Square, GitPullRequest, CheckCircle2, Circle, XCircle, GitBranch, ChevronDown, ChevronRight, Palette, Layers, X } from "lucide-react";
+import { Bug, CheckSquare, Square, GitPullRequest, CheckCircle2, Circle, XCircle, GitBranch, ChevronDown, ChevronRight, Plus, Settings2, GripVertical, Trash2, ToggleLeft, ToggleRight, Pencil } from "lucide-react";
 import { PointsBadge } from "@/components/PointsBadge";
 
 const states = [
@@ -104,6 +104,7 @@ interface CardRule {
   label: string;
   style: string; // tailwind classes applied to the card wrapper
   matchFn: (card: Card) => boolean;
+  _disabled?: boolean;
 }
 
 const defaultCardRules: CardRule[] = [
@@ -142,7 +143,7 @@ const defaultCardRules: CardRule[] = [
 function getCardRuleStyle(card: Card, rules: CardRule[], enabled: boolean): string {
   if (!enabled) return "";
   for (const rule of rules) {
-    if (rule.matchFn(card)) return rule.style;
+    if (!rule._disabled && rule.matchFn(card)) return rule.style;
   }
   return "";
 }
@@ -153,6 +154,19 @@ const ruleSwatchColor: Record<string, string> = {
   "big-story": "bg-amber-400",
   "pr-merged": "bg-emerald-500",
 };
+
+/* ── Rule color options ─────────────────────────────────────── */
+
+const ruleColorOptions = [
+  { value: "bg-red-500", label: "Red" },
+  { value: "bg-blue-500", label: "Blue" },
+  { value: "bg-amber-400", label: "Amber" },
+  { value: "bg-emerald-500", label: "Green" },
+  { value: "bg-violet-500", label: "Violet" },
+  { value: "bg-orange-500", label: "Orange" },
+  { value: "bg-pink-500", label: "Pink" },
+  { value: "bg-cyan-500", label: "Cyan" },
+];
 
 /* ── Component ──────────────────────────────────────────────── */
 
@@ -168,12 +182,39 @@ export default function BoardPage() {
 
   // Swimlane state
   const [activeSwimlane, setActiveSwimlane] = useState("none");
-  const [swimlaneDropdownOpen, setSwimlaneDropdownOpen] = useState(false);
+  const [customSwimlaneExpr, setCustomSwimlaneExpr] = useState("");
+  const [showCustomSwimlane, setShowCustomSwimlane] = useState(false);
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set());
 
   // Card rules state
   const [cardRulesEnabled, setCardRulesEnabled] = useState(true);
-  const [cardRulesPanelOpen, setCardRulesPanelOpen] = useState(false);
+  const [cardRules, setCardRules] = useState<CardRule[]>([...defaultCardRules]);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+
+  // Board settings panel
+  const [customizePanelOpen, setCustomizePanelOpen] = useState(false);
+  const customizeBtnRef = useRef<HTMLButtonElement>(null);
+  const customizePanelRef = useRef<HTMLDivElement>(null);
+
+  // New rule form
+  const [newRuleLabel, setNewRuleLabel] = useState("");
+  const [newRuleTraql, setNewRuleTraql] = useState("");
+  const [newRuleColor, setNewRuleColor] = useState("bg-blue-500");
+
+  // Close panel on outside click
+  useEffect(() => {
+    if (!customizePanelOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        customizePanelRef.current && !customizePanelRef.current.contains(e.target as Node) &&
+        customizeBtnRef.current && !customizeBtnRef.current.contains(e.target as Node)
+      ) {
+        setCustomizePanelOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [customizePanelOpen]);
 
   function toggleTask(taskId: number) {
     setTaskStates(prev => ({ ...prev, [taskId]: !prev[taskId] }));
@@ -188,6 +229,29 @@ export default function BoardPage() {
     });
   }
 
+  function toggleRuleEnabled(ruleId: string) {
+    setCardRules(prev => prev.map(r => r.id === ruleId ? { ...r, _disabled: !r._disabled } : r));
+  }
+
+  function deleteRule(ruleId: string) {
+    setCardRules(prev => prev.filter(r => r.id !== ruleId));
+  }
+
+  function addRule() {
+    if (!newRuleLabel.trim() || !newRuleTraql.trim()) return;
+    const newRule: CardRule = {
+      id: `custom-${Date.now()}`,
+      traql: newRuleTraql,
+      label: newRuleLabel,
+      style: `border-l-[3px] border-l-blue-500`,
+      matchFn: () => false, // click dummy - no real matching
+    };
+    setCardRules(prev => [...prev, newRule]);
+    setNewRuleLabel("");
+    setNewRuleTraql("");
+    setNewRuleColor("bg-blue-500");
+  }
+
   // Resolve effective state for cards (tasks move to done when checked)
   function effectiveState(card: Card): string {
     if (card.type === "task" && taskStates[card.id]) return "done";
@@ -197,6 +261,8 @@ export default function BoardPage() {
   // Get swimlane config
   const swimlaneDef = swimlaneOptions.find(s => s.id === activeSwimlane) ?? swimlaneOptions[0];
   const isSwimlaneActive = activeSwimlane !== "none";
+
+  const hasCustomizeFeatures = variant.features.swimlanes || variant.features.cardRules;
 
   // Group cards into swimlanes
   function getSwimlaneGroups(): { key: string; label: string; cards: Card[] }[] {
@@ -220,7 +286,7 @@ export default function BoardPage() {
   /* ── Render a single card ─────────────────────────────────── */
 
   function renderCard(item: Card) {
-    const ruleStyle = getCardRuleStyle(item, defaultCardRules, variant.features.cardRules && cardRulesEnabled);
+    const ruleStyle = getCardRuleStyle(item, cardRules, variant.features.cardRules && cardRulesEnabled);
 
     return (
       <div key={item.id}
@@ -372,103 +438,235 @@ export default function BoardPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Swimlanes dropdown */}
-          {variant.features.swimlanes && (
+          {/* Customize board button */}
+          {hasCustomizeFeatures && (
             <div className="relative">
               <button
-                onClick={() => setSwimlaneDropdownOpen(!swimlaneDropdownOpen)}
+                ref={customizeBtnRef}
+                onClick={() => setCustomizePanelOpen(!customizePanelOpen)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                  isSwimlaneActive
+                  customizePanelOpen || isSwimlaneActive || cardRulesEnabled
                     ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
                     : "bg-surface text-text-secondary border-border hover:bg-surface-hover"
                 }`}
               >
-                <Layers className="w-3.5 h-3.5" />
-                Swimlanes{isSwimlaneActive ? `: ${swimlaneDef.label}` : ""}
-                <ChevronDown className="w-3 h-3" />
+                <Settings2 className="w-3.5 h-3.5" />
+                Customize
               </button>
-              {swimlaneDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setSwimlaneDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-surface border border-border rounded-lg shadow-lg py-1">
-                    <div className="px-3 py-1.5 text-[10px] text-text-tertiary uppercase tracking-wider">Group by TraQL</div>
-                    {swimlaneOptions.map(opt => (
-                      <button
-                        key={opt.id}
-                        onClick={() => { setActiveSwimlane(opt.id); setSwimlaneDropdownOpen(false); setCollapsedLanes(new Set()); }}
-                        className={`w-full text-left px-3 py-2 text-xs hover:bg-surface-hover transition-colors ${
-                          activeSwimlane === opt.id ? "text-indigo-600 font-medium" : "text-text-primary"
-                        }`}
-                      >
-                        <div className="font-medium">{opt.label}</div>
-                        {opt.traql && <div className="text-text-tertiary font-mono text-[10px] mt-0.5">{opt.traql}</div>}
-                      </button>
-                    ))}
-                  </div>
-                </>
+
+              {/* Customize popover panel */}
+              {customizePanelOpen && (
+                <div
+                  ref={customizePanelRef}
+                  className="absolute right-0 top-full mt-1.5 z-40 w-[350px] bg-surface border border-border rounded-lg shadow-xl max-h-[calc(100vh-120px)] overflow-auto"
+                >
+                  {/* ── Swimlanes section ──────────────────────── */}
+                  {variant.features.swimlanes && (
+                    <div className="p-4">
+                      <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold mb-2.5">Swimlanes</div>
+
+                      {/* Swimlane grouping selector */}
+                      <div className="space-y-1">
+                        {swimlaneOptions.map(opt => (
+                          <button
+                            key={opt.id}
+                            onClick={() => { setActiveSwimlane(opt.id); setCollapsedLanes(new Set()); setShowCustomSwimlane(false); }}
+                            className={`w-full text-left px-3 py-2 text-xs rounded-md transition-colors ${
+                              activeSwimlane === opt.id && !showCustomSwimlane
+                                ? "bg-indigo-50 text-indigo-700 font-medium"
+                                : "text-text-primary hover:bg-surface-hover"
+                            }`}
+                          >
+                            <div className="font-medium">{opt.label}</div>
+                            {opt.traql && (
+                              <code className="text-[10px] font-mono text-text-tertiary mt-0.5 block">{opt.traql}</code>
+                            )}
+                          </button>
+                        ))}
+
+                        {/* Custom expression option */}
+                        <button
+                          onClick={() => setShowCustomSwimlane(!showCustomSwimlane)}
+                          className={`w-full text-left px-3 py-2 text-xs rounded-md transition-colors ${
+                            showCustomSwimlane
+                              ? "bg-indigo-50 text-indigo-700 font-medium"
+                              : "text-text-primary hover:bg-surface-hover"
+                          }`}
+                        >
+                          <div className="font-medium">Custom...</div>
+                        </button>
+
+                        {showCustomSwimlane && (
+                          <div className="px-3 pt-1 pb-1">
+                            <input
+                              type="text"
+                              value={customSwimlaneExpr}
+                              onChange={e => setCustomSwimlaneExpr(e.target.value)}
+                              placeholder="GROUP BY field_name"
+                              className="w-full text-xs font-mono px-2.5 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  {variant.features.swimlanes && variant.features.cardRules && (
+                    <div className="border-t border-border" />
+                  )}
+
+                  {/* ── Card rules section ─────────────────────── */}
+                  {variant.features.cardRules && (
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Card rules</div>
+                        <button
+                          onClick={() => setCardRulesEnabled(!cardRulesEnabled)}
+                          className="text-text-tertiary hover:text-text-primary transition-colors"
+                          title={cardRulesEnabled ? "Disable all rules" : "Enable all rules"}
+                        >
+                          {cardRulesEnabled ? (
+                            <ToggleRight className="w-5 h-5 text-indigo-600" />
+                          ) : (
+                            <ToggleLeft className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Rule list */}
+                      <div className="space-y-0.5 mb-3">
+                        {cardRules.map((rule) => (
+                          <div
+                            key={rule.id}
+                            className={`group flex items-start gap-2 px-2.5 py-2 rounded-md hover:bg-surface-hover transition-colors ${
+                              rule._disabled ? "opacity-50" : ""
+                            }`}
+                          >
+                            {/* Drag handle */}
+                            <GripVertical className="w-3.5 h-3.5 text-text-tertiary/40 mt-0.5 shrink-0 cursor-grab" />
+
+                            {/* Color swatch */}
+                            <span className={`w-3 h-3 rounded-sm mt-0.5 shrink-0 ${ruleSwatchColor[rule.id] ?? "bg-blue-500"}`} />
+
+                            {/* Label + expression */}
+                            <div className="flex-1 min-w-0">
+                              {editingRuleId === rule.id ? (
+                                <input
+                                  type="text"
+                                  defaultValue={rule.label}
+                                  autoFocus
+                                  onBlur={(e) => {
+                                    setCardRules(prev => prev.map(r => r.id === rule.id ? { ...r, label: e.target.value || rule.label } : r));
+                                    setEditingRuleId(null);
+                                  }}
+                                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                                  className="text-xs font-medium text-text-primary bg-transparent border-b border-indigo-300 outline-none w-full"
+                                />
+                              ) : (
+                                <span
+                                  className="text-xs font-medium text-text-primary cursor-text"
+                                  onClick={() => setEditingRuleId(rule.id)}
+                                  title="Click to edit"
+                                >
+                                  {rule.label}
+                                </span>
+                              )}
+                              <code className="text-[10px] font-mono text-indigo-600/70 block mt-0.5 truncate">{rule.traql}</code>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button
+                                onClick={() => setEditingRuleId(rule.id)}
+                                className="text-text-tertiary hover:text-text-primary p-0.5"
+                                title="Edit rule"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => toggleRuleEnabled(rule.id)}
+                                className="text-text-tertiary hover:text-text-primary p-0.5"
+                                title={rule._disabled ? "Enable" : "Disable"}
+                              >
+                                {rule._disabled ? <ToggleLeft className="w-3.5 h-3.5" /> : <ToggleRight className="w-3.5 h-3.5 text-indigo-600" />}
+                              </button>
+                              <button
+                                onClick={() => deleteRule(rule.id)}
+                                className="text-text-tertiary hover:text-red-500 p-0.5"
+                                title="Delete rule"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {cardRules.length === 0 && (
+                          <p className="text-xs text-text-tertiary px-2.5 py-2">No rules defined.</p>
+                        )}
+                      </div>
+
+                      <div className="text-[10px] text-text-tertiary mb-2">First matching rule wins. Drag to reorder.</div>
+
+                      {/* Add rule form */}
+                      <div className="border-t border-border pt-3 space-y-2">
+                        <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Add rule</div>
+                        <div className="flex items-center gap-2">
+                          {/* Color picker */}
+                          <div className="flex gap-1 shrink-0">
+                            {ruleColorOptions.slice(0, 4).map(c => (
+                              <button
+                                key={c.value}
+                                onClick={() => setNewRuleColor(c.value)}
+                                className={`w-4 h-4 rounded-sm ${c.value} ${newRuleColor === c.value ? "ring-2 ring-offset-1 ring-indigo-400" : ""}`}
+                                title={c.label}
+                              />
+                            ))}
+                          </div>
+                          <input
+                            type="text"
+                            value={newRuleLabel}
+                            onChange={e => setNewRuleLabel(e.target.value)}
+                            placeholder="Label"
+                            className="flex-1 text-xs px-2 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newRuleTraql}
+                            onChange={e => setNewRuleTraql(e.target.value)}
+                            placeholder="TraQL expression, e.g. ci:failing"
+                            className="flex-1 text-xs font-mono px-2 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                            onKeyDown={e => { if (e.key === "Enter") addRule(); }}
+                          />
+                          <button
+                            onClick={addRule}
+                            disabled={!newRuleLabel.trim() || !newRuleTraql.trim()}
+                            className="px-2.5 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
 
-          {/* Card rules button */}
-          {variant.features.cardRules && (
-            <button
-              onClick={() => setCardRulesPanelOpen(!cardRulesPanelOpen)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
-                cardRulesEnabled
-                  ? "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100"
-                  : "bg-surface text-text-secondary border-border hover:bg-surface-hover"
-              }`}
-            >
-              <Palette className="w-3.5 h-3.5" />
-              Card rules
-            </button>
-          )}
+          {/* Create work item button */}
+          <button
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Create
+          </button>
         </div>
       </header>
 
       <div className="flex-1 overflow-auto relative">
-        {/* Card rules side panel */}
-        {variant.features.cardRules && cardRulesPanelOpen && (
-          <div className="absolute right-0 top-0 bottom-0 w-72 bg-surface border-l border-border z-30 shadow-lg flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Palette className="w-4 h-4 text-violet-600" />
-                <span className="text-sm font-semibold text-text-primary">Card rules</span>
-              </div>
-              <button onClick={() => setCardRulesPanelOpen(false)} className="text-text-tertiary hover:text-text-primary">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="text-xs text-text-secondary">Apply rules</span>
-              <button
-                onClick={() => setCardRulesEnabled(!cardRulesEnabled)}
-                className={`w-8 h-[18px] rounded-full transition-colors relative ${cardRulesEnabled ? "bg-violet-500" : "bg-gray-300"}`}
-              >
-                <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${cardRulesEnabled ? "left-[17px]" : "left-[2px]"}`} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <div className="px-3 py-2 text-[10px] text-text-tertiary uppercase tracking-wider">Conditional styling</div>
-              {defaultCardRules.map((rule, i) => (
-                <div key={rule.id} className="px-4 py-2.5 border-b border-border/50 hover:bg-surface-hover transition-colors">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs text-text-tertiary w-4 text-center">{i + 1}</span>
-                    <span className={`w-3 h-3 rounded-sm ${ruleSwatchColor[rule.id]}`} />
-                    <span className="text-xs font-medium text-text-primary">{rule.label}</span>
-                  </div>
-                  <div className="ml-6">
-                    <code className="text-[10px] font-mono text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">{rule.traql}</code>
-                  </div>
-                </div>
-              ))}
-              <div className="px-4 py-3 text-[10px] text-text-tertiary">
-                First matching rule wins. Drag to reorder priority.
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="p-6">
           {boardState === "empty" ? (
