@@ -5,6 +5,7 @@ import { eq, and, or, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const addMemberSchema = z.object({
   userId: z.string().min(1),
@@ -118,6 +119,17 @@ export async function POST(
     .insert(organizationMembers)
     .values({ orgId, userId: parsed.data.userId, role })
     .returning();
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "member.added",
+    targetType: "member",
+    targetId: parsed.data.userId,
+    description: `Added ${targetUser.name ?? targetUser.email ?? parsed.data.userId} as ${role}`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({
     id: row.id,

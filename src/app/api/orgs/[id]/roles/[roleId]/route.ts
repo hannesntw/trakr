@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 import { PERMISSIONS } from "@/lib/plans";
 
 const updateSchema = z.object({
@@ -54,6 +55,17 @@ export async function PATCH(
     .set(updates)
     .where(eq(orgRoles.id, Number(roleId)))
     .returning();
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "role.updated",
+    targetType: "role",
+    targetId: roleId,
+    description: `Updated role "${row.name}"`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ ...row, permissions: JSON.parse(row.permissions) });
 }

@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -110,6 +111,17 @@ export async function POST(
     teamId: team.id,
     userId: user.id,
     role: "lead",
+  });
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "team.created",
+    targetType: "team",
+    targetId: String(team.id),
+    description: `Created team "${team.name}"`,
+    ipAddress: getClientIp(request),
   });
 
   return NextResponse.json(

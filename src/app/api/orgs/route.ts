@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { DEFAULT_ROLES, type PlanId } from "@/lib/plans";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -105,6 +106,17 @@ export async function POST(request: NextRequest) {
       permissions: JSON.stringify(permissions),
     });
   }
+
+  logAudit({
+    orgId: org.id,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "organization.created",
+    targetType: "organization",
+    targetId: String(org.id),
+    description: `Created organization "${org.name}"`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json(org, { status: 201 });
 }

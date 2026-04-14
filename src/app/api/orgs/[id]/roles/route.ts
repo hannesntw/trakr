@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 import { PERMISSIONS } from "@/lib/plans";
 
 const createSchema = z.object({
@@ -74,6 +75,17 @@ export async function POST(
       permissions: JSON.stringify(parsed.data.permissions),
     })
     .returning();
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "role.created",
+    targetType: "role",
+    targetId: String(row.id),
+    description: `Created custom role "${parsed.data.name}"`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ ...row, permissions: parsed.data.permissions }, { status: 201 });
 }

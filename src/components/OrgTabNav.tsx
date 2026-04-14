@@ -17,6 +17,7 @@ const tabs: Tab[] = [
   { id: "members", label: "Members", path: "/members" },
   { id: "teams", label: "Teams", path: "/teams" },
   { id: "roles", label: "Roles", path: "/roles" },
+  { id: "audit", label: "Audit Log", path: "/audit", minRole: "admin" },
   { id: "billing", label: "Plans & Billing", path: "/billing", minRole: "owner" },
   { id: "settings", label: "Settings", path: "/settings", minRole: "owner" },
 ];

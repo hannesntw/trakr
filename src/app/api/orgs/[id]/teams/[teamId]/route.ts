@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -162,6 +163,17 @@ export async function DELETE(
   }
 
   await db.delete(teams).where(eq(teams.id, teamId));
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "team.deleted",
+    targetType: "team",
+    targetId: String(teamId),
+    description: `Deleted team "${team.name}"`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ ok: true });
 }

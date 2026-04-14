@@ -123,6 +123,23 @@ export const teamProjectAccess = pgTable("team_project_access", {
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
 });
 
+// --- Audit log ---
+
+export const auditLog = pgTable("audit_log", {
+  id: serial("id").primaryKey(),
+  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+  actorName: text("actor_name"), // denormalized for when user is deleted
+  action: text("action").notNull(), // e.g. "member.invited", "project.created", "role.updated"
+  targetType: text("target_type"), // "member", "project", "team", "role", "settings"
+  targetId: text("target_id"),
+  description: text("description").notNull(),
+  ipAddress: text("ip_address"),
+  projectId: integer("project_id"),
+  metadata: text("metadata"), // JSON for extra context
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 // --- App tables ---
 
 export const projects = pgTable("projects", {

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, getRoleLevel } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const updateSchema = z.object({
   role: z.enum(["admin", "member", "viewer", "guest"]),
@@ -45,11 +46,25 @@ export async function PATCH(
     return NextResponse.json({ error: "Cannot change owner role" }, { status: 403 });
   }
 
+  const oldRole = target.role;
+
   const [row] = await db
     .update(organizationMembers)
     .set({ role: parsed.data.role })
     .where(eq(organizationMembers.id, Number(memberId)))
     .returning();
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "member.role_changed",
+    targetType: "member",
+    targetId: target.userId,
+    description: `Changed role from ${oldRole} to ${parsed.data.role}`,
+    ipAddress: getClientIp(request),
+    metadata: { oldRole, newRole: parsed.data.role },
+  });
 
   return NextResponse.json(row);
 }
@@ -84,6 +99,17 @@ export async function DELETE(
   }
 
   await db.delete(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "member.removed",
+    targetType: "member",
+    targetId: target.userId,
+    description: `Removed member (role: ${target.role})`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ deleted: true });
 }

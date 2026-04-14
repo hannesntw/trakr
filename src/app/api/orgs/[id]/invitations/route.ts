@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Resend } from "resend";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -109,6 +110,17 @@ export async function POST(
   }
 
   console.log(`[org-invite] Invite for ${parsed.data.email} to org ${orgId}: ${inviteUrl}`);
+
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "member.invited",
+    targetType: "member",
+    targetId: parsed.data.email,
+    description: `Invited ${parsed.data.email} as ${role}`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ ...row, inviteUrl }, { status: 201 });
 }

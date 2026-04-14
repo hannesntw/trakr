@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { logAudit, getClientIp } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -79,6 +80,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "organization.updated",
+    targetType: "organization",
+    targetId: String(orgId),
+    description: `Updated organization settings`,
+    ipAddress: getClientIp(request),
+    metadata: parsed.data,
+  });
+
   return NextResponse.json(row);
 }
 
@@ -109,6 +122,18 @@ export async function DELETE(
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Note: audit entry won't persist since org is deleted (cascade), but log for consistency
+  logAudit({
+    orgId,
+    actorId: user.id,
+    actorName: user.name ?? user.email ?? undefined,
+    action: "organization.deleted",
+    targetType: "organization",
+    targetId: String(orgId),
+    description: `Deleted organization "${row.name}"`,
+    ipAddress: getClientIp(request),
+  });
 
   return NextResponse.json({ deleted: true });
 }
