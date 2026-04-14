@@ -1,4 +1,4 @@
-export const WORK_ITEM_TYPES = ["epic", "feature", "story", "bug", "task"] as const;
+export const WORK_ITEM_TYPES = ["epic", "feature", "story", "bug", "task", "idea"] as const;
 export type WorkItemType = (typeof WORK_ITEM_TYPES)[number];
 
 export const SPRINT_STATES = ["planning", "active", "closed"] as const;
@@ -20,6 +20,7 @@ export const TYPE_COLORS: Record<WorkItemType, string> = {
   story: "text-emerald-600 bg-emerald-50 border-emerald-200",
   bug: "text-red-600 bg-red-50 border-red-200",
   task: "text-slate-600 bg-slate-50 border-slate-200",
+  idea: "text-amber-600 bg-amber-50 border-amber-200",
 };
 
 export const TYPE_DOT_COLORS: Record<WorkItemType, string> = {
@@ -28,6 +29,7 @@ export const TYPE_DOT_COLORS: Record<WorkItemType, string> = {
   story: "bg-emerald-500",
   bug: "bg-red-500",
   task: "bg-slate-400",
+  idea: "bg-amber-400",
 };
 
 
@@ -37,4 +39,5 @@ export const TYPE_LABELS: Record<WorkItemType, string> = {
   story: "Story",
   bug: "Bug",
   task: "Task",
+  idea: "Idea",
 };
