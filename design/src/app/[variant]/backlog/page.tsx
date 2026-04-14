@@ -106,13 +106,26 @@ function buildTree(items: BacklogItem[]): BacklogItem[] {
   return result;
 }
 
+const simpleItems: BacklogItem[] = [
+  { id: 401, title: "User Authentication", type: "feature", state: "done", assignee: "Hannes", parentId: null, points: null },
+  { id: 402, title: "Login page", type: "story", state: "done", assignee: "Hannes", parentId: 401, points: 3 },
+  { id: 403, title: "OAuth integration", type: "story", state: "done", assignee: "Hannes", parentId: 401, points: 5 },
+  { id: 404, title: "Board View", type: "feature", state: "in_progress", assignee: "Hannes", parentId: null, points: null },
+  { id: 405, title: "Drag and drop cards", type: "story", state: "in_progress", assignee: "Hannes", parentId: 404, points: 5 },
+  { id: 406, title: "Column customization", type: "story", state: "new", assignee: "Hannes", parentId: 404, points: 3 },
+  { id: 407, title: "Search & Filters", type: "feature", state: "new", assignee: "Hannes", parentId: null, points: null },
+  { id: 408, title: "Full-text search", type: "story", state: "new", assignee: "Hannes", parentId: 407, points: 5 },
+  { id: 409, title: "Filter by tag", type: "story", state: "new", assignee: "Hannes", parentId: 407, points: 2 },
+];
+
 export default function BacklogPage() {
   const config = useVariant();
   const backlogState = useStateOverride("backlog");
   const hasFilters = config.features.backlogFilters;
   const canReparent = config.features.reparent;
+  const isSimple = !config.features.sprintCapacity && !config.features.advancedPlanning && !config.features.timelinePlanning;
 
-  const [items, setItems] = useState<BacklogItem[]>(initialItems);
+  const [items, setItems] = useState<BacklogItem[]>(isSimple ? simpleItems : initialItems);
   const [selected, setSelected] = useState<BacklogItem | null>(null);
   const [searchText, setSearchText] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -192,10 +205,18 @@ export default function BacklogPage() {
     <>
       <header className="px-6 border-b border-border bg-surface shrink-0">
         <div className="h-14 flex items-center">
-          <h1 className="text-sm font-semibold text-text-primary">Trakr</h1>
+          <h1 className="text-sm font-semibold text-text-primary">{isSimple ? "My Project" : "Trakr"}</h1>
           <span className="text-text-tertiary mx-3">/</span>
           <span className="text-sm text-text-secondary">Backlog</span>
-          <span className="ml-auto text-xs text-text-tertiary">{filteredItems.length} items</span>
+          <span className="ml-auto flex items-center gap-3">
+            {isSimple && (
+              <span className="inline-flex items-center gap-1 text-xs text-accent cursor-pointer hover:text-accent-hover">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                Promote from ideas
+              </span>
+            )}
+            <span className="text-xs text-text-tertiary">{filteredItems.length} items</span>
+          </span>
         </div>
 
         {hasFilters && (
@@ -215,7 +236,7 @@ export default function BacklogPage() {
                 </button>
               )}
             </div>
-            <FilterChip label="Type" value={typeFilter} options={["epic", "feature", "story"]} onSelect={setTypeFilter} />
+            <FilterChip label="Type" value={typeFilter} options={isSimple ? ["feature", "story"] : ["epic", "feature", "story"]} onSelect={setTypeFilter} />
             <FilterChip
               label="State" value={stateFilter}
               options={["new", "active", "ready", "in_progress", "done"]}

@@ -69,16 +69,16 @@ const RULE_COLOR_OPTIONS = [
 /** Map a color swatch class to border + optional bg tint classes */
 function ruleStyleFromColor(color: string): string {
   const map: Record<string, string> = {
-    "bg-red-500": "border-l-[3px] border-l-red-500",
-    "bg-blue-500": "border-l-[3px] border-l-blue-500",
-    "bg-amber-400": "border-l-[3px] border-l-amber-400 bg-amber-50/40",
-    "bg-emerald-500": "border-l-[3px] border-l-emerald-500",
-    "bg-violet-500": "border-l-[3px] border-l-violet-500",
-    "bg-orange-500": "border-l-[3px] border-l-orange-500",
-    "bg-pink-500": "border-l-[3px] border-l-pink-500",
-    "bg-cyan-500": "border-l-[3px] border-l-cyan-500",
+    "bg-red-500": "border-l-[3px] border-l-red-500 rounded-lg overflow-hidden",
+    "bg-blue-500": "border-l-[3px] border-l-blue-500 rounded-lg overflow-hidden",
+    "bg-amber-400": "border-l-[3px] border-l-amber-400 bg-amber-50/40 rounded-lg overflow-hidden",
+    "bg-emerald-500": "border-l-[3px] border-l-emerald-500 rounded-lg overflow-hidden",
+    "bg-violet-500": "border-l-[3px] border-l-violet-500 rounded-lg overflow-hidden",
+    "bg-orange-500": "border-l-[3px] border-l-orange-500 rounded-lg overflow-hidden",
+    "bg-pink-500": "border-l-[3px] border-l-pink-500 rounded-lg overflow-hidden",
+    "bg-cyan-500": "border-l-[3px] border-l-cyan-500 rounded-lg overflow-hidden",
   };
-  return map[color] ?? "border-l-[3px] border-l-blue-500";
+  return map[color] ?? "border-l-[3px] border-l-blue-500 rounded-lg overflow-hidden";
 }
 
 /** Simple expression matcher — supports: type:X, points >= N, points > N, has:assignee, priority >= N */
@@ -141,7 +141,7 @@ function loadCardRulesEnabled(): boolean {
 }
 
 // --- Swimlane types ---
-type SwimlaneSetting = "none" | "assignee" | "parent" | "type";
+type SwimlaneSetting = "none" | "assignee" | "parent" | "type" | "custom";
 
 const SWIMLANE_OPTIONS: { value: SwimlaneSetting; label: string; description: string }[] = [
   { value: "none", label: "None", description: "" },
@@ -616,14 +616,22 @@ export function BoardClient({
                       </button>
 
                       {showCustomSwimlane && (
-                        <div className="px-3 pt-1 pb-1">
+                        <div className="px-3 pt-1 pb-2 flex gap-1.5">
                           <input
                             type="text"
                             value={customSwimlaneExpr}
                             onChange={(e) => setCustomSwimlaneExpr(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter" && customSwimlaneExpr.trim()) { setSwimlane("custom"); } }}
                             placeholder="GROUP BY field_name"
-                            className="w-full text-xs font-mono px-2.5 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
+                            className="flex-1 text-xs font-mono px-2.5 py-1.5 border border-border rounded-md bg-surface text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-300"
                           />
+                          <button
+                            onClick={() => { if (customSwimlaneExpr.trim()) setSwimlane("custom"); }}
+                            disabled={!customSwimlaneExpr.trim()}
+                            className="px-2.5 py-1.5 text-xs bg-accent hover:bg-accent-hover disabled:opacity-40 text-white rounded-md transition-colors"
+                          >
+                            Apply
+                          </button>
                         </div>
                       )}
                     </div>

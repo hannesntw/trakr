@@ -30,6 +30,12 @@ export const stateOverrideRegistry: StateOverrideDefinition[] = [
     states: ["default", "empty"],
     pages: ["timeline"],
   },
+  {
+    key: "ideas",
+    label: "Ideas",
+    states: ["default", "empty", "many"],
+    pages: ["ideas"],
+  },
 ];
 
 export function getRelevantOverrides(pathname: string): StateOverrideDefinition[] {

@@ -7,11 +7,17 @@ import { MockDetailPanel } from "@/components/MockDetailPanel";
 import { Bug, CheckSquare, Square, GitPullRequest, CheckCircle2, Circle, XCircle, GitBranch, ChevronDown, ChevronRight, Plus, Settings2, GripVertical, Trash2, ToggleLeft, ToggleRight, Pencil } from "lucide-react";
 import { PointsBadge } from "@/components/PointsBadge";
 
-const states = [
+const fullStates = [
   { key: "new", label: "New", color: "text-gray-600 bg-gray-50 border-gray-200" },
   { key: "active", label: "Active", color: "text-blue-600 bg-blue-50 border-blue-200" },
   { key: "ready", label: "Ready", color: "text-amber-600 bg-amber-50 border-amber-200" },
   { key: "in_progress", label: "In Progress", color: "text-indigo-600 bg-indigo-50 border-indigo-200" },
+  { key: "done", label: "Done", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+];
+
+const simpleStates = [
+  { key: "new", label: "To Do", color: "text-gray-600 bg-gray-50 border-gray-200" },
+  { key: "in_progress", label: "Doing", color: "text-indigo-600 bg-indigo-50 border-indigo-200" },
   { key: "done", label: "Done", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
 ];
 
@@ -173,6 +179,8 @@ const ruleColorOptions = [
 export default function BoardPage() {
   const variant = useVariant();
   const boardState = useStateOverride("board");
+  const isSimple = !variant.features.sprintCapacity && !variant.features.advancedPlanning && !variant.features.timelinePlanning;
+  const states = isSimple ? simpleStates : fullStates;
   const [selected, setSelected] = useState<Card | null>(null);
   const [taskStates, setTaskStates] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = { 13: true };
@@ -253,9 +261,16 @@ export default function BoardPage() {
   }
 
   // Resolve effective state for cards (tasks move to done when checked)
+  // In simple mode, map non-simple states to the 3-column model
   function effectiveState(card: Card): string {
     if (card.type === "task" && taskStates[card.id]) return "done";
-    return card.state;
+    const raw = card.state;
+    if (isSimple) {
+      if (raw === "done") return "done";
+      if (raw === "in_progress") return "in_progress";
+      return "new"; // new, active, ready all map to "To Do"
+    }
+    return raw;
   }
 
   // Get swimlane config
@@ -432,9 +447,13 @@ export default function BoardPage() {
     <>
       <header className="h-14 px-6 flex items-center justify-between border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-text-primary">Trakr</h1>
-          <span className="text-text-tertiary">/</span>
-          <span className="text-sm text-text-secondary">Board</span>
+          <h1 className="text-sm font-semibold text-text-primary">{isSimple ? "My Project" : "Trakr"}</h1>
+          {!isSimple && (
+            <>
+              <span className="text-text-tertiary">/</span>
+              <span className="text-sm text-text-secondary">Board</span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -670,7 +689,7 @@ export default function BoardPage() {
 
         <div className="p-6">
           {boardState === "empty" ? (
-            <div className="text-center py-20 text-sm text-text-tertiary">No items in this sprint.</div>
+            <div className="text-center py-20 text-sm text-text-tertiary">{isSimple ? "No items on the board." : "No items in this sprint."}</div>
           ) : boardState === "loading" ? (
             <div className="text-center py-20 text-sm text-text-tertiary">Loading board...</div>
           ) : isSwimlaneActive ? (

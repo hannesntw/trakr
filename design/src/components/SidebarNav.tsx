@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useVariant } from "./VariantContext";
-import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2, Building2, Shield } from "lucide-react";
+import { LayoutDashboard, List, CalendarRange, GanttChart, PanelLeftClose, PanelLeftOpen, ChevronDown, Plus, X, Check, Settings, Code2, Building2, Shield, Lightbulb } from "lucide-react";
 
 const mockProjects = [
   { key: "PIC", name: "Pictura", owned: false },
@@ -53,12 +53,15 @@ export function SidebarNav({ variant }: { variant: string }) {
 
   const isOwned = currentProject?.owned ?? false;
 
+  const tabSlugs = new Set(config.tabs.map(t => t.slug));
+
   const navItems = [
-    { href: `/${variant}/board`, icon: LayoutDashboard, label: "Board", show: true },
-    { href: `/${variant}/backlog`, icon: List, label: "Backlog", show: true },
-    { href: `/${variant}/queries`, icon: Code2, label: "Queries", show: config.features.queryPage },
-    { href: `/${variant}/sprints`, icon: CalendarRange, label: "Sprints", show: true },
-    { href: `/${variant}/timeline`, icon: GanttChart, label: "Timeline", show: config.features.timelinePlanning },
+    { href: `/${variant}/board`, icon: LayoutDashboard, label: "Board", show: tabSlugs.has("board") },
+    { href: `/${variant}/backlog`, icon: List, label: "Backlog", show: tabSlugs.has("backlog") },
+    { href: `/${variant}/ideas`, icon: Lightbulb, label: "Ideas", show: tabSlugs.has("ideas") },
+    { href: `/${variant}/queries`, icon: Code2, label: "Queries", show: tabSlugs.has("queries") && config.features.queryPage },
+    { href: `/${variant}/sprints`, icon: CalendarRange, label: "Sprints", show: tabSlugs.has("sprints") },
+    { href: `/${variant}/timeline`, icon: GanttChart, label: "Timeline", show: tabSlugs.has("timeline") && config.features.timelinePlanning },
     { href: `/${variant}/settings`, icon: Settings, label: "Settings", show: isOwned },
   ];
 

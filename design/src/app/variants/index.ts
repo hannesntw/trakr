@@ -140,11 +140,48 @@ const enterprise: VariantConfig = {
   ],
 };
 
+const simple: VariantConfig = {
+  id: "simple",
+  label: "Simple Mode",
+  features: {
+    sprintCapacity: false,
+    velocityTracking: false,
+    burndownChart: false,
+    customFields: false,
+    bulkOperations: false,
+    timelinePlanning: false,
+    advancedPlanning: false,
+    collapsibleSidebar: true,
+    storyTimeline: false,
+    changeHistory: false,
+    timelineMarkers: false,
+    timelineLinks: false,
+    timelineDrag: false,
+    backlogFilters: true,
+    queryPage: true,
+    assigneeCombobox: false,
+    workItemLinks: true,
+    reparent: false,
+    configurableWorkflow: true,
+    storyPoints: true,
+    ...noGithub,
+    ...noTraql,
+    ...noOrg,
+  },
+  tabs: [
+    { slug: "board", label: "Board" },
+    { slug: "backlog", label: "Backlog" },
+    { slug: "ideas", label: "Ideas" },
+    { slug: "queries", label: "Queries" },
+  ],
+};
+
 export const variants: Record<string, VariantConfig> = {
   current,
   github,
   reports,
   enterprise,
+  simple,
 };
 
 export const variantIds = Object.keys(variants);
