@@ -496,7 +496,10 @@ export default function IdeasPage() {
         } else {
           lassoStartSelection.current = new Set(selectedIds);
         }
-        setLassoRect({ startX: e.clientX, startY: e.clientY, currentX: e.clientX, currentY: e.clientY });
+        const rect = canvasRef.current?.getBoundingClientRect();
+        const ox = rect ? e.clientX - rect.left : e.clientX;
+        const oy = rect ? e.clientY - rect.top : e.clientY;
+        setLassoRect({ startX: ox, startY: oy, currentX: ox, currentY: oy });
       }
     },
     [pan, editingId, saveEditing, selectedIds]
@@ -528,18 +531,20 @@ export default function IdeasPage() {
           y: panStart.current.origPanY + dy,
         });
       } else if (lassoRect) {
-        // Update lasso rectangle and compute selection
-        const newRect = { ...lassoRect, currentX: e.clientX, currentY: e.clientY };
+        // Update lasso rectangle — coords are relative to canvas element
+        const el = canvasRef.current;
+        const cRect = el?.getBoundingClientRect();
+        const cx = cRect ? e.clientX - cRect.left : e.clientX;
+        const cy = cRect ? e.clientY - cRect.top : e.clientY;
+        const newRect = { ...lassoRect, currentX: cx, currentY: cy };
         setLassoRect(newRect);
 
-        // Convert lasso screen coords to canvas coords
-        const el = canvasRef.current;
+        // Convert lasso element-relative coords to canvas space
         if (el) {
-          const rect = el.getBoundingClientRect();
-          const lx1 = (Math.min(newRect.startX, newRect.currentX) - rect.left - pan.x) / zoom;
-          const ly1 = (Math.min(newRect.startY, newRect.currentY) - rect.top - pan.y) / zoom;
-          const lx2 = (Math.max(newRect.startX, newRect.currentX) - rect.left - pan.x) / zoom;
-          const ly2 = (Math.max(newRect.startY, newRect.currentY) - rect.top - pan.y) / zoom;
+          const lx1 = (Math.min(newRect.startX, newRect.currentX) - pan.x) / zoom;
+          const ly1 = (Math.min(newRect.startY, newRect.currentY) - pan.y) / zoom;
+          const lx2 = (Math.max(newRect.startX, newRect.currentX) - pan.x) / zoom;
+          const ly2 = (Math.max(newRect.startY, newRect.currentY) - pan.y) / zoom;
 
           const CARD_W = 200;
           const CARD_H = 140;
@@ -987,7 +992,7 @@ export default function IdeasPage() {
             className="absolute border-2 border-accent/50 bg-accent/10 rounded-sm pointer-events-none z-20"
             style={{
               left: Math.min(lassoRect.startX, lassoRect.currentX),
-              top: Math.min(lassoRect.startY, lassoRect.currentY) - (canvasRef.current?.getBoundingClientRect().top ?? 0),
+              top: Math.min(lassoRect.startY, lassoRect.currentY),
               width: Math.abs(lassoRect.currentX - lassoRect.startX),
               height: Math.abs(lassoRect.currentY - lassoRect.startY),
             }}
