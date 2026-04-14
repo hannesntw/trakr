@@ -167,8 +167,13 @@ function hexToRgb(hex: string) {
 function brandCardColor(colorIndex: number) {
   const c = BRAND_COLORS[colorIndex % BRAND_COLORS.length];
   const { r, g, b } = hexToRgb(c.hex);
+  // Opaque tint so grid dots don't show through cards
+  // Approximate rgba(r,g,b,0.08) over white (#fff) background
+  const tintR = Math.round(255 + (r - 255) * 0.08);
+  const tintG = Math.round(255 + (g - 255) * 0.08);
+  const tintB = Math.round(255 + (b - 255) * 0.08);
   return {
-    bg: `rgba(${r}, ${g}, ${b}, 0.08)`,
+    bg: `rgb(${tintR}, ${tintG}, ${tintB})`,
     border: `rgba(${r}, ${g}, ${b}, 0.25)`,
     dot: c.hex,
   };
@@ -333,6 +338,7 @@ export default function IdeasPage() {
   const [quickBody, setQuickBody] = useState("");
   const [quickExpanded, setQuickExpanded] = useState(false);
   const addFormRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Edit mode
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -580,25 +586,9 @@ export default function IdeasPage() {
     let cx: number, cy: number;
 
     if (lastAddedPos.current) {
-      // Stack below and slightly right of last added idea
-      cx = lastAddedPos.current.x + 30;
-      cy = lastAddedPos.current.y + 220;
-
-      // Reset if off-screen
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        const screenX = cx * zoom + pan.x;
-        const screenY = cy * zoom + pan.y;
-        if (
-          screenX < 0 ||
-          screenX > rect.width - 100 ||
-          screenY < 0 ||
-          screenY > rect.height - 100
-        ) {
-          cx = (rect.width / 2 - pan.x) / zoom;
-          cy = (rect.height / 2 - pan.y) / zoom;
-        }
-      }
+      // Stack below the last added idea
+      cx = lastAddedPos.current.x;
+      cy = lastAddedPos.current.y + 200;
     } else {
       // First add: center of viewport
       cx = 200;
@@ -624,7 +614,32 @@ export default function IdeasPage() {
     setIdeas((prev) => [...prev, newIdea]);
     setQuickTitle("");
     setQuickBody("");
-    setQuickExpanded(false);
+    // Keep the bar expanded and refocus the title input
+    // so the user can rapidly enter more ideas
+    setQuickExpanded(true);
+    requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+    });
+
+    // Auto-pan: if the new card is outside the visible viewport, smoothly pan to center it
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const screenX = cx * zoom + pan.x;
+      const screenY = cy * zoom + pan.y;
+      const margin = 80;
+      if (
+        screenX < margin ||
+        screenX > rect.width - margin - CARD_WIDTH * zoom ||
+        screenY < margin ||
+        screenY > rect.height - margin - 180
+      ) {
+        // Pan so the new card is centered in the viewport
+        setPan({
+          x: rect.width / 2 - cx * zoom - (CARD_WIDTH / 2) * zoom,
+          y: rect.height / 2 - cy * zoom - 80 * zoom,
+        });
+      }
+    }
   }
 
   function handleDelete(id: number) {
@@ -756,16 +771,18 @@ export default function IdeasPage() {
                           if (e.key === "Enter") saveEditing();
                         }}
                         autoFocus
-                        className="w-full text-[13px] font-medium text-text-primary bg-white/60 border border-border rounded px-1.5 py-0.5 outline-none focus:border-accent"
+                        className="w-full text-[13px] font-medium leading-snug text-text-primary bg-white/60 border border-border rounded px-1.5 py-1 outline-none focus:border-accent"
                       />
                       <textarea
                         value={editBody}
                         onChange={(e) => setEditBody(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Escape") cancelEditing();
+                          if (e.key === "Enter" && !e.shiftKey) saveEditing();
                         }}
-                        rows={2}
-                        className="w-full mt-1.5 text-[11px] text-text-secondary bg-white/60 border border-border rounded px-1.5 py-0.5 outline-none focus:border-accent resize-none"
+                        rows={Math.max(4, editBody.split("\n").length + 1)}
+                        style={{ minHeight: 100 }}
+                        className="w-full mt-1.5 text-[11px] leading-relaxed text-text-secondary bg-white/60 border border-border rounded px-1.5 py-1 outline-none focus:border-accent resize-none"
                       />
                     </div>
                   ) : (
@@ -896,14 +913,17 @@ export default function IdeasPage() {
               <div className="flex items-center">
                 <Plus className="w-4 h-4 ml-3.5 text-text-tertiary shrink-0" />
                 <input
+                  ref={titleInputRef}
                   type="text"
                   value={quickTitle}
                   onChange={(e) => setQuickTitle(e.target.value)}
                   onFocus={() => setQuickExpanded(true)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
                       handleQuickAdd();
-                    } else if (e.key === "Enter" && !quickExpanded) {
+                    } else if (e.key === "Enter" && quickTitle.trim()) {
+                      e.preventDefault();
                       handleQuickAdd();
                     }
                   }}
@@ -929,12 +949,16 @@ export default function IdeasPage() {
                     onChange={(e) => setQuickBody(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        handleQuickAdd();
+                      } else if (e.key === "Enter" && e.shiftKey) {
+                        e.preventDefault();
                         handleQuickAdd();
                       }
                     }}
                     rows={2}
                     tabIndex={2}
-                    placeholder="Add a description (optional)... Cmd+Enter to save"
+                    placeholder="Add a description (optional)... Shift+Enter to save"
                     className="w-full px-2.5 py-2 text-sm bg-content-bg border border-border rounded-md outline-none focus:border-accent text-text-primary placeholder:text-text-tertiary resize-none"
                   />
                 </div>
