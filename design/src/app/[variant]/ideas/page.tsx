@@ -489,21 +489,14 @@ export default function IdeasPage() {
       if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.canvasBg === "true") {
         if (editingId !== null) saveEditing();
 
-        if (e.shiftKey) {
-          // Shift+drag on canvas = lasso selection
-          lassoStartSelection.current = new Set(selectedIds);
-          setLassoRect({ startX: e.clientX, startY: e.clientY, currentX: e.clientX, currentY: e.clientY });
-        } else {
-          // Normal drag on canvas = pan
-          setIsPanning(true);
+        // Drag on canvas = lasso selection (Shift = toggle, no Shift = fresh selection)
+        if (!e.shiftKey) {
+          lassoStartSelection.current = new Set();
           setSelectedIds(new Set());
-          panStart.current = {
-            x: e.clientX,
-            y: e.clientY,
-            origPanX: pan.x,
-            origPanY: pan.y,
-          };
+        } else {
+          lassoStartSelection.current = new Set(selectedIds);
         }
+        setLassoRect({ startX: e.clientX, startY: e.clientY, currentX: e.clientX, currentY: e.clientY });
       }
     },
     [pan, editingId, saveEditing, selectedIds]
