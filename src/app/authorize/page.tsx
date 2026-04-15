@@ -31,10 +31,10 @@ async function approveDeviceCode(userId: string, code: string) {
 function StoriLogo() {
   return (
     <svg width="40" height="40" viewBox="0 0 32 32">
-      <rect width="32" height="32" rx="6" fill="#6366F1" />
-      <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9" />
-      <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7" />
-      <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5" />
+      <circle cx="16" cy="16" r="14" fill="none" stroke="#6366F1" strokeWidth="2.5"/>
+      <polyline points="10,21 16,15 22,21" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="10,17 16,11 22,17" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="10,13 16,7 22,13" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }

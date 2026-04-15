@@ -8,9 +8,9 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { execSync } from "child_process";
-var BASE_URL = process.env.TRAKR_URL ?? "https://trakr-five.vercel.app";
-var API_KEY = process.env.TRAKR_API_KEY;
-var CRED_DIR = join(homedir(), ".trakr");
+var BASE_URL = process.env.STORI_URL ?? "https://stori.zone";
+var API_KEY = process.env.STORI_API_KEY;
+var CRED_DIR = join(homedir(), ".stori");
 var CRED_FILE = join(CRED_DIR, "credentials.json");
 function loadStoredKey() {
   try {
@@ -37,7 +37,7 @@ async function deviceFlow() {
     if (!res.ok) return null;
     const { code, verification_url } = await res.json();
     process.stderr.write(`
-\u{1F510} Authorize Trakr: ${verification_url}
+\u{1F510} Authorize Stori: ${verification_url}
 
 `);
     try {
@@ -76,7 +76,7 @@ if (!API_KEY) {
 async function api(path, options) {
   const headers = {
     "Content-Type": "application/json",
-    "X-Trakr-Channel": "mcp",
+    "X-Stori-Channel": "mcp",
     ...options?.headers
   };
   if (API_KEY) {
@@ -94,12 +94,12 @@ function textResult(data) {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
 var server = new McpServer({
-  name: "trakr",
+  name: "stori",
   version: "1.0.0"
 });
 server.tool(
   "list_projects",
-  "List all projects in Trakr",
+  "List all projects in Stori",
   {},
   async () => textResult(await api("/api/projects"))
 );
