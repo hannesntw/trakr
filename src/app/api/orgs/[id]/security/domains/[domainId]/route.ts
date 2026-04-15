@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
+// Force Node.js runtime for dns module access
+export const runtime = "nodejs";
+
 import { promises as dns } from "dns";
 import { db } from "@/db";
 import { verifiedDomains } from "@/db/schema";
