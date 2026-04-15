@@ -13,8 +13,7 @@ import { ChangeHistory } from "@/components/ChangeHistory";
 import { Combobox, type ComboboxOption } from "@/components/Combobox";
 import { WorkItemLinks } from "@/components/WorkItemLinks";
 import { PointsPicker } from "@/components/PointsBadge";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Markdown } from "@/components/Markdown";
 import { GitPullRequest, GitBranch, GitCommit, CheckCircle2, XCircle, Circle, ExternalLink, Rocket } from "lucide-react";
 import { formatFullDateTime } from "@/lib/utils";
 import { RelativeTime } from "@/components/RelativeTime";
@@ -333,10 +332,8 @@ export function WorkItemDetailFull({
                           </span>
                           <RelativeTime date={c.createdAt} className="text-xs text-text-tertiary" />
                         </div>
-                        <div className="text-sm text-text-secondary leading-relaxed prose prose-sm">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {c.body}
-                          </ReactMarkdown>
+                        <div className="text-sm text-text-secondary leading-relaxed">
+                          <Markdown>{c.body}</Markdown>
                         </div>
                       </div>
                     ))}
