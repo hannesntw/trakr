@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
   <circle cx="16" cy="16" r="14" fill="none" stroke="#6366F1" stroke-width="2.5"/>
-  <polyline points="10,21 16,15 22,21" fill="none" stroke="#6366F1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <polyline points="10,17 16,11 22,17" fill="none" stroke="#6366F1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <polyline points="10,13 16,7 22,13" fill="none" stroke="#6366F1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Design badge -->
+  <g transform="translate(16, 16.5) scale(0.85)">
+    <polyline points="-6,6 0,0 6,6" fill="none" stroke="#6366F1" stroke-width="2.0" stroke-linecap="square" stroke-linejoin="miter"/>
+    <polyline points="-8.5,3.5 0,-5 8.5,3.5" fill="none" stroke="#6366F1" stroke-width="2.0" stroke-linecap="square" stroke-linejoin="miter"/>
+    <polyline points="-11,1 0,-10 11,1" fill="none" stroke="#6366F1" stroke-width="2.0" stroke-linecap="square" stroke-linejoin="miter"/>
+  </g>
   <circle cx="26" cy="6" r="4.5" fill="#CC850A"/>
   <path d="M24.5 6 L25.5 7 L28 4.5" stroke="white" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
