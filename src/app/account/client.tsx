@@ -148,6 +148,7 @@ export function AccountClient({ user }: AccountClientProps) {
                   <div className={`w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 overflow-hidden transition-transform relative ${theme === "light" ? "scale-110" : "group-hover:scale-105"}`}>
                     {/* Two suns stacked: each 20px icon centered in a 40px slot. Column = 80px total. */}
                     <div
+                      data-theme-icon
                       className="absolute left-0 right-0 flex flex-col items-center"
                       style={{
                         height: 80,
@@ -172,6 +173,7 @@ export function AccountClient({ user }: AccountClientProps) {
                   <div className={`w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-500/10 overflow-hidden transition-transform relative ${theme === "dark" ? "scale-110" : "group-hover:scale-105"}`}>
                     {/* Two moons stacked: column = 80px. At rest top moon is hidden above, bottom visible. On click shifts down. */}
                     <div
+                      data-theme-icon
                       className="absolute left-0 right-0 flex flex-col items-center"
                       style={{
                         height: 80,

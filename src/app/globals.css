@@ -58,9 +58,9 @@ body {
 }
 
 /* Slow sunrise/sunset when theme changes — only active during transition */
-html.theme-transitioning *,
-html.theme-transitioning *::before,
-html.theme-transitioning *::after {
+html.theme-transitioning *:not([data-theme-icon]),
+html.theme-transitioning *:not([data-theme-icon])::before,
+html.theme-transitioning *:not([data-theme-icon])::after {
   transition: background-color 1.2s ease, border-color 1.2s ease, color 1.2s ease !important;
 }
 
