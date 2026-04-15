@@ -18,6 +18,17 @@
   --accent-light: #EEF2FF;
 }
 
+[data-theme="dark"] {
+  --content-bg: #09090B;
+  --surface: #18181B;
+  --border: #27272A;
+  --border-hover: #3F3F46;
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #71717A;
+  --accent-light: #1E1B4B;
+}
+
 @theme inline {
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-text: var(--sidebar-text);

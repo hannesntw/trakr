@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Cpu, Copy, Check, Key } from "lucide-react";
+import { Plus, Cpu, Copy, Check, Key, Sun, Moon, Monitor } from "lucide-react";
 import { formatFullDateTime } from "@/lib/utils";
 
 interface ApiKeyInfo {
@@ -25,11 +25,26 @@ export function AccountClient({ user }: AccountClientProps) {
   const [newLabel, setNewLabel] = useState("Claude Code");
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
   const router = useRouter();
 
   useEffect(() => {
     fetch("/api/account/keys").then(r => r.json()).then(setKeys);
+    const stored = localStorage.getItem("stori-theme") as "light" | "dark" | null;
+    setTheme(stored ?? "system");
   }, []);
+
+  function applyTheme(t: "light" | "dark" | "system") {
+    setTheme(t);
+    if (t === "system") {
+      localStorage.removeItem("stori-theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+    } else {
+      localStorage.setItem("stori-theme", t);
+      document.documentElement.setAttribute("data-theme", t);
+    }
+  }
 
   async function saveName() {
     setSaving(true);
@@ -109,6 +124,33 @@ export function AccountClient({ user }: AccountClientProps) {
                   className="px-4 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors">
                   {saving ? "Saving..." : "Save"}
                 </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Theme */}
+          <section>
+            <h2 className="text-sm font-semibold text-text-primary mb-4">Theme</h2>
+            <div className="bg-surface border border-border rounded-lg p-4">
+              <div className="flex gap-2">
+                {([
+                  { value: "light" as const, icon: Sun, label: "Light" },
+                  { value: "dark" as const, icon: Moon, label: "Dark" },
+                  { value: "system" as const, icon: Monitor, label: "System" },
+                ]).map(({ value, icon: Icon, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => applyTheme(value)}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md border transition-colors ${
+                      theme === value
+                        ? "border-accent bg-accent/10 text-accent font-medium"
+                        : "border-border text-text-secondary hover:border-border-hover hover:text-text-primary"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           </section>
