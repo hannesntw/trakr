@@ -129,7 +129,7 @@ server.tool(
   "List work items with optional filters",
   {
     projectId: z.number().optional().describe("Filter by project ID"),
-    type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
+    type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]).optional(),
     state: z.string().optional().describe("Workflow state slug"),
     sprintId: z.number().optional(),
     parentId: z.number().optional(),
@@ -149,18 +149,18 @@ server.tool(
 
 server.tool(
   "get_work_item",
-  "Get a single work item by ID or displayId like 'TRK-5' (includes children)",
-  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'") },
+  "Get a single work item by ID or displayId like 'STRI-5' (includes children)",
+  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'STRI-5'") },
   async (params) => textResult(await api(`/api/work-items/${params.id}`))
 );
 
 server.tool(
   "create_work_item",
-  "Create a new work item (epic, feature, or story)",
+  "Create a new work item (epic, feature, story, or idea)",
   {
     projectId: z.number().describe("Project ID"),
     title: z.string(),
-    type: z.enum(["epic", "feature", "story", "bug", "task"]),
+    type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]),
     description: z.string().optional(),
     parentId: z.number().optional().describe("Parent work item ID"),
     sprintId: z.number().optional(),
@@ -176,9 +176,9 @@ server.tool(
   "update_work_item",
   "Update fields on a work item",
   {
-    id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'"),
+    id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'STRI-5'"),
     title: z.string().optional(),
-    type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
+    type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]).optional(),
     state: z.string().optional().describe("Workflow state slug"),
     description: z.string().optional(),
     parentId: z.number().nullable().optional(),
@@ -193,7 +193,7 @@ server.tool(
 server.tool(
   "delete_work_item",
   "Delete a work item",
-  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'") },
+  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'STRI-5'") },
   async (params) => textResult(await api(`/api/work-items/${params.id}`, { method: "DELETE" }))
 );
 
