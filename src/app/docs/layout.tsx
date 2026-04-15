@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StoriLogo } from "@/components/StoriLogo";
 
 const NAV = [
   { href: "/docs", label: "Getting Started" },
@@ -14,12 +15,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       {/* Sidebar */}
       <nav className="w-56 shrink-0 border-r border-border bg-surface p-6 sticky top-0 h-screen overflow-auto">
         <Link href="/" className="flex items-center gap-2 mb-8">
-          <svg width="24" height="24" viewBox="0 0 32 32" className="shrink-0">
-            <rect width="32" height="32" rx="6" fill="#6366F1"/>
-            <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9"/>
-            <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
-            <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
-          </svg>
+          <StoriLogo size={24} className="shrink-0" />
           <span className="text-sm font-semibold text-text-primary">Stori Docs</span>
         </Link>
         <ul className="space-y-1">

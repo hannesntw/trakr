@@ -21,6 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StoriLogo } from "@/components/StoriLogo";
 
 interface Project {
   id: number;
@@ -130,12 +131,7 @@ export function Sidebar({ projects, currentProjectKey, user, signOutAction, hasO
       {/* Logo */}
       <div className="h-14 flex items-center border-b border-sidebar-border px-2">
         <div className="flex items-center gap-2.5 pl-2">
-          <svg width="20" height="20" viewBox="0 0 32 32" className="shrink-0">
-            <rect width="32" height="32" rx="6" fill="#6366F1"/>
-            <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9"/>
-            <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
-            <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
-          </svg>
+          <StoriLogo size={20} className="shrink-0" />
           <span className={cn("font-semibold text-sidebar-text-active text-sm tracking-tight whitespace-nowrap transition-opacity duration-150", collapsed ? "opacity-0" : "opacity-100")}>
             Stori
           </span>

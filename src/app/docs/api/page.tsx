@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Copy, Check, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { StoriLogo } from "@/components/StoriLogo";
 
 /* ---------- types ---------- */
 
@@ -592,12 +593,7 @@ export default function ApiReferencePage() {
             <ArrowLeft className="w-3 h-3" /> Back to Docs
           </Link>
           <div className="flex items-center gap-3 mb-3">
-            <svg width="32" height="32" viewBox="0 0 32 32" className="shrink-0">
-              <rect width="32" height="32" rx="6" fill="#6366F1" />
-              <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9" />
-              <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7" />
-              <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5" />
-            </svg>
+            <StoriLogo size={32} className="shrink-0" />
             <h1 className="text-2xl font-bold text-text-primary">REST API Reference</h1>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed">

@@ -1,6 +1,7 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Mail } from "lucide-react";
+import { StoriLogo } from "@/components/StoriLogo";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -10,12 +11,7 @@ export default async function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-content-bg">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <svg width="40" height="40" viewBox="0 0 32 32" className="mb-3">
-            <circle cx="16" cy="16" r="14" fill="none" stroke="#6366F1" strokeWidth="2.5"/>
-            <polyline points="10,21 16,15 22,21" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"/>
-            <polyline points="8,17 16,11 24,17" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"/>
-            <polyline points="6,13 16,7 26,13" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"/>
-          </svg>
+          <StoriLogo size={40} className="mb-3" />
           <h1 className="text-2xl font-bold text-text-primary">Stori</h1>
           <p className="text-sm text-text-secondary mt-1">Sign in to manage your projects</p>
         </div>

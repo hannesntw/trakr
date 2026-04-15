@@ -2,6 +2,7 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { StoriLogo } from "@/components/StoriLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
     <div className="h-full flex">
       <aside className="w-60 bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border">
         <div className="h-14 flex items-center border-b border-sidebar-border pl-4">
-          <svg width="20" height="20" viewBox="0 0 32 32" className="mr-2">
-            <rect width="32" height="32" rx="6" fill="#6366F1"/>
-            <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9"/>
-            <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7"/>
-            <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5"/>
-          </svg>
+          <StoriLogo size={20} className="mr-2" />
           <span className="font-semibold text-sidebar-text-active text-sm">Stori</span>
         </div>
         <div className="px-3 py-3">

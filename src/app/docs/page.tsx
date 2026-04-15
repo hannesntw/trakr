@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, BookOpen, Code2, Cpu, Layers, GitBranch, Search } from "lucide-react";
+import { StoriLogo } from "@/components/StoriLogo";
 
 const quickLinks = [
   { href: "/docs/api", label: "REST API Reference", icon: Code2, desc: "Full endpoint documentation with examples" },
@@ -45,12 +46,7 @@ export default function DocsGettingStartedPage() {
         {/* Header */}
         <div className="mb-10">
           <div className="flex items-center gap-3 mb-3">
-            <svg width="32" height="32" viewBox="0 0 32 32" className="shrink-0">
-              <rect width="32" height="32" rx="6" fill="#6366F1" />
-              <rect x="7" y="8" width="5" height="16" rx="1.5" fill="white" opacity="0.9" />
-              <rect x="14" y="12" width="5" height="12" rx="1.5" fill="white" opacity="0.7" />
-              <rect x="21" y="10" width="5" height="14" rx="1.5" fill="white" opacity="0.5" />
-            </svg>
+            <StoriLogo size={32} className="shrink-0" />
             <h1 className="text-2xl font-bold text-text-primary">Getting Started with Stori</h1>
           </div>
           <p className="text-sm text-text-secondary leading-relaxed">

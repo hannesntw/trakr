@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { deviceCodes, apiKeys } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Cpu, Check, Shield, ShieldCheck, Mail } from "lucide-react";
+import { StoriLogo } from "@/components/StoriLogo";
 import { createHash, randomBytes } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -28,16 +29,6 @@ async function approveDeviceCode(userId: string, code: string) {
     .where(eq(deviceCodes.code, code));
 }
 
-function StoriLogo() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="14" fill="none" stroke="#6366F1" strokeWidth="2.5"/>
-      <polyline points="10,21 16,15 22,21" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"/>
-      <polyline points="8,17 16,11 24,17" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"/>
-      <polyline points="6,13 16,7 26,13" fill="none" stroke="#6366F1" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"/>
-    </svg>
-  );
-}
 
 export default async function AuthorizePage({
   searchParams,
