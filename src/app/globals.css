@@ -21,6 +21,9 @@
 }
 
 [data-theme="dark"] {
+  --sidebar-bg: #09090B;
+  --sidebar-hover: #18181B;
+  --sidebar-border: #1E1E23;
   --content-bg: #09090B;
   --surface: #18181B;
   --border: #27272A;
