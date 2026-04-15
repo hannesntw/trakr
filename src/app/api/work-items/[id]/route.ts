@@ -121,7 +121,7 @@ export async function PATCH(
   const [lastSnapshot] = await db
     .select({ version: workItemSnapshots.version })
     .from(workItemSnapshots)
-    .where(eq(workItemSnapshots.workItemId, Number(id)))
+    .where(eq(workItemSnapshots.workItemId, resolvedId))
     .orderBy(desc(workItemSnapshots.version))
     .limit(1);
   const nextVersion = (lastSnapshot?.version ?? -1) + 1;
