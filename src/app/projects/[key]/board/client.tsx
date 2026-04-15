@@ -450,10 +450,16 @@ export function BoardClient({
   const swimlaneGroups = useMemo(() => {
     if (swimlane === "none") return null;
 
+    // Parse custom field from expression like "GROUP BY points" or just "points"
+    const customField = swimlane === "custom"
+      ? customSwimlaneExpr.trim().replace(/^GROUP\s+BY\s+/i, "").trim().toLowerCase()
+      : null;
+
     const groups = new Map<string, WorkItem[]>();
     const noValueLabel =
       swimlane === "assignee" ? "Unassigned" :
       swimlane === "parent" ? "No parent" :
+      swimlane === "custom" ? `No ${customField}` :
       "Unknown";
 
     for (const item of filteredItems) {
@@ -462,9 +468,17 @@ export function BoardClient({
         key = item.assignee ?? noValueLabel;
       } else if (swimlane === "parent") {
         key = item.parentId ? (parentMap.get(item.parentId) ?? `#${item.parentId}`) : noValueLabel;
-      } else {
-        // type
+      } else if (swimlane === "type") {
         key = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+      } else if (swimlane === "custom" && customField) {
+        const val = (item as unknown as Record<string, unknown>)[customField];
+        key = val != null ? String(val) : noValueLabel;
+        // Capitalize single-word values for display
+        if (key !== noValueLabel && /^[a-z]/.test(key)) {
+          key = key.charAt(0).toUpperCase() + key.slice(1);
+        }
+      } else {
+        key = noValueLabel;
       }
 
       if (!groups.has(key)) groups.set(key, []);
@@ -476,11 +490,14 @@ export function BoardClient({
     entries.sort(([a], [b]) => {
       if (a === noValueLabel) return 1;
       if (b === noValueLabel) return -1;
+      // Try numeric sort for fields like points/priority
+      const numA = Number(a), numB = Number(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
       return a.localeCompare(b);
     });
 
     return entries;
-  }, [filteredItems, swimlane, parentMap]);
+  }, [filteredItems, swimlane, parentMap, customSwimlaneExpr]);
 
   /** Render columns for a given set of items */
   function renderColumns(columnItems: WorkItem[]) {
@@ -672,8 +689,8 @@ export function BoardClient({
                         className={cn(
                           "w-full text-left px-3 py-2 text-xs rounded-md transition-colors",
                           showCustomSwimlane
-                            ? "bg-indigo-50 text-indigo-700 font-medium"
-                            : "text-text-primary hover:bg-surface-hover"
+                            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-400 font-medium"
+                            : "text-text-primary hover:bg-content-bg"
                         )}
                       >
                         <div className="font-medium">Custom...</div>
