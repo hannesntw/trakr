@@ -152,7 +152,7 @@ export function AccountClient({ user }: AccountClientProps) {
                       className="absolute left-0 right-0 flex flex-col items-center"
                       style={{
                         height: 80,
-                        transition: clicked === "light" ? "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
+                        transition: clicked === "light" ? "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
                         transform: theme === "light" ? "translateY(-40px)" : "translateY(0)",
                       }}
                     >
@@ -178,7 +178,7 @@ export function AccountClient({ user }: AccountClientProps) {
                       style={{
                         height: 80,
                         top: -40,
-                        transition: clicked === "dark" ? "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
+                        transition: clicked === "dark" ? "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
                         transform: theme === "dark" ? "translateY(40px)" : "translateY(0)",
                       }}
                     >
