@@ -23,7 +23,7 @@
 [data-theme="dark"] {
   --sidebar-bg: #09090B;
   --sidebar-hover: #18181B;
-  --sidebar-border: #1E1E23;
+  --sidebar-border: #27272A;
   --content-bg: #09090B;
   --surface: #18181B;
   --border: #27272A;
@@ -58,6 +58,18 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Dark mode: unify sidebar with content area */
+[data-theme="dark"] aside {
+  --color-sidebar-bg: var(--content-bg);
+  --color-sidebar-hover: var(--surface);
+  --color-sidebar-border: var(--border);
+}
+
+/* Dark mode: sidebar top bar matches content header */
+[data-theme="dark"] aside > .h-14 {
+  background-color: var(--surface);
 }
 
 /* Slow sunrise/sunset when theme changes — only active during transition */
