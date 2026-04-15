@@ -308,18 +308,18 @@ export function DetailPanel({
               )}
 
               <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    placeholder="Write a comment..."
+                  <textarea
+                    placeholder="Write a comment... (Markdown supported)"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && postComment()}
-                    className="flex-1 px-2.5 py-1.5 text-xs border border-border rounded-md bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); postComment(); } }}
+                    rows={2}
+                    className="flex-1 px-2.5 py-1.5 text-xs border border-border rounded-md bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
                   />
                   <button
                     onClick={postComment}
                     disabled={!newComment.trim()}
-                    className="px-2.5 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs font-medium rounded-md transition-colors"
+                    className="px-2.5 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs font-medium rounded-md transition-colors self-end"
                   >
                     Post
                   </button>

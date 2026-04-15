@@ -42,7 +42,7 @@ export async function POST(
   let author = parsed.data.author;
   if (!author) {
     const user = await resolveApiUser(request);
-    author = user?.name ?? "Anonymous";
+    author = user?.name ?? user?.email ?? "Anonymous";
   }
 
   const [row] = await db
