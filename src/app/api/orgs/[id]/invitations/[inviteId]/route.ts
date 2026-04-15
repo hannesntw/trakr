@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { organizationInvitations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole } from "@/lib/org-auth";
+import { requireOrgRole, checkIpAllowlist } from "@/lib/org-auth";
 
 export async function DELETE(
   request: NextRequest,
@@ -22,6 +22,9 @@ export async function DELETE(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const [invite] = await db
     .select()
@@ -54,6 +57,9 @@ export async function POST(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json().catch(() => ({}));
   if ((body as Record<string, unknown>).action !== "resend") {

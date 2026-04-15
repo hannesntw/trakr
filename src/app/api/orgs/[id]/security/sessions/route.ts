@@ -4,7 +4,7 @@ import { sessions, organizationMembers } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole } from "@/lib/org-auth";
+import { requireOrgRole, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 export async function GET(
@@ -20,6 +20,9 @@ export async function GET(
   // Admin+ can view session summary
   const member = await requireOrgRole(orgId, user.id, "admin");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   // Get all member user IDs for this org
   const members = await db
@@ -61,6 +64,9 @@ export async function POST(
   // Admin+ can revoke sessions
   const member = await requireOrgRole(orgId, user.id, "admin");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   if (body.action !== "revoke-all") {

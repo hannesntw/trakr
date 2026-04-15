@@ -4,7 +4,7 @@ import { ssoConfigurations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { randomBytes, createHash } from "crypto";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole } from "@/lib/org-auth";
+import { requireOrgRole, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 /**
@@ -23,6 +23,9 @@ export async function GET(
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const [config] = await db
     .select({ scimTokenHash: ssoConfigurations.scimTokenHash })
@@ -50,6 +53,9 @@ export async function POST(
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   // Must have an SSO config to generate a SCIM token
   const [config] = await db
@@ -104,6 +110,9 @@ export async function DELETE(
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   await db
     .update(ssoConfigurations)

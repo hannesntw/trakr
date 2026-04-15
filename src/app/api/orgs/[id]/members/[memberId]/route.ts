@@ -4,7 +4,7 @@ import { organizationMembers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole, getRoleLevel } from "@/lib/org-auth";
+import { requireOrgRole, getRoleLevel, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 const updateSchema = z.object({
@@ -28,6 +28,9 @@ export async function PATCH(
   if (!actor) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
@@ -86,6 +89,9 @@ export async function DELETE(
   if (!actor) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   // Find target member
   const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));

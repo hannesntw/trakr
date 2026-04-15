@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { auditLog } from "@/db/schema";
 import { eq, and, gte, lte, like, or, desc, sql } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole } from "@/lib/org-auth";
+import { requireOrgRole, checkIpAllowlist } from "@/lib/org-auth";
 
 export async function GET(
   request: NextRequest,
@@ -22,6 +22,9 @@ export async function GET(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const url = new URL(request.url);
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1"));

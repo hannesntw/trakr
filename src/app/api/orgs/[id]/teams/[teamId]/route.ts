@@ -4,7 +4,7 @@ import { teams, teamMembers, teamProjectAccess, users, projects } from "@/db/sch
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { requireOrgRole, resolveOrgMember, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 const updateSchema = z.object({
@@ -37,6 +37,9 @@ export async function GET(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const [team] = await db.select().from(teams).where(and(eq(teams.id, teamId), eq(teams.orgId, orgId)));
   if (!team) {
@@ -110,6 +113,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
+
   const [team] = await db.select().from(teams).where(and(eq(teams.id, teamId), eq(teams.orgId, orgId)));
   if (!team) {
     return NextResponse.json({ error: "Team not found" }, { status: 404 });
@@ -156,6 +162,9 @@ export async function DELETE(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const [team] = await db.select().from(teams).where(and(eq(teams.id, teamId), eq(teams.orgId, orgId)));
   if (!team) {

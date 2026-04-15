@@ -4,7 +4,7 @@ import { organizationMembers, users } from "@/db/schema";
 import { eq, and, or, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { requireOrgRole, resolveOrgMember, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 const addMemberSchema = z.object({
@@ -29,6 +29,9 @@ export async function GET(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const url = new URL(request.url);
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1"));
@@ -94,6 +97,9 @@ export async function POST(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   const parsed = addMemberSchema.safeParse(body);

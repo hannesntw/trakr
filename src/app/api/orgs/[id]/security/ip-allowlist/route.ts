@@ -4,7 +4,7 @@ import { ipAllowlist } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole } from "@/lib/org-auth";
+import { requireOrgRole, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 const addSchema = z.object({
@@ -29,6 +29,9 @@ export async function GET(
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
+
   const rows = await db.select().from(ipAllowlist).where(eq(ipAllowlist.orgId, orgId));
   return NextResponse.json(rows);
 }
@@ -45,6 +48,9 @@ export async function POST(
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   const parsed = addSchema.safeParse(body);
@@ -87,6 +93,9 @@ export async function DELETE(
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   const parsed = deleteSchema.safeParse(body);

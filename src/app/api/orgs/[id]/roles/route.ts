@@ -4,7 +4,7 @@ import { orgRoles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { requireOrgRole, resolveOrgMember, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 import { PERMISSIONS } from "@/lib/plans";
 
@@ -30,6 +30,9 @@ export async function GET(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const rows = await db.select().from(orgRoles).where(eq(orgRoles.orgId, orgId));
 
@@ -59,6 +62,9 @@ export async function POST(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   const parsed = createSchema.safeParse(body);

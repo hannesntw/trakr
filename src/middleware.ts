@@ -1,11 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "crypto";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Routes that don't need auth
 const PUBLIC_ROUTES = ["/login", "/api/auth", "/api/events", "/api/webhooks", "/api/health", "/api/scim"];
 
+// Rate-limit rules for public routes: [pathPrefix, limit, windowMs]
+const RATE_LIMIT_RULES: Array<[string, number, number]> = [
+  ["/api/auth/signin", 10, 60_000],
+  ["/api/auth/device", 5, 60_000],
+  ["/api/scim", 30, 60_000],
+];
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Rate-limit specific public routes before allowing them through
+  for (const [prefix, limit, windowMs] of RATE_LIMIT_RULES) {
+    if (pathname.startsWith(prefix)) {
+      const ip = getClientIp(request);
+      const { limited } = rateLimit(`${ip}:${prefix}`, limit, windowMs);
+      if (limited) {
+        return NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429 },
+        );
+      }
+      break;
+    }
+  }
 
   // Skip public routes
   if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) {
