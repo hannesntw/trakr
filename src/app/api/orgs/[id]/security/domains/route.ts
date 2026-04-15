@@ -68,7 +68,7 @@ export async function POST(
     return NextResponse.json({ error: "Public email domains cannot be verified" }, { status: 400 });
   }
 
-  const token = `trk-verify=${randomBytes(16).toString("hex")}`;
+  const token = `stori-verify=${randomBytes(16).toString("hex")}`;
 
   const [row] = await db
     .insert(verifiedDomains)
