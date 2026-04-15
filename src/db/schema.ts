@@ -150,9 +150,11 @@ export const ssoConfigurations = pgTable("sso_configurations", {
   entityId: text("entity_id"),
   metadataUrl: text("metadata_url"),
   clientId: text("client_id"),
+  clientSecret: text("client_secret"), // OIDC client secret (encrypted at rest by Neon)
   discoveryUrl: text("discovery_url"),
   certificate: text("certificate"),
   enforced: boolean("enforced").notNull().default(false),
+  scimTokenHash: text("scim_token_hash"), // SHA-256 hash of the SCIM bearer token
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 

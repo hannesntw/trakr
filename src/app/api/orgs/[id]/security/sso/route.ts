@@ -12,6 +12,7 @@ const ssoSchema = z.object({
   entityId: z.string().optional(),
   metadataUrl: z.string().optional(),
   clientId: z.string().optional(),
+  clientSecret: z.string().optional(),
   discoveryUrl: z.string().optional(),
   certificate: z.string().optional(),
 });
@@ -67,6 +68,7 @@ export async function POST(
       entityId: parsed.data.entityId ?? null,
       metadataUrl: parsed.data.metadataUrl ?? null,
       clientId: parsed.data.clientId ?? null,
+      clientSecret: parsed.data.clientSecret ?? null,
       discoveryUrl: parsed.data.discoveryUrl ?? null,
       certificate: parsed.data.certificate ?? null,
     })

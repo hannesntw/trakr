@@ -65,6 +65,8 @@ export default function SecurityPage() {
   const [scimEnabled, setScimEnabled] = useState(false);
   const [scimTokenGenerated, setScimTokenGenerated] = useState(false);
   const [scimTokenVisible, setScimTokenVisible] = useState(false);
+  const [scimTokenValue, setScimTokenValue] = useState<string | null>(null);
+  const [scimGenerating, setScimGenerating] = useState(false);
 
   // Sessions
   const [sessionStats, setSessionStats] = useState({ activeCount: 0, userCount: 0 });
@@ -77,12 +79,13 @@ export default function SecurityPage() {
     if (!org.id) return;
     setLoading(true);
     try {
-      const [ssoRes, domainsRes, ipRes, mfaRes, sessRes] = await Promise.all([
+      const [ssoRes, domainsRes, ipRes, mfaRes, sessRes, scimRes] = await Promise.all([
         fetch(`/api/orgs/${org.id}/security/sso`),
         fetch(`/api/orgs/${org.id}/security/domains`),
         fetch(`/api/orgs/${org.id}/security/ip-allowlist`),
         fetch(`/api/orgs/${org.id}/security/mfa`),
         fetch(`/api/orgs/${org.id}/security/sessions`),
+        fetch(`/api/orgs/${org.id}/security/scim-token`),
       ]);
 
       if (ssoRes.ok) {
@@ -115,6 +118,14 @@ export default function SecurityPage() {
 
       if (sessRes.ok) {
         setSessionStats(await sessRes.json());
+      }
+
+      if (scimRes.ok) {
+        const scimData = await scimRes.json();
+        if (scimData.hasToken) {
+          setScimEnabled(true);
+          setScimTokenGenerated(true);
+        }
       }
     } finally {
       setLoading(false);
@@ -585,24 +596,47 @@ export default function SecurityPage() {
                           <div className="flex items-center gap-2">
                             <input
                               readOnly
-                              value={scimTokenVisible ? "scim_str_placeholder_token_value" : "scim_str_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
+                              value={scimTokenVisible && scimTokenValue ? scimTokenValue : "scim_str_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
                               className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md bg-content-bg font-mono text-text-secondary focus:outline-none"
                             />
                             <button
-                              onClick={() => setScimTokenVisible(!scimTokenVisible)}
+                              onClick={() => {
+                                if (scimTokenValue) {
+                                  navigator.clipboard.writeText(scimTokenValue);
+                                }
+                                setScimTokenVisible(!scimTokenVisible);
+                              }}
                               className="p-1.5 text-text-tertiary hover:text-accent border border-border rounded-md transition-colors"
                             >
                               <Copy className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <p className="text-[10px] text-amber-600">This token was shown once when generated. Store it securely in your IdP.</p>
+                          <p className="text-[10px] text-amber-600">
+                            {scimTokenValue
+                              ? "Copy this token now. It will not be shown again."
+                              : "This token was shown once when generated. Store it securely in your IdP."}
+                          </p>
                         </div>
                       ) : (
                         <button
-                          onClick={() => { setScimTokenGenerated(true); setScimTokenVisible(true); }}
-                          className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover text-white rounded-md transition-colors"
+                          disabled={scimGenerating}
+                          onClick={async () => {
+                            setScimGenerating(true);
+                            try {
+                              const res = await fetch(`/api/orgs/${org.id}/security/scim-token`, { method: "POST" });
+                              if (res.ok) {
+                                const data = await res.json();
+                                setScimTokenValue(data.token);
+                                setScimTokenGenerated(true);
+                                setScimTokenVisible(true);
+                              }
+                            } finally {
+                              setScimGenerating(false);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-xs bg-accent hover:bg-accent-hover text-white rounded-md transition-colors disabled:opacity-50"
                         >
-                          Generate Token
+                          {scimGenerating ? "Generating..." : "Generate Token"}
                         </button>
                       )}
                     </div>

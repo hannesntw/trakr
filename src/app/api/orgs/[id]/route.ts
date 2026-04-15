@@ -4,7 +4,7 @@ import { organizations, organizationMembers, organizationInvitations, orgRoles }
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
-import { requireOrgRole, resolveOrgMember } from "@/lib/org-auth";
+import { requireOrgRole, resolveOrgMember, checkIpAllowlist } from "@/lib/org-auth";
 import { logAudit, getClientIp } from "@/lib/audit";
 
 const updateSchema = z.object({
@@ -29,6 +29,9 @@ export async function GET(
   if (!member) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId));
   if (!org) {
@@ -55,6 +58,9 @@ export async function PATCH(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
@@ -112,6 +118,9 @@ export async function DELETE(
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const ipBlock = await checkIpAllowlist(orgId, request);
+  if (ipBlock) return ipBlock;
 
   // Explicit app-side cleanup (belt-and-suspenders like project delete)
   await db.delete(organizationInvitations).where(eq(organizationInvitations.orgId, orgId));

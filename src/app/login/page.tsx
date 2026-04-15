@@ -2,10 +2,17 @@ import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Mail } from "lucide-react";
 import { StoriLogo } from "@/components/StoriLogo";
+import { SsoEmailForm } from "./SsoEmailForm";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (session?.user) redirect("/");
+
+  const { error } = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-content-bg">
@@ -16,37 +23,14 @@ export default async function LoginPage() {
           <p className="text-sm text-text-secondary mt-1">Sign in to manage your projects</p>
         </div>
         <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
-          {/* Magic link */}
-          <form
-            action={async (formData: FormData) => {
-              "use server";
-              const email = formData.get("email") as string;
-              await signIn("resend", { email, redirectTo: "/" });
-            }}
-          >
-            <label className="text-xs font-medium text-text-tertiary block mb-1.5">
-              Email
-            </label>
-            <div className="flex gap-2">
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Mail className="w-4 h-4" />
-                Send link
-              </button>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+              {decodeURIComponent(error)}
             </div>
-            <p className="text-[11px] text-text-tertiary mt-1.5">
-              We'll email you a magic link to sign in instantly.
-            </p>
-          </form>
+          )}
+
+          {/* Email form with SSO check */}
+          <SsoEmailForm />
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
