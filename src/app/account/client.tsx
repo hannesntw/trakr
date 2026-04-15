@@ -38,6 +38,9 @@ export function AccountClient({ user }: AccountClientProps) {
   function applyTheme(t: "light" | "dark" | "system") {
     setClicked(t === "light" || t === "dark" ? t : null);
     setTheme(t);
+    // Enable slow color transition, remove after animation completes
+    document.documentElement.classList.add("theme-transitioning");
+    setTimeout(() => document.documentElement.classList.remove("theme-transitioning"), 1300);
     if (t === "system") {
       localStorage.removeItem("stori-theme");
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;

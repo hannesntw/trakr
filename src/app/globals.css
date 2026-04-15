@@ -57,11 +57,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Smooth theme transitions */
-*,
-*::before,
-*::after {
-  transition: background-color 1.2s ease, border-color 1.2s ease, color 1.2s ease;
+/* Slow sunrise/sunset when theme changes — only active during transition */
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 1.2s ease, border-color 1.2s ease, color 1.2s ease !important;
 }
 
 /* Real-time update flash animation for board cards */
