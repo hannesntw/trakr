@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  Building2, Users, FolderKanban, FileText, Zap,
-  AlertTriangle, Shield, Server,
-  Activity, Database, HardDrive,
+  Building2, Users, FolderKanban, FileText,
+  Server, Activity, Database,
 } from "lucide-react";
 import { AdminTabNav } from "@/components/AdminTabNav";
 
@@ -13,14 +12,11 @@ interface DashboardData {
   totalUsers: number;
   totalProjects: number;
   totalWorkItems: number;
-  apiCalls24h: number;
   recentSignups: { id: string; name: string | null; email: string | null; image: string | null }[];
   systemHealth: {
     status: string;
     apiResponseMs: number;
-    dbConnections: string;
-    storageUsed: string;
-    errorRate: string;
+    dbSizeMb: number;
   };
 }
 
@@ -37,17 +33,9 @@ export default function AdminDashboardPage() {
 
   return (
     <>
-      <header className="bg-amber-950 text-amber-100 shrink-0">
-        <div className="h-8 px-6 flex items-center gap-2 text-xs">
-          <Shield className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-medium text-amber-400">Platform Administration</span>
-          <span className="text-amber-300/60 mx-1">/</span>
-          <span className="text-amber-300/80">Super-admin access for platform owner</span>
-        </div>
-      </header>
       <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
         <h1 className="text-sm font-semibold text-text-primary">Admin Dashboard</h1>
-        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full border border-amber-200">Super Admin</span>
+        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-500/25">Super Admin</span>
       </header>
 
       <div className="flex-1 overflow-auto">
@@ -60,13 +48,12 @@ export default function AdminDashboardPage() {
             <>
               <section>
                 <h2 className="text-sm font-semibold text-text-primary mb-4">Platform Overview</h2>
-                <div className="grid grid-cols-5 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   {[
                     { icon: Building2, label: "Organizations", value: String(data.totalOrgs) },
                     { icon: Users, label: "Total Users", value: String(data.totalUsers) },
                     { icon: FolderKanban, label: "Projects", value: String(data.totalProjects) },
                     { icon: FileText, label: "Work Items", value: String(data.totalWorkItems) },
-                    { icon: Zap, label: "API Calls (24h)", value: data.apiCalls24h ? `${(data.apiCalls24h / 1000).toFixed(1)}k` : "N/A" },
                   ].map((stat) => (
                     <div key={stat.label} className="bg-surface border border-border rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -111,18 +98,14 @@ export default function AdminDashboardPage() {
                   </h2>
                   <div className="bg-surface border border-border rounded-lg p-4 space-y-3">
                     {[
-                      { icon: Activity, label: "API Response Time", value: `${data.systemHealth.apiResponseMs}ms`, status: "healthy" as const },
-                      { icon: Database, label: "DB Connections", value: data.systemHealth.dbConnections, status: "healthy" as const },
-                      { icon: HardDrive, label: "Storage Used", value: data.systemHealth.storageUsed, status: "healthy" as const },
-                      { icon: AlertTriangle, label: "Error Rate (1h)", value: data.systemHealth.errorRate, status: "warning" as const },
+                      { icon: Activity, label: "DB Response Time", value: `${data.systemHealth.apiResponseMs}ms`, ok: data.systemHealth.apiResponseMs < 200 },
+                      { icon: Database, label: "Database Size", value: `${data.systemHealth.dbSizeMb.toFixed(1)} MB`, ok: data.systemHealth.dbSizeMb < 500 },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center gap-3">
                         <item.icon className="w-4 h-4 text-text-tertiary shrink-0" />
                         <span className="text-xs text-text-secondary flex-1">{item.label}</span>
                         <span className="text-xs font-medium text-text-primary">{item.value}</span>
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${
-                          item.status === "healthy" ? "bg-emerald-500" : "bg-amber-500"
-                        }`} />
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${item.ok ? "bg-emerald-500" : "bg-amber-500"}`} />
                       </div>
                     ))}
                   </div>

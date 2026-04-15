@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  Shield, ToggleLeft, ToggleRight, AlertTriangle,
+  ToggleLeft, ToggleRight, AlertTriangle,
   Mail, Gauge, Globe, Server,
 } from "lucide-react";
 import { AdminTabNav } from "@/components/AdminTabNav";
@@ -78,17 +78,9 @@ export default function AdminSettingsPage() {
 
   return (
     <>
-      <header className="bg-amber-950 text-amber-100 shrink-0">
-        <div className="h-8 px-6 flex items-center gap-2 text-xs">
-          <Shield className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-medium text-amber-400">Platform Administration</span>
-          <span className="text-amber-300/60 mx-1">/</span>
-          <span className="text-amber-300/80">Settings</span>
-        </div>
-      </header>
       <header className="h-14 px-6 flex items-center border-b border-border bg-surface shrink-0">
         <h1 className="text-sm font-semibold text-text-primary">Platform Settings</h1>
-        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full border border-amber-200">Super Admin</span>
+        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-500/25">Super Admin</span>
       </header>
 
       <div className="flex-1 overflow-auto">

@@ -26,7 +26,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col">
+      <header className="bg-amber-950 text-amber-100 shrink-0">
+        <div className="h-8 px-6 flex items-center gap-2 text-xs">
+          <Shield className="w-3.5 h-3.5 text-amber-400" />
+          <span className="font-medium text-amber-400">Platform Administration</span>
+          <span className="text-amber-300/60 mx-1">/</span>
+          <span className="text-amber-300/80">Super-admin access for platform owner</span>
+        </div>
+      </header>
+      <div className="flex-1 flex min-h-0">
       <aside className="w-60 bg-sidebar-bg text-sidebar-text flex flex-col shrink-0 border-r border-sidebar-border">
         <div className="h-14 flex items-center border-b border-sidebar-border pl-4">
           <StoriLogo size={20} className="mr-2" />
@@ -68,6 +77,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main className="flex-1 flex flex-col min-w-0 bg-content-bg">
         {children}
       </main>
+      </div>
     </div>
   );
 }
