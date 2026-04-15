@@ -441,9 +441,9 @@ export function BoardClient({
 
   /** Category-based colors for column headers */
   const CATEGORY_COLORS: Record<string, string> = {
-    todo: "text-gray-600 bg-gray-50 border-gray-200",
-    in_progress: "text-indigo-600 bg-indigo-50 border-indigo-200",
-    done: "text-emerald-600 bg-emerald-50 border-emerald-200",
+    todo: "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-500/15 dark:border-gray-500/25",
+    in_progress: "text-indigo-600 bg-indigo-50 border-indigo-200 dark:text-indigo-400 dark:bg-indigo-500/15 dark:border-indigo-500/25",
+    done: "text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/15 dark:border-emerald-500/25",
   };
 
   // TRK-135: Compute swimlane groups
@@ -487,7 +487,7 @@ export function BoardClient({
     const cols = workflowStates.map((ws) => ({
       state: ws.slug,
       label: ws.displayName,
-      color: CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200",
+      color: CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-500/15 dark:border-gray-500/25",
       items: columnItems.filter((i) => i.state === ws.slug),
     }));
 
@@ -596,7 +596,7 @@ export function BoardClient({
   const flatColumns = workflowStates.map((ws) => ({
     state: ws.slug,
     label: ws.displayName,
-    color: CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200",
+    color: CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-500/15 dark:border-gray-500/25",
     items: filteredItems.filter((i) => i.state === ws.slug),
   }));
 
@@ -629,7 +629,7 @@ export function BoardClient({
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border transition-colors",
                   customizePanelOpen || swimlane !== "none" || cardRulesEnabled
-                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-500/15 dark:text-indigo-400 dark:border-indigo-500/25 dark:hover:bg-indigo-500/20"
                     : "bg-surface text-text-secondary border-border hover:border-border-hover"
                 )}
               >
@@ -873,7 +873,7 @@ export function BoardClient({
                       <span
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border",
-                          CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200"
+                          CATEGORY_COLORS[ws.category] ?? "text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-500/15 dark:border-gray-500/25"
                         )}
                       >
                         {ws.displayName}

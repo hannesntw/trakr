@@ -16,8 +16,8 @@ function GitHubIcon({ className }: { className?: string }) {
 
 function ToggleButton({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? "bg-accent" : "bg-gray-300"}`}>
-      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${enabled ? "translate-x-[18px]" : "translate-x-[3px]"}`} />
+    <button onClick={onClick} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? "bg-accent" : "bg-text-tertiary/40"}`}>
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface transition-transform ${enabled ? "translate-x-[18px]" : "translate-x-[3px]"}`} />
     </button>
   );
 }
@@ -86,7 +86,7 @@ export function SettingsClient({ project }: { project: Project }) {
 
   const colorOptions = ["#9CA3AF", "#EF4444", "#F59E0B", "#10B981", "#06B6D4", "#6366F1", "#8B5CF6", "#EC4899", "#14B8A6"];
   const categoryLabels: Record<string, string> = { todo: "To Do", in_progress: "In Progress", done: "Done" };
-  const categoryColors: Record<string, string> = { todo: "bg-gray-100 text-gray-600 border-gray-300", in_progress: "bg-blue-50 text-blue-600 border-blue-300", done: "bg-emerald-50 text-emerald-600 border-emerald-300" };
+  const categoryColors: Record<string, string> = { todo: "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-500/15 dark:text-gray-400 dark:border-gray-500/25", in_progress: "bg-blue-50 text-blue-600 border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/25", done: "bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/25" };
 
   const fetchWorkflow = useCallback(async () => {
     const res = await fetch(`/api/projects/${project.id}/workflow`);

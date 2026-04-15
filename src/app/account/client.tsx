@@ -26,6 +26,7 @@ export function AccountClient({ user }: AccountClientProps) {
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+  const [clicked, setClicked] = useState<"light" | "dark" | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function AccountClient({ user }: AccountClientProps) {
   }, []);
 
   function applyTheme(t: "light" | "dark" | "system") {
+    setClicked(t === "light" || t === "dark" ? t : null);
     setTheme(t);
     if (t === "system") {
       localStorage.removeItem("stori-theme");
@@ -131,26 +133,69 @@ export function AccountClient({ user }: AccountClientProps) {
           {/* Theme */}
           <section>
             <h2 className="text-sm font-semibold text-text-primary mb-4">Theme</h2>
-            <div className="bg-surface border border-border rounded-lg p-4">
-              <div className="flex gap-2">
-                {([
-                  { value: "light" as const, icon: Sun, label: "Light" },
-                  { value: "dark" as const, icon: Moon, label: "Dark" },
-                  { value: "system" as const, icon: Monitor, label: "System" },
-                ]).map(({ value, icon: Icon, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => applyTheme(value)}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md border transition-colors ${
-                      theme === value
-                        ? "border-accent bg-accent/10 text-accent font-medium"
-                        : "border-border text-text-secondary hover:border-border-hover hover:text-text-primary"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
+            <div className="bg-surface border border-border rounded-lg p-5">
+              <div className="flex gap-3">
+                {/* Light — sun rises on click: top sun visible at rest, shifts up so bottom sun takes its place */}
+                <button
+                  onClick={() => applyTheme("light")}
+                  className={`group flex flex-col items-center gap-2.5 px-6 py-4 rounded-xl border-2 transition-all ${
+                    theme === "light" ? "border-accent bg-accent/5 shadow-sm" : "border-border hover:border-border-hover"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 overflow-hidden transition-transform relative ${theme === "light" ? "scale-110" : "group-hover:scale-105"}`}>
+                    {/* Two suns stacked: each 20px icon centered in a 40px slot. Column = 80px total. */}
+                    <div
+                      className="absolute left-0 right-0 flex flex-col items-center"
+                      style={{
+                        height: 80,
+                        transition: clicked === "light" ? "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
+                        transform: theme === "light" ? "translateY(-40px)" : "translateY(0)",
+                      }}
+                    >
+                      <div className="w-10 h-10 flex items-center justify-center shrink-0"><Sun className="w-5 h-5 text-amber-500" /></div>
+                      <div className="w-10 h-10 flex items-center justify-center shrink-0"><Sun className="w-5 h-5 text-amber-500" /></div>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-medium ${theme === "light" ? "text-accent" : "text-text-secondary"}`}>Light</span>
+                </button>
+
+                {/* Dark — moon descends on click: bottom moon visible at rest, shifts down so top moon takes its place */}
+                <button
+                  onClick={() => applyTheme("dark")}
+                  className={`group flex flex-col items-center gap-2.5 px-6 py-4 rounded-xl border-2 transition-all ${
+                    theme === "dark" ? "border-accent bg-accent/5 shadow-sm" : "border-border hover:border-border-hover"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-500/10 overflow-hidden transition-transform relative ${theme === "dark" ? "scale-110" : "group-hover:scale-105"}`}>
+                    {/* Two moons stacked: column = 80px. At rest top moon is hidden above, bottom visible. On click shifts down. */}
+                    <div
+                      className="absolute left-0 right-0 flex flex-col items-center"
+                      style={{
+                        height: 80,
+                        top: -40,
+                        transition: clicked === "dark" ? "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
+                        transform: theme === "dark" ? "translateY(40px)" : "translateY(0)",
+                      }}
+                    >
+                      <div className="w-10 h-10 flex items-center justify-center shrink-0"><Moon className="w-5 h-5 text-indigo-400" /></div>
+                      <div className="w-10 h-10 flex items-center justify-center shrink-0"><Moon className="w-5 h-5 text-indigo-400" /></div>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-medium ${theme === "dark" ? "text-accent" : "text-text-secondary"}`}>Dark</span>
+                </button>
+
+                {/* System */}
+                <button
+                  onClick={() => applyTheme("system")}
+                  className={`group flex flex-col items-center gap-2.5 px-6 py-4 rounded-xl border-2 transition-all ${
+                    theme === "system" ? "border-accent bg-accent/5 shadow-sm" : "border-border hover:border-border-hover"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full bg-content-bg flex items-center justify-center transition-transform ${theme === "system" ? "scale-110" : "group-hover:scale-105"}`}>
+                    <Monitor className="w-5 h-5 text-text-tertiary" />
+                  </div>
+                  <span className={`text-xs font-medium ${theme === "system" ? "text-accent" : "text-text-secondary"}`}>System</span>
+                </button>
               </div>
             </div>
           </section>

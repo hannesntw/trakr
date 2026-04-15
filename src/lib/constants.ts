@@ -15,12 +15,12 @@ export interface WorkflowState {
 }
 
 export const TYPE_COLORS: Record<WorkItemType, string> = {
-  epic: "text-purple-600 bg-purple-50 border-purple-200",
-  feature: "text-blue-600 bg-blue-50 border-blue-200",
-  story: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  bug: "text-red-600 bg-red-50 border-red-200",
-  task: "text-slate-600 bg-slate-50 border-slate-200",
-  idea: "text-amber-600 bg-amber-50 border-amber-200",
+  epic: "text-purple-600 bg-purple-50 border-purple-200 dark:text-purple-400 dark:bg-purple-500/15 dark:border-purple-500/25",
+  feature: "text-blue-600 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-500/15 dark:border-blue-500/25",
+  story: "text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/15 dark:border-emerald-500/25",
+  bug: "text-red-600 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-500/15 dark:border-red-500/25",
+  task: "text-slate-600 bg-slate-50 border-slate-200 dark:text-slate-400 dark:bg-slate-500/15 dark:border-slate-500/25",
+  idea: "text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-500/15 dark:border-amber-500/25",
 };
 
 export const TYPE_DOT_COLORS: Record<WorkItemType, string> = {

@@ -111,9 +111,9 @@ export default function AuditPage() {
           <OrgTabNav />
 
           {/* Permission note */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+          <div className="bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 rounded-md p-3 flex items-center gap-2">
             <Info className="w-4 h-4 text-blue-500 shrink-0" />
-            <p className="text-xs text-blue-700">Only visible to Owners and Admins.</p>
+            <p className="text-xs text-blue-700 dark:text-blue-400">Only visible to Owners and Admins.</p>
           </div>
 
           {/* Header */}

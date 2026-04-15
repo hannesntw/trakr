@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is([data-theme="dark"] *));
+
 :root {
   --sidebar-bg: #0F0F13;
   --sidebar-text: #A1A1AA;
@@ -53,6 +55,13 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Smooth theme transitions */
+*,
+*::before,
+*::after {
+  transition: background-color 1.2s ease, border-color 1.2s ease, color 1.2s ease;
 }
 
 /* Real-time update flash animation for board cards */

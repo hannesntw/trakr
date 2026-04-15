@@ -349,7 +349,7 @@ export default function SecurityPage() {
                             <Check className="w-3 h-3" /> Verified
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 rounded-full">
+                          <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/25 rounded-full">
                             <Clock className="w-3 h-3" /> Pending verification
                           </span>
                         )}
@@ -457,9 +457,9 @@ export default function SecurityPage() {
                 </button>
               )}
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+              <div className="bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 rounded-md p-3 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-blue-500 shrink-0" />
-                <p className="text-xs text-blue-700">Public email domains (gmail.com, outlook.com, etc.) cannot be verified.</p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">Public email domains (gmail.com, outlook.com, etc.) cannot be verified.</p>
               </div>
             </div>
           </section>
@@ -668,9 +668,9 @@ export default function SecurityPage() {
                     )}
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+                  <div className="bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 rounded-md p-3 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-blue-500 shrink-0" />
-                    <p className="text-xs text-blue-700">
+                    <p className="text-xs text-blue-700 dark:text-blue-400">
                       SCIM automatically syncs users and groups from your identity provider. Users removed from your IdP are deactivated in Stori.
                     </p>
                   </div>
@@ -716,7 +716,7 @@ export default function SecurityPage() {
               )}
 
               {!mfaEnforced && (
-                <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-center gap-2">
+                <div className="bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 rounded-md p-3 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                   <p className="text-xs text-amber-700">MFA is not enforced. Members can enable MFA voluntarily from their profile.</p>
                 </div>
@@ -747,9 +747,9 @@ export default function SecurityPage() {
                       Revoke all sessions
                     </button>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+                  <div className="bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 rounded-md p-3 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-blue-500 shrink-0" />
-                    <p className="text-xs text-blue-700">
+                    <p className="text-xs text-blue-700 dark:text-blue-400">
                       Manage individual sessions from the member detail page. Click any member in the <span className="font-medium">Members</span> tab to view and revoke their sessions.
                     </p>
                   </div>
@@ -809,7 +809,7 @@ export default function SecurityPage() {
                     </button>
                   </div>
 
-                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-center gap-2">
+                  <div className="bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20 rounded-md p-3 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                     <p className="text-xs text-amber-700">Make sure your current IP is included, or you may lose access.</p>
                   </div>
