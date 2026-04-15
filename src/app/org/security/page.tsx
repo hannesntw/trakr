@@ -198,7 +198,10 @@ export default function SecurityPage() {
     }
   }
 
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
   async function verifyDomain(domainId: number) {
+    setVerifyError(null);
     const res = await fetch(`/api/orgs/${org.id}/security/domains/${domainId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -207,6 +210,9 @@ export default function SecurityPage() {
     if (res.ok) {
       const updated = await res.json();
       setDomains(domains.map((d) => (d.id === domainId ? updated : d)));
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setVerifyError(data.error ?? "Verification failed. Please check your DNS records.");
     }
   }
 
@@ -376,6 +382,9 @@ export default function SecurityPage() {
                         >
                           Verify
                         </button>
+                        {verifyError && (
+                          <p className="text-xs text-red-500 mt-1">{verifyError}</p>
+                        )}
                       </div>
                     )}
 
