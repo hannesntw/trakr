@@ -5,6 +5,18 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 
+/** Resolve a work item ID parameter — accepts CUID2 id or displayId like "STRI-5" */
+async function resolveId(idParam: string): Promise<string | null> {
+  if (idParam.includes("-")) {
+    const [row] = await db
+      .select({ id: workItems.id })
+      .from(workItems)
+      .where(eq(workItems.displayId, idParam.toUpperCase()));
+    return row?.id ?? null;
+  }
+  return idParam;
+}
+
 const restoreSchema = z.object({
   version: z.number().int().min(0),
 });
@@ -18,7 +30,11 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const { id: idParam } = await params;
+  const id = await resolveId(idParam);
+  if (!id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   const body = await request.json();
   const parsed = restoreSchema.safeParse(body);
   if (!parsed.success) {

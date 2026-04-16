@@ -11,6 +11,18 @@ const createSchema = z.object({
   type: z.enum(["blocks", "blocked_by", "relates_to", "duplicates"]),
 });
 
+/** Resolve a work item ID parameter — accepts CUID2 id or displayId like "STRI-5" */
+async function resolveId(idParam: string): Promise<string | null> {
+  if (idParam.includes("-")) {
+    const [row] = await db
+      .select({ id: workItems.id })
+      .from(workItems)
+      .where(eq(workItems.displayId, idParam.toUpperCase()));
+    return row?.id ?? null;
+  }
+  return idParam;
+}
+
 const INVERSE_TYPE: Record<string, string> = {
   blocks: "blocked_by",
   blocked_by: "blocks",
@@ -23,7 +35,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const workItemId = id;
+  const workItemId = await resolveId(id);
+  if (!workItemId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const rows = await db
     .select()
@@ -49,7 +64,10 @@ export async function POST(
   }
 
   const { id } = await params;
-  const sourceId = id;
+  const sourceId = await resolveId(id);
+  if (!sourceId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   const body = await request.json();
   const parsed = createSchema.safeParse(body);

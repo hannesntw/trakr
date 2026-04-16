@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { attachments } from "@/db/schema";
+import { attachments, workItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+
+/** Resolve displayId like "STRI-5" to the actual CUID2 id */
+async function resolveId(idParam: string): Promise<string | null> {
+  if (idParam.includes("-")) {
+    const [row] = await db.select({ id: workItems.id }).from(workItems).where(eq(workItems.displayId, idParam.toUpperCase()));
+    return row?.id ?? null;
+  }
+  return idParam;
+}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const workItemId = await resolveId((await params).id);
+  if (!workItemId) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const rows = await db
     .select({
       id: attachments.id,
@@ -19,7 +29,7 @@ export async function GET(
       createdAt: attachments.createdAt,
     })
     .from(attachments)
-    .where(eq(attachments.workItemId, id))
+    .where(eq(attachments.workItemId, workItemId))
     .orderBy(attachments.createdAt);
   return NextResponse.json(rows);
 }
@@ -33,7 +43,8 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const workItemId = await resolveId((await params).id);
+  if (!workItemId) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
 
@@ -46,7 +57,7 @@ export async function POST(
   const [row] = await db
     .insert(attachments)
     .values({
-      workItemId: id,
+      workItemId,
       filename: file.name,
       contentType: file.type,
       data: buffer,
@@ -59,6 +70,6 @@ export async function POST(
       createdAt: attachments.createdAt,
     });
 
-  emit({ type: "attachment", action: "created", id: row.id, workItemId: id });
+  emit({ type: "attachment", action: "created", id: row.id, workItemId });
   return NextResponse.json(row, { status: 201 });
 }

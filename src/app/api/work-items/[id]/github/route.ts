@@ -4,6 +4,18 @@ import { workItems, projects, githubEvents } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
 
+/** Resolve a work item ID parameter — accepts CUID2 id or displayId like "STRI-5" */
+async function resolveId(idParam: string): Promise<string | null> {
+  if (idParam.includes("-")) {
+    const [row] = await db
+      .select({ id: workItems.id })
+      .from(workItems)
+      .where(eq(workItems.displayId, idParam.toUpperCase()));
+    return row?.id ?? null;
+  }
+  return idParam;
+}
+
 /**
  * GET /api/work-items/:id/github
  * Returns all GitHub events for a work item, grouped by type.
@@ -18,9 +30,9 @@ export async function GET(
   }
 
   const { id } = await params;
-  const workItemId = id;
+  const workItemId = await resolveId(id);
   if (!workItemId) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   // Look up the work item and its project's GitHub config
