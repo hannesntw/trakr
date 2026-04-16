@@ -7,7 +7,7 @@
  *                         org_roles
  *   organization DELETE → SET NULL: projects.orgId
  *   project DELETE → cascades: work_items, sprints, workflow_states,
- *                    saved_queries, project_invites
+ *                    saved_queries
  *   work_item DELETE → cascades: snapshots, comments, attachments,
  *                      status_history, links
  *   work_item DELETE → SET NULL: children's parentId
@@ -187,7 +187,6 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   key: text("key").notNull().unique(),
   description: text("description").default(""),
-  visibility: text("visibility").notNull().default("public"),
   ownerId: text("owner_id"),
   sequence: integer("sequence").notNull().default(0),
   createdAt: text("created_at")
@@ -224,15 +223,6 @@ export const deviceCodes = pgTable("device_codes", {
   apiKey: text("api_key"),
   status: text("status").notNull().default("pending"),
   expiresAt: text("expires_at").notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-});
-
-export const projectInvites = pgTable("project_invites", {
-  id: text("id").primaryKey().$defaultFn(() => createId()),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  email: text("email").notNull(),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

@@ -50,8 +50,8 @@ export async function seedTestData(db: any) {
 
   // --- Projects ---
   await db.insert(projects).values([
-    { id: projectId(1), name: "Alpha", key: "ALP", description: "Deep hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
-    { id: projectId(2), name: "Beta", key: "BET", description: "Wide hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
+    { id: projectId(1), name: "Alpha", key: "ALP", description: "Deep hierarchy test project", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
+    { id: projectId(2), name: "Beta", key: "BET", description: "Wide hierarchy test project", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
   ]);
 
   // --- Workflow states (Standard for both) ---

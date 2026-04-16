@@ -15,7 +15,6 @@ const createSchema = z.object({
     .max(5)
     .transform((v) => v.toUpperCase()),
   description: z.string().optional(),
-  visibility: z.enum(["public", "private"]).optional(),
   makerMode: z.boolean().optional(),
 });
 
@@ -56,7 +55,6 @@ export async function POST(request: NextRequest) {
     .insert(projects)
     .values({
       ...parsed.data,
-      visibility: parsed.data.visibility ?? "private",
       ownerId: user.id,
       makerMode: parsed.data.makerMode ?? false,
     })

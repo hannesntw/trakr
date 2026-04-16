@@ -49,7 +49,7 @@ describe("GET /api/projects", () => {
     expect(project).toHaveProperty("name");
     expect(project).toHaveProperty("key");
     expect(project).toHaveProperty("description");
-    expect(project).toHaveProperty("visibility");
+    expect(project).toHaveProperty("ownerId");
   });
 });
 
@@ -144,30 +144,6 @@ describe("PATCH /api/projects/:id", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.description).toBe("Updated description");
-  });
-
-  it("changes visibility from public to private", async () => {
-    const req = jsonRequest(
-      "http://localhost:3100/api/projects/test-project-1",
-      { visibility: "private" },
-      "PATCH"
-    );
-    const res = await PATCH(req, { params: Promise.resolve({ id: "test-project-1" }) });
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.visibility).toBe("private");
-  });
-
-  it("changes visibility back to public", async () => {
-    const req = jsonRequest(
-      "http://localhost:3100/api/projects/test-project-1",
-      { visibility: "public" },
-      "PATCH"
-    );
-    const res = await PATCH(req, { params: Promise.resolve({ id: "test-project-1" }) });
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.visibility).toBe("public");
   });
 
   it("returns 404 for non-existent project", async () => {

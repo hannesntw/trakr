@@ -12,7 +12,6 @@ const TABLES = [
   "session",
   "verificationToken",
   "projects",
-  "project_invites",
   "api_keys",
   "device_codes",
   "work_items",

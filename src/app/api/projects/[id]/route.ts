@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, workItems, sprints, comments, attachments, statusHistory, projectInvites, workItemSnapshots, savedQueries, workflowStates, githubEvents } from "@/db/schema";
+import { projects, workItems, sprints, comments, attachments, statusHistory, workItemSnapshots, savedQueries, workflowStates, githubEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
@@ -16,7 +16,6 @@ const updateSchema = z.object({
     .transform((v) => v.toUpperCase())
     .optional(),
   description: z.string().optional(),
-  visibility: z.enum(["public", "private"]).optional(),
   ownerId: z.string().optional(),
   githubStatusChecks: z.boolean().optional(),
   githubPrComments: z.boolean().optional(),
@@ -121,7 +120,6 @@ export async function DELETE(
   await db.delete(savedQueries).where(eq(savedQueries.projectId, pid));
   await db.delete(sprints).where(eq(sprints.projectId, pid));
   await db.delete(workflowStates).where(eq(workflowStates.projectId, pid));
-  await db.delete(projectInvites).where(eq(projectInvites.projectId, pid));
 
   const [row] = await db.delete(projects).where(eq(projects.id, pid)).returning();
   if (!row) {

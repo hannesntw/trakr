@@ -34,7 +34,7 @@ const groups: EndpointGroup[] = [
         method: "GET",
         path: "/api/projects",
         description: "List all projects.",
-        response: `[{ "id": 1, "name": "Pictura", "key": "PIC", "description": "...", "visibility": "public", "ownerId": "...", "createdAt": "...", "updatedAt": "..." }]`,
+        response: `[{ "id": 1, "name": "Pictura", "key": "PIC", "description": "...", "ownerId": "...", "createdAt": "...", "updatedAt": "..." }]`,
         curl: `curl http://localhost:3100/api/projects`,
       },
       {
@@ -44,10 +44,9 @@ const groups: EndpointGroup[] = [
         body: `{
   "name": "My Project",       // required, min 1 char
   "key": "MYP",               // required, 2-5 chars, auto-uppercased
-  "description": "Optional",  // optional
-  "visibility": "private"     // optional, "public" | "private" (default)
+  "description": "Optional"   // optional
 }`,
-        response: `{ "id": 2, "name": "My Project", "key": "MYP", "description": "Optional", "visibility": "private", "ownerId": "...", "createdAt": "...", "updatedAt": "..." }`,
+        response: `{ "id": 2, "name": "My Project", "key": "MYP", "description": "Optional", "ownerId": "...", "createdAt": "...", "updatedAt": "..." }`,
         curl: `curl -X POST http://localhost:3100/api/projects \\
   -H "Content-Type: application/json" \\
   -d '{"name": "My Project", "key": "MYP"}'`,
@@ -57,7 +56,7 @@ const groups: EndpointGroup[] = [
         path: "/api/projects/:id",
         description: "Get a single project by ID.",
         params: `id — Project ID (number)`,
-        response: `{ "id": 1, "name": "Pictura", "key": "PIC", "description": "...", "visibility": "public", "ownerId": "...", "createdAt": "...", "updatedAt": "..." }`,
+        response: `{ "id": 1, "name": "Pictura", "key": "PIC", "description": "...", "ownerId": "...", "createdAt": "...", "updatedAt": "..." }`,
         curl: `curl http://localhost:3100/api/projects/1`,
       },
       {
@@ -68,8 +67,7 @@ const groups: EndpointGroup[] = [
         body: `{
   "name": "New Name",         // optional
   "key": "NEW",               // optional, 2-5 chars
-  "description": "Updated",   // optional
-  "visibility": "public"      // optional
+  "description": "Updated"    // optional
 }`,
         response: `{ "id": 1, "name": "New Name", "key": "NEW", ... }`,
         curl: `curl -X PATCH http://localhost:3100/api/projects/1 \\
@@ -88,7 +86,7 @@ const groups: EndpointGroup[] = [
   },
   {
     title: "Project Members",
-    description: "List members of a project (owner, invited users, and assignees for public projects).",
+    description: "List members of a project (owner, org admins, and team members with access).",
     endpoints: [
       {
         method: "GET",

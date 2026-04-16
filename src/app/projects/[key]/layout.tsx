@@ -25,7 +25,7 @@ export default async function ProjectLayout({
   const allProjects = await db.select().from(projects).orderBy(projects.name);
   const userId = session.user!.id!;
 
-  // Filter to projects the user can access (owner, org admin, team grant, invite, or public)
+  // Filter to projects the user can access (owner, org admin, or team grant)
   const accessChecks = await Promise.all(
     allProjects.map(async (p) => ({
       project: p,

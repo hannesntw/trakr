@@ -27,7 +27,6 @@ beforeAll(async () => {
     await db.execute(sql`DELETE FROM work_items`);
     await db.execute(sql`DELETE FROM sprints`);
     await db.execute(sql`DELETE FROM workflow_states`);
-    await db.execute(sql`DELETE FROM project_invites`);
     await db.execute(sql`DELETE FROM projects`);
     await seedTestData(db);
     console.log("Test data seeded.");

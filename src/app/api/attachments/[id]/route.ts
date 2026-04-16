@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { db } from "@/db";
-import { attachments, workItems, projects, projectInvites } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { attachments, workItems } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 import { emit } from "@/lib/events";
 
 /**
@@ -35,43 +36,13 @@ async function authorizeAttachmentAccess(
     return { allowed: false, status: 404, message: "Not found" };
   }
 
-  // Get the project to check visibility and ownership
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, result.projectId));
-
-  if (!project) {
-    return { allowed: false, status: 404, message: "Not found" };
+  // Use standard project access check
+  const access = await requireProjectAccess(result.projectId, user.id, "viewer");
+  if (!access) {
+    return { allowed: false, status: 403, message: "Forbidden" };
   }
 
-  // Public projects are accessible to any authenticated user
-  if (project.visibility === "public") {
-    return { allowed: true, row: result.attachment };
-  }
-
-  // Project owner has access
-  if (project.ownerId === user.id) {
-    return { allowed: true, row: result.attachment };
-  }
-
-  // Check if the user is invited to the project
-  if (user.email) {
-    const [invite] = await db
-      .select()
-      .from(projectInvites)
-      .where(
-        and(
-          eq(projectInvites.projectId, project.id),
-          eq(projectInvites.email, user.email)
-        )
-      );
-    if (invite) {
-      return { allowed: true, row: result.attachment };
-    }
-  }
-
-  return { allowed: false, status: 403, message: "Forbidden" };
+  return { allowed: true, row: result.attachment };
 }
 
 export async function GET(

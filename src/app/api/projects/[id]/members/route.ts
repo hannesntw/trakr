@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, projectInvites, users, workItems } from "@/db/schema";
+import { projects, users, organizationMembers, teamMembers, teamProjectAccess } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireProjectAccess } from "@/lib/project-auth";
@@ -17,7 +17,7 @@ export async function GET(
   const { id } = await params;
   const projectId = id;
 
-  const access = await requireProjectAccess(projectId, user.id, "admin");
+  const access = await requireProjectAccess(projectId, user.id, "viewer");
   if (!access) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -44,38 +44,36 @@ export async function GET(
     }
   }
 
-  // 2. Invited users (match projectInvites.email to users.email)
-  const invites = await db
-    .select({ email: projectInvites.email })
-    .from(projectInvites)
-    .where(eq(projectInvites.projectId, projectId));
+  // 2. Org members with access (admins/owners + team members with project grants)
+  if (project.orgId) {
+    // Org admins/owners have implicit access
+    const orgAdmins = await db
+      .select({ userId: organizationMembers.userId })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.orgId, project.orgId),
+        ),
+      );
 
-  if (invites.length > 0) {
-    const inviteEmails = invites.map((i) => i.email);
-    const invitedUsers = await db
-      .select({ id: users.id, name: users.name, email: users.email, image: users.image })
-      .from(users)
-      .where(inArray(users.email, inviteEmails));
-    for (const u of invitedUsers) {
-      memberMap.set(u.id, u);
-    }
-  }
+    // Team members with project access
+    const teamUserIds = await db
+      .select({ userId: teamMembers.userId })
+      .from(teamProjectAccess)
+      .innerJoin(teamMembers, eq(teamMembers.teamId, teamProjectAccess.teamId))
+      .where(eq(teamProjectAccess.projectId, projectId));
 
-  // 3. For public projects: users who have assigned work items
-  if (project.visibility === "public") {
-    const assigned = await db
-      .select({ assignee: workItems.assignee })
-      .from(workItems)
-      .where(eq(workItems.projectId, projectId));
+    const allUserIds = [...new Set([
+      ...orgAdmins.filter(m => m.userId).map(m => m.userId),
+      ...teamUserIds.map(t => t.userId),
+    ])];
 
-    const assigneeNames = [...new Set(assigned.map((a) => a.assignee).filter(Boolean))] as string[];
-
-    if (assigneeNames.length > 0) {
-      const assignedUsers = await db
+    if (allUserIds.length > 0) {
+      const memberUsers = await db
         .select({ id: users.id, name: users.name, email: users.email, image: users.image })
         .from(users)
-        .where(inArray(users.name, assigneeNames));
-      for (const u of assignedUsers) {
+        .where(inArray(users.id, allUserIds));
+      for (const u of memberUsers) {
         memberMap.set(u.id, u);
       }
     }

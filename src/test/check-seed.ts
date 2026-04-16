@@ -10,13 +10,12 @@ async function main() {
 
   // Create tables
   const ddl = `
-    CREATE TABLE IF NOT EXISTS "projects" ("id" integer PRIMARY KEY AUTOINCREMENT, "name" text NOT NULL, "key" text NOT NULL UNIQUE, "description" text DEFAULT '', "visibility" text NOT NULL DEFAULT 'public', "owner_id" text, "created_at" text NOT NULL, "updated_at" text NOT NULL);
+    CREATE TABLE IF NOT EXISTS "projects" ("id" integer PRIMARY KEY AUTOINCREMENT, "name" text NOT NULL, "key" text NOT NULL UNIQUE, "description" text DEFAULT '', "owner_id" text, "created_at" text NOT NULL, "updated_at" text NOT NULL);
     CREATE TABLE IF NOT EXISTS "workflow_states" ("id" integer PRIMARY KEY AUTOINCREMENT, "project_id" integer NOT NULL, "slug" text NOT NULL, "display_name" text NOT NULL, "position" integer NOT NULL DEFAULT 0, "category" text NOT NULL, "color" text NOT NULL DEFAULT '#9CA3AF', "created_at" text NOT NULL);
     CREATE TABLE IF NOT EXISTS "work_items" ("id" integer PRIMARY KEY AUTOINCREMENT, "project_id" integer NOT NULL, "title" text NOT NULL, "type" text NOT NULL, "state" text NOT NULL DEFAULT 'new', "description" text DEFAULT '', "parent_id" integer, "sprint_id" integer, "assignee" text, "points" integer, "priority" integer DEFAULT 0, "created_at" text NOT NULL, "updated_at" text NOT NULL);
     CREATE TABLE IF NOT EXISTS "sprints" ("id" integer PRIMARY KEY AUTOINCREMENT, "project_id" integer NOT NULL, "name" text NOT NULL, "goal" text, "start_date" text, "end_date" text, "state" text NOT NULL DEFAULT 'planning', "created_at" text NOT NULL);
     CREATE TABLE IF NOT EXISTS "work_item_links" ("id" integer PRIMARY KEY AUTOINCREMENT, "source_id" integer NOT NULL, "target_id" integer NOT NULL, "type" text NOT NULL, "created_at" text NOT NULL);
     CREATE TABLE IF NOT EXISTS "saved_queries" ("id" integer PRIMARY KEY AUTOINCREMENT, "project_id" integer NOT NULL, "user_id" text NOT NULL, "name" text NOT NULL, "query" text NOT NULL, "starred" integer NOT NULL DEFAULT 0, "shared" integer NOT NULL DEFAULT 0, "created_at" text NOT NULL);
-    CREATE TABLE IF NOT EXISTS "project_invites" ("id" integer PRIMARY KEY AUTOINCREMENT, "project_id" integer NOT NULL, "email" text NOT NULL, "created_at" text NOT NULL);
   `;
   for (const stmt of ddl.split(";").map(s => s.trim()).filter(Boolean)) {
     await db.run(sql.raw(stmt));

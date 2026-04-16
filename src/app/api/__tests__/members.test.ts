@@ -1,10 +1,10 @@
 // API integration tests for /api/projects/:id/members (story 352)
 //
 // Limitation: The members endpoint derives membership from project owner,
-// invites, and assignees. The seed data sets ownerId to "test-user" but does
-// not insert a matching row into the "user" table, so the owner lookup will
-// return nothing. The test verifies the endpoint works and returns an array,
-// even if empty due to no user rows in the test DB.
+// org admins, and team members. The seed data sets ownerId to "test-user" but
+// does not insert a matching row into the "user" table, so the owner lookup
+// will return nothing. The test verifies the endpoint works and returns an
+// array, even if empty due to no user rows in the test DB.
 
 import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";

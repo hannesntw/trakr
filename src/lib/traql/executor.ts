@@ -598,14 +598,18 @@ const MAX_RECURSION_DEPTH = 50; // for recursive CTEs
 async function buildProjectAccessFilter(currentUserId?: string): Promise<SQL | undefined> {
   if (!currentUserId) return undefined;
 
-  // User can access: public projects + projects they own + projects they're invited to
+  // User can access: projects they own + org projects (admin/owner) + team-granted projects
   return sql`${workItems.projectId} IN (
-    SELECT id FROM projects WHERE visibility = 'public'
-    UNION
     SELECT id FROM projects WHERE owner_id = ${currentUserId}
     UNION
-    SELECT project_id FROM project_invites
-    WHERE email IN (SELECT email FROM "user" WHERE id = ${currentUserId})
+    SELECT p.id FROM projects p
+    INNER JOIN organization_members om ON om.org_id = p.org_id
+    WHERE om.user_id = ${currentUserId}
+      AND om.role IN ('owner', 'admin')
+    UNION
+    SELECT tpa.project_id FROM team_project_access tpa
+    INNER JOIN team_members tm ON tm.team_id = tpa.team_id
+    WHERE tm.user_id = ${currentUserId}
   )`;
 }
 
