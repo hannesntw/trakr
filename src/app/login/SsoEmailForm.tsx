@@ -31,13 +31,13 @@ export function SsoEmailForm() {
       // No SSO — send magic link directly
       if (!data.sso) {
         setSending(true);
-        await signIn("resend", { email, callbackUrl: "/" });
+        await signIn("nodemailer", { email, callbackUrl: "/" });
         return;
       }
     } catch {
       // SSO check failed — fall back to magic link
       setSending(true);
-      await signIn("resend", { email, callbackUrl: "/" });
+      await signIn("nodemailer", { email, callbackUrl: "/" });
     } finally {
       setChecking(false);
     }

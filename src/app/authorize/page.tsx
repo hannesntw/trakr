@@ -270,7 +270,7 @@ function SignInView({ code }: { code: string }) {
               "use server";
               const email = formData.get("email") as string;
               const target = formData.get("redirectTo") as string;
-              await signIn("resend", { email, redirectTo: target });
+              await signIn("nodemailer", { email, redirectTo: target });
             }}
           >
             <input type="hidden" name="redirectTo" value={redirectTo} />
