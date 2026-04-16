@@ -256,7 +256,7 @@ function buildWhere(node: FilterNode, contextProjectId?: string, currentUserId?:
   // Special handling for id field — match against displayId when value contains a dash
   if (field === "id") {
     const v = typeof value === "string" ? value : String(value);
-    if (v.includes("-")) {
+    if (/^[A-Z]{2,5}-\d+/i.test(v)) {
       // Display ID format, e.g. "TRK-5" or range "TRK-1..TRK-10"
       if (operator === "range") {
         // Parse numeric suffix from both ends

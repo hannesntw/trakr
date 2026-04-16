@@ -11,10 +11,14 @@ import { NextRequest } from "next/server";
 
 // Mock auth modules — next-auth cannot be imported in vitest
 vi.mock("@/auth", () => ({
-  auth: vi.fn().mockResolvedValue(null),
+  auth: vi.fn().mockResolvedValue({ user: { id: "test-user", name: "Test User", email: "test@example.com" } }),
 }));
 vi.mock("@/lib/api-auth", () => ({
-  resolveApiUser: vi.fn().mockResolvedValue(null),
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
 }));
 
 import { POST } from "../traql/route";
@@ -29,7 +33,7 @@ function traqlRequest(body: unknown) {
 
 describe("POST /api/traql — basic queries", () => {
   it("returns items for a basic query", async () => {
-    const res = await POST(traqlRequest({ query: "type:story", projectId: 1 }));
+    const res = await POST(traqlRequest({ query: "type:story", projectId: "test-project-1" }));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.type).toBe("items");
@@ -38,7 +42,7 @@ describe("POST /api/traql — basic queries", () => {
   });
 
   it("items have expected fields", async () => {
-    const res = await POST(traqlRequest({ query: "type:bug", projectId: 1 }));
+    const res = await POST(traqlRequest({ query: "type:bug", projectId: "test-project-1" }));
     const data = await res.json();
     expect(data.items.length).toBeGreaterThan(0);
     const item = data.items[0];
@@ -52,7 +56,7 @@ describe("POST /api/traql — basic queries", () => {
 describe("POST /api/traql — aggregates", () => {
   it("SELECT count() returns a scalar", async () => {
     const res = await POST(
-      traqlRequest({ query: "SELECT count() WHERE type:story", projectId: 1 })
+      traqlRequest({ query: "SELECT count() WHERE type:story", projectId: "test-project-1" })
     );
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -67,7 +71,7 @@ describe("POST /api/traql — GROUP BY", () => {
     const res = await POST(
       traqlRequest({
         query: "SELECT count() GROUP BY state",
-        projectId: 1,
+        projectId: "test-project-1",
       })
     );
     expect(res.status).toBe(200);
@@ -89,7 +93,7 @@ describe("POST /api/traql — format()", () => {
     const res = await POST(
       traqlRequest({
         query: 'SELECT format("{title}") WHERE type:story',
-        projectId: 1,
+        projectId: "test-project-1",
       })
     );
     expect(res.status).toBe(200);
@@ -108,7 +112,7 @@ describe("POST /api/traql — format()", () => {
 describe("POST /api/traql — error handling", () => {
   it("returns 400 for invalid/unparseable query", async () => {
     const res = await POST(
-      traqlRequest({ query: "SELECT !!! BROKEN", projectId: 1 })
+      traqlRequest({ query: "SELECT !!! BROKEN", projectId: "test-project-1" })
     );
     expect(res.status).toBe(400);
     const data = await res.json();
@@ -129,10 +133,10 @@ describe("POST /api/traql — error handling", () => {
 describe("POST /api/traql — projectId scoping", () => {
   it("scopes results to the specified project", async () => {
     const resAlpha = await POST(
-      traqlRequest({ query: "type:story", projectId: 1 })
+      traqlRequest({ query: "type:story", projectId: "test-project-1" })
     );
     const resBeta = await POST(
-      traqlRequest({ query: "type:story", projectId: 2 })
+      traqlRequest({ query: "type:story", projectId: "test-project-2" })
     );
     const alphaData = await resAlpha.json();
     const betaData = await resBeta.json();
@@ -146,12 +150,12 @@ describe("POST /api/traql — projectId scoping", () => {
 
   it("items belong to the specified project", async () => {
     const res = await POST(
-      traqlRequest({ query: "type:epic", projectId: 2 })
+      traqlRequest({ query: "type:epic", projectId: "test-project-2" })
     );
     const data = await res.json();
     expect(data.items.length).toBeGreaterThan(0);
     for (const item of data.items) {
-      expect(item.projectId).toBe(2);
+      expect(item.projectId).toBe("test-project-2");
     }
   });
 });

@@ -8,6 +8,15 @@ vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ user: { id: "test-user", name: "Test User", email: "test@example.com" } }),
 }));
 
+vi.mock("@/lib/api-auth", () => ({
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+}));
+
 import { GET, POST } from "../projects/route";
 import {
   GET as GET_BY_ID,
@@ -25,7 +34,7 @@ function jsonRequest(url: string, body: unknown, method = "POST") {
 
 describe("GET /api/projects", () => {
   it("returns an array of projects", async () => {
-    const res = await GET();
+    const res = await GET(new NextRequest("http://localhost:3100/api/projects"));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(Array.isArray(data)).toBe(true);
@@ -33,7 +42,7 @@ describe("GET /api/projects", () => {
   });
 
   it("each project has expected fields", async () => {
-    const res = await GET();
+    const res = await GET(new NextRequest("http://localhost:3100/api/projects"));
     const data = await res.json();
     const project = data[0];
     expect(project).toHaveProperty("id");
@@ -115,11 +124,11 @@ describe("POST /api/projects", () => {
 describe("PATCH /api/projects/:id", () => {
   it("updates project name", async () => {
     const req = jsonRequest(
-      "http://localhost:3100/api/projects/1",
+      "http://localhost:3100/api/projects/test-project-1",
       { name: "Alpha Renamed" },
       "PATCH"
     );
-    const res = await PATCH(req, { params: Promise.resolve({ id: "1" }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "test-project-1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.name).toBe("Alpha Renamed");
@@ -127,11 +136,11 @@ describe("PATCH /api/projects/:id", () => {
 
   it("updates project description", async () => {
     const req = jsonRequest(
-      "http://localhost:3100/api/projects/1",
+      "http://localhost:3100/api/projects/test-project-1",
       { description: "Updated description" },
       "PATCH"
     );
-    const res = await PATCH(req, { params: Promise.resolve({ id: "1" }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "test-project-1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.description).toBe("Updated description");
@@ -139,11 +148,11 @@ describe("PATCH /api/projects/:id", () => {
 
   it("changes visibility from public to private", async () => {
     const req = jsonRequest(
-      "http://localhost:3100/api/projects/1",
+      "http://localhost:3100/api/projects/test-project-1",
       { visibility: "private" },
       "PATCH"
     );
-    const res = await PATCH(req, { params: Promise.resolve({ id: "1" }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "test-project-1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.visibility).toBe("private");
@@ -151,11 +160,11 @@ describe("PATCH /api/projects/:id", () => {
 
   it("changes visibility back to public", async () => {
     const req = jsonRequest(
-      "http://localhost:3100/api/projects/1",
+      "http://localhost:3100/api/projects/test-project-1",
       { visibility: "public" },
       "PATCH"
     );
-    const res = await PATCH(req, { params: Promise.resolve({ id: "1" }) });
+    const res = await PATCH(req, { params: Promise.resolve({ id: "test-project-1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.visibility).toBe("public");

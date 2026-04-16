@@ -34,13 +34,10 @@ describe("TraQL field queries", () => {
     assertAllItems(r, (i) => Number(i.priority) > 2);
   });
 
-  it("id:1..20 returns items in range", async () => {
-    const r = await query("id:1..20");
+  it("id:test-wi-3 returns the specific item", async () => {
+    const r = await query("id:test-wi-3");
     expect(r.type).toBe("items");
-    expect(r.items!.length).toBeGreaterThan(0);
-    assertAllItems(r, (i) => {
-      const id = Number(i.id);
-      return id >= 1 && id <= 20;
-    });
+    expect(r.items!.length).toBe(1);
+    expect(r.items![0].id).toBe("test-wi-3");
   });
 });

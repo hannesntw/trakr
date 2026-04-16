@@ -3,7 +3,12 @@ import { NextRequest } from "next/server";
 
 // Mock api-auth to avoid pulling in next-auth (needs full Next.js runtime)
 vi.mock("@/lib/api-auth", () => ({
-  resolveApiUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com" }),
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
 }));
 
 // Import route handlers after mock is set up
@@ -15,88 +20,88 @@ function makeParams(id: string) {
 }
 
 describe("Sprints API", () => {
-  it("GET /api/sprints?projectId=1 returns sprints", async () => {
-    const req = new NextRequest("http://localhost/api/sprints?projectId=1");
+  it("GET /api/sprints?projectId=test-project-1 returns sprints", async () => {
+    const req = new NextRequest("http://localhost/api/sprints?projectId=test-project-1");
     const res = await listSprints(req);
     expect(res.status).toBe(200);
 
     const rows = await res.json();
     expect(rows.length).toBeGreaterThan(0);
-    // All results should belong to project 1
+    // All results should belong to test-project-1
     for (const row of rows) {
-      expect(row.projectId).toBe(1);
+      expect(row.projectId).toBe("test-project-1");
     }
   });
 
   it("PATCH sprint goal is saved and returned (bug #108 regression)", async () => {
-    // Sprint 3 = ALP Sprint 3, currently has goal "Polish"
-    const req = new NextRequest("http://localhost/api/sprints/3", {
+    // test-sprint-3 = ALP Sprint 3, currently has goal "Polish"
+    const req = new NextRequest("http://localhost/api/sprints/test-sprint-3", {
       method: "PATCH",
       body: JSON.stringify({ goal: "Updated goal for regression test" }),
       headers: { "Content-Type": "application/json" },
     });
 
-    const res = await patchSprint(req, makeParams(3));
+    const res = await patchSprint(req, makeParams("test-sprint-3"));
     expect(res.status).toBe(200);
 
     const data = await res.json();
     expect(data.goal).toBe("Updated goal for regression test");
 
     // Re-fetch to confirm it persisted
-    const getReq = new NextRequest("http://localhost/api/sprints/3");
-    const getRes = await getSprint(getReq, makeParams(3));
+    const getReq = new NextRequest("http://localhost/api/sprints/test-sprint-3");
+    const getRes = await getSprint(getReq, makeParams("test-sprint-3"));
     const fetched = await getRes.json();
     expect(fetched.goal).toBe("Updated goal for regression test");
 
     // Restore original value
-    const restoreReq = new NextRequest("http://localhost/api/sprints/3", {
+    const restoreReq = new NextRequest("http://localhost/api/sprints/test-sprint-3", {
       method: "PATCH",
       body: JSON.stringify({ goal: "Polish" }),
       headers: { "Content-Type": "application/json" },
     });
-    await patchSprint(restoreReq, makeParams(3));
+    await patchSprint(restoreReq, makeParams("test-sprint-3"));
   });
 
   it("PATCH sprint state changes state", async () => {
-    // Sprint 4 = ALP Sprint 4, currently "planning"
-    const req = new NextRequest("http://localhost/api/sprints/4", {
+    // test-sprint-4 = ALP Sprint 4, currently "planning"
+    const req = new NextRequest("http://localhost/api/sprints/test-sprint-4", {
       method: "PATCH",
       body: JSON.stringify({ state: "active" }),
       headers: { "Content-Type": "application/json" },
     });
 
-    const res = await patchSprint(req, makeParams(4));
+    const res = await patchSprint(req, makeParams("test-sprint-4"));
     expect(res.status).toBe(200);
 
     const data = await res.json();
     expect(data.state).toBe("active");
 
     // Activating sprint 4 should have closed sprint 3 (same project)
-    const getReq = new NextRequest("http://localhost/api/sprints/3");
-    const getRes = await getSprint(getReq, makeParams(3));
+    const getReq = new NextRequest("http://localhost/api/sprints/test-sprint-3");
+    const getRes = await getSprint(getReq, makeParams("test-sprint-3"));
     const sprint3 = await getRes.json();
     expect(sprint3.state).toBe("closed");
 
     // Restore sprint 4 back to planning
-    const restoreReq = new NextRequest("http://localhost/api/sprints/4", {
+    const restoreReq = new NextRequest("http://localhost/api/sprints/test-sprint-4", {
       method: "PATCH",
       body: JSON.stringify({ state: "planning" }),
       headers: { "Content-Type": "application/json" },
     });
-    await patchSprint(restoreReq, makeParams(4));
+    await patchSprint(restoreReq, makeParams("test-sprint-4"));
 
     // Restore sprint 3 back to active (was closed by activating sprint 4)
-    const restoreSprint3 = new NextRequest("http://localhost/api/sprints/3", {
+    const restoreSprint3 = new NextRequest("http://localhost/api/sprints/test-sprint-3", {
       method: "PATCH",
       body: JSON.stringify({ state: "active" }),
       headers: { "Content-Type": "application/json" },
     });
-    await patchSprint(restoreSprint3, makeParams(3));
+    await patchSprint(restoreSprint3, makeParams("test-sprint-3"));
   });
 
   it("Sprint has startDate and endDate", async () => {
-    const req = new NextRequest("http://localhost/api/sprints/1");
-    const res = await getSprint(req, makeParams(1));
+    const req = new NextRequest("http://localhost/api/sprints/test-sprint-1");
+    const res = await getSprint(req, makeParams("test-sprint-1"));
     expect(res.status).toBe(200);
 
     const data = await res.json();

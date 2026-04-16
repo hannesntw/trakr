@@ -34,8 +34,8 @@ describe("TraQL sprint queries", () => {
     expect(r.items!.length).toBeGreaterThan(0);
     // Closed sprints for ALP are id 1 and 2
     assertAllItems(r, (i) => {
-      const sid = (i.sprint_id ?? i.sprintId) as number;
-      return sid === 1 || sid === 2;
+      const sid = (i.sprint_id ?? i.sprintId) as string;
+      return sid === "test-sprint-1" || sid === "test-sprint-2";
     });
   });
 });

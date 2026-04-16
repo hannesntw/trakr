@@ -8,7 +8,7 @@ import { requireProjectAccess } from "@/lib/project-auth";
 
 /** Resolve displayId like "STRI-5" to the actual CUID2 id */
 async function resolveId(idParam: string): Promise<string | null> {
-  if (idParam.includes("-")) {
+  if (/^[A-Z]{2,5}-\d+$/i.test(idParam)) {
     const [row] = await db.select({ id: workItems.id }).from(workItems).where(eq(workItems.displayId, idParam.toUpperCase()));
     return row?.id ?? null;
   }

@@ -2,11 +2,16 @@ import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { statusHistory } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // Mock api-auth to avoid pulling in next-auth (needs full Next.js runtime)
 vi.mock("@/lib/api-auth", () => ({
-  resolveApiUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com" }),
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
 }));
 
 // Import route handlers after mock is set up
@@ -34,7 +39,7 @@ function makeRequest(
   return new NextRequest(new URL(url, "http://localhost"), init);
 }
 
-function idParams(id: string | string) {
+function idParams(id: string | number) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
 
@@ -43,7 +48,7 @@ function idParams(id: string | string) {
 // ---------------------------------------------------------------------------
 
 describe("Work Item CRUD", () => {
-  const createdIds: number[] = [];
+  const createdIds: string[] = [];
 
   // 1. POST — create every type
   it.each(["story", "epic", "feature", "bug", "task"] as const)(
@@ -51,7 +56,7 @@ describe("Work Item CRUD", () => {
     async (type) => {
       const req = makeRequest("/api/work-items", {
         body: {
-          projectId: 1,
+          projectId: "test-project-1",
           title: `Test ${type}`,
           type,
           description: `Desc for ${type}`,
@@ -63,8 +68,8 @@ describe("Work Item CRUD", () => {
       expect(res.status).toBe(201);
 
       const data = await res.json();
-      expect(data.id).toBeTypeOf("number");
-      expect(data.projectId).toBe(1);
+      expect(data.id).toBeTypeOf("string");
+      expect(data.projectId).toBe("test-project-1");
       expect(data.title).toBe(`Test ${type}`);
       expect(data.type).toBe(type);
       expect(data.description).toBe(`Desc for ${type}`);
@@ -77,8 +82,8 @@ describe("Work Item CRUD", () => {
   );
 
   // 2. GET — list items for project 1
-  it("GET /api/work-items?projectId=1 returns items", async () => {
-    const req = makeRequest("/api/work-items?projectId=1");
+  it("GET /api/work-items?projectId=test-project-1 returns items", async () => {
+    const req = makeRequest("/api/work-items?projectId=test-project-1");
     const res = await GET(req);
     expect(res.status).toBe(200);
 
@@ -87,13 +92,13 @@ describe("Work Item CRUD", () => {
     expect(data.length).toBeGreaterThan(0);
     // Every item belongs to project 1
     for (const item of data) {
-      expect(item.projectId).toBe(1);
+      expect(item.projectId).toBe("test-project-1");
     }
   });
 
   // 3. GET — filter by type
-  it("GET ?projectId=1&type=story returns only stories", async () => {
-    const req = makeRequest("/api/work-items?projectId=1&type=story");
+  it("GET ?projectId=test-project-1&type=story returns only stories", async () => {
+    const req = makeRequest("/api/work-items?projectId=test-project-1&type=story");
     const res = await GET(req);
     const data = await res.json();
     expect(data.length).toBeGreaterThan(0);
@@ -103,8 +108,8 @@ describe("Work Item CRUD", () => {
   });
 
   // 4. GET — filter by state
-  it("GET ?projectId=1&state=done returns only done items", async () => {
-    const req = makeRequest("/api/work-items?projectId=1&state=done");
+  it("GET ?projectId=test-project-1&state=done returns only done items", async () => {
+    const req = makeRequest("/api/work-items?projectId=test-project-1&state=done");
     const res = await GET(req);
     const data = await res.json();
     expect(data.length).toBeGreaterThan(0);
@@ -152,15 +157,15 @@ describe("Work Item CRUD", () => {
     const rows = await db
       .select()
       .from(statusHistory)
-      .where(eq(statusHistory.workItemId, targetId))
-      .orderBy(desc(statusHistory.id));
+      .where(eq(statusHistory.workItemId, targetId));
 
     // Expect at least 3 rows: creation + new→in_progress + in_progress→done
     expect(rows.length).toBeGreaterThanOrEqual(3);
-    // rows are ordered by desc(id), so latest is first
-    const latest = rows[0];
-    expect(latest.fromState).toBe("in_progress");
-    expect(latest.toState).toBe("done");
+    // Verify the expected transitions exist (CUID2 ids are not sortable)
+    const transitions = rows.map(r => `${r.fromState}->${r.toState}`);
+    expect(transitions).toContain("(created)->new");
+    expect(transitions).toContain("new->in_progress");
+    expect(transitions).toContain("in_progress->done");
   });
 
   // 7. DELETE — verify deletion
@@ -187,13 +192,13 @@ describe("Work Item CRUD", () => {
 // ---------------------------------------------------------------------------
 
 describe("Points validation", () => {
-  let itemId: number;
+  let itemId: string;
 
   // Create a fresh item for points tests
   it("setup: create item for points tests", async () => {
     const req = makeRequest("/api/work-items", {
       body: {
-        projectId: 2,
+        projectId: "test-project-2",
         title: "Points validation item",
         type: "story",
       },
@@ -251,14 +256,14 @@ describe("Points validation", () => {
 
 describe("Parent/child relationships", () => {
   let parentId: string;
-  let childId: number;
-  let altParentId: number;
+  let childId: string;
+  let altParentId: string;
 
   // Create parent and alternate parent
   it("setup: create parent items", async () => {
     const parentReq = makeRequest("/api/work-items", {
       body: {
-        projectId: 1,
+        projectId: "test-project-1",
         title: "Parent feature",
         type: "feature",
       },
@@ -269,7 +274,7 @@ describe("Parent/child relationships", () => {
 
     const altReq = makeRequest("/api/work-items", {
       body: {
-        projectId: 1,
+        projectId: "test-project-1",
         title: "Alt parent feature",
         type: "feature",
       },
@@ -283,7 +288,7 @@ describe("Parent/child relationships", () => {
   it("POST with parentId sets parent", async () => {
     const req = makeRequest("/api/work-items", {
       body: {
-        projectId: 1,
+        projectId: "test-project-1",
         title: "Child story",
         type: "story",
         parentId,

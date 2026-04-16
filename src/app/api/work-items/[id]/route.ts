@@ -9,7 +9,7 @@ import { requireProjectAccess } from "@/lib/project-auth";
 
 /** Resolve a work item ID parameter — accepts CUID2 id or displayId like "TRK-5" */
 async function resolveWorkItemId(idParam: string): Promise<string | null> {
-  if (idParam.includes("-")) {
+  if (/^[A-Z]{2,5}-\d+$/i.test(idParam)) {
     // Display ID format, e.g. "TRK-5"
     const [row] = await db
       .select({ id: workItems.id })

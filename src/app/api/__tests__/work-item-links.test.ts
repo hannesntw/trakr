@@ -3,7 +3,12 @@ import { NextRequest } from "next/server";
 
 // Mock api-auth to avoid pulling in next-auth (needs full Next.js runtime)
 vi.mock("@/lib/api-auth", () => ({
-  resolveApiUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com" }),
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
 }));
 
 // Import route handlers after mock is set up
@@ -11,9 +16,9 @@ import { GET, POST } from "../work-items/[id]/links/route";
 import { DELETE } from "../work-items/[id]/links/[linkId]/route";
 
 // Use two seed work-item IDs from project Alpha (seeded by setup.ts)
-const SOURCE_ID = 1;
-const TARGET_ID = 2;
-const ANOTHER_ID = 3;
+const SOURCE_ID = "test-wi-1";
+const TARGET_ID = "test-wi-2";
+const ANOTHER_ID = "test-wi-3";
 
 function makeParams(id: string) {
   return { params: Promise.resolve({ id: String(id) }) };
@@ -27,7 +32,7 @@ describe("Work-item links API", () => {
   let inverseLinkId: number;
 
   it("POST link (blocks) creates forward link", async () => {
-    const req = new NextRequest("http://localhost/api/work-items/1/links", {
+    const req = new NextRequest("http://localhost/api/work-items/test-wi-1/links", {
       method: "POST",
       body: JSON.stringify({ targetId: TARGET_ID, type: "blocks" }),
       headers: { "Content-Type": "application/json" },
@@ -47,7 +52,7 @@ describe("Work-item links API", () => {
 
   it("POST link (blocks) auto-creates inverse (blocked_by)", async () => {
     // The previous POST should have returned inverse
-    const req = new NextRequest("http://localhost/api/work-items/1/links", {
+    const req = new NextRequest("http://localhost/api/work-items/test-wi-1/links", {
       method: "POST",
       body: JSON.stringify({ targetId: ANOTHER_ID, type: "blocks" }),
       headers: { "Content-Type": "application/json" },
@@ -65,7 +70,7 @@ describe("Work-item links API", () => {
   });
 
   it("GET links for source item includes both directions", async () => {
-    const req = new NextRequest("http://localhost/api/work-items/1/links");
+    const req = new NextRequest("http://localhost/api/work-items/test-wi-1/links");
     const res = await GET(req, makeParams(SOURCE_ID));
     expect(res.status).toBe(200);
 
@@ -79,7 +84,7 @@ describe("Work-item links API", () => {
   });
 
   it("GET links for target item includes the inverse", async () => {
-    const req = new NextRequest("http://localhost/api/work-items/2/links");
+    const req = new NextRequest("http://localhost/api/work-items/test-wi-2/links");
     const res = await GET(req, makeParams(TARGET_ID));
     expect(res.status).toBe(200);
 
@@ -93,7 +98,7 @@ describe("Work-item links API", () => {
 
   it("DELETE link removes both forward and inverse", async () => {
     // First create a fresh link to delete
-    const createReq = new NextRequest("http://localhost/api/work-items/1/links", {
+    const createReq = new NextRequest("http://localhost/api/work-items/test-wi-1/links", {
       method: "POST",
       body: JSON.stringify({ targetId: TARGET_ID, type: "relates_to" }),
       headers: { "Content-Type": "application/json" },
@@ -126,7 +131,7 @@ describe("Work-item links API", () => {
   });
 
   it("POST self-link is rejected", async () => {
-    const req = new NextRequest("http://localhost/api/work-items/1/links", {
+    const req = new NextRequest("http://localhost/api/work-items/test-wi-1/links", {
       method: "POST",
       body: JSON.stringify({ targetId: SOURCE_ID, type: "blocks" }),
       headers: { "Content-Type": "application/json" },
@@ -140,7 +145,7 @@ describe("Work-item links API", () => {
   });
 
   it("POST relates_to creates same type in both directions", async () => {
-    const req = new NextRequest("http://localhost/api/work-items/1/links", {
+    const req = new NextRequest("http://localhost/api/work-items/test-wi-1/links", {
       method: "POST",
       body: JSON.stringify({ targetId: ANOTHER_ID, type: "relates_to" }),
       headers: { "Content-Type": "application/json" },

@@ -13,7 +13,7 @@ describe("TraQL link traversal", () => {
     // Verify each returned item actually has a link
     for (const item of r.items!) {
       const links = await db.select().from(workItemLinks).where(
-        or(eq(workItemLinks.sourceId, item.id as number), eq(workItemLinks.targetId, item.id as number))
+        or(eq(workItemLinks.sourceId, item.id as string), eq(workItemLinks.targetId, item.id as string))
       );
       expect(links.length).toBeGreaterThan(0);
     }
@@ -27,7 +27,7 @@ describe("TraQL link traversal", () => {
     // Spot-check first few items
     for (const item of r.items!.slice(0, 5)) {
       const links = await db.select().from(workItemLinks).where(
-        or(eq(workItemLinks.sourceId, item.id as number), eq(workItemLinks.targetId, item.id as number))
+        or(eq(workItemLinks.sourceId, item.id as string), eq(workItemLinks.targetId, item.id as string))
       );
       expect(links.length).toBe(0);
     }
@@ -40,8 +40,8 @@ describe("TraQL link traversal", () => {
 
     // Item 3, 5, 7 are blockers in our seed
     const ids = r.items!.map(i => i.id);
-    expect(ids).toContain(3);
-    expect(ids).toContain(5);
+    expect(ids).toContain("test-wi-3");
+    expect(ids).toContain("test-wi-5");
   });
 
   it("links:blocked_by returns items that are blocked by something", async () => {
@@ -51,8 +51,8 @@ describe("TraQL link traversal", () => {
 
     // Items 4, 6, 8 are blocked in our seed
     const ids = r.items!.map(i => i.id);
-    expect(ids).toContain(4);
-    expect(ids).toContain(6);
+    expect(ids).toContain("test-wi-4");
+    expect(ids).toContain("test-wi-6");
   });
 
   it("blocked_by:in_progress returns items blocked by an in_progress item", async () => {

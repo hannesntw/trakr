@@ -3,7 +3,12 @@ import { NextRequest } from "next/server";
 
 // Mock api-auth to avoid pulling in next-auth (needs full Next.js runtime)
 vi.mock("@/lib/api-auth", () => ({
-  resolveApiUser: async () => ({ id: "test-user", name: "Test User", email: "test@example.com" }),
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
 }));
 
 // Import route handlers after mock is set up
@@ -13,7 +18,7 @@ import { POST as reorder } from "../projects/[id]/workflow/reorder/route";
 
 // Use project 2 (Beta) for workflow tests to avoid interfering with
 // Alpha's workflow states used by other tests.
-const PROJECT_ID = 2;
+const PROJECT_ID = "test-project-2";
 
 function projParams(id: string = PROJECT_ID) {
   return { params: Promise.resolve({ id: String(id) }) };

@@ -14,6 +14,11 @@ vi.mock("@/lib/api-auth", () => ({
   resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
 }));
 
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+}));
+
 import { POST } from "../work-items/route";
 import { PATCH } from "../work-items/[id]/route";
 import { GET as GET_HISTORY } from "../work-items/[id]/history/route";
@@ -31,7 +36,7 @@ function jsonRequest(url: string, body: unknown, method = "POST") {
 beforeAll(async () => {
   // Create a dedicated work item for status-history tests
   const req = jsonRequest("http://localhost:3100/api/work-items", {
-    projectId: 1,
+    projectId: "test-project-1",
     title: "Status History Test Item",
     type: "story",
     state: "new",
@@ -239,7 +244,7 @@ describe("GET /api/work-items/:id/history", () => {
   it("returns creation record for item with no subsequent state changes", async () => {
     // Create a fresh item
     const createReq = jsonRequest("http://localhost:3100/api/work-items", {
-      projectId: 1,
+      projectId: "test-project-1",
       title: "No History Item",
       type: "task",
     });

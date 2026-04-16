@@ -18,7 +18,7 @@ import { eq } from "drizzle-orm";
 
 // Mock auth
 vi.mock("@/lib/api-auth", () => ({
-  resolveApiUser: async () => ({
+  resolveApiUser: vi.fn().mockResolvedValue({
     id: "test-user",
     name: "Test User",
     email: "test@example.com",
@@ -29,6 +29,11 @@ vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({
     user: { id: "test-user", name: "Test User", email: "test@example.com" },
   }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
 }));
 
 import { POST as createProject } from "../projects/route";

@@ -8,8 +8,8 @@ describe("TraQL sprint health", () => {
     expect(r.items!.length).toBeGreaterThan(0);
     // All clean items should be in a closed sprint and in a done state
     for (const item of r.items!) {
-      const sid = (item.sprint_id ?? item.sprintId) as number;
-      expect([1, 2]).toContain(sid); // closed sprints
+      const sid = (item.sprint_id ?? item.sprintId) as string;
+      expect(["test-sprint-1", "test-sprint-2"]).toContain(sid); // closed sprints
       expect(item.state).toBe("done");
     }
   });
@@ -19,7 +19,7 @@ describe("TraQL sprint health", () => {
     expect(r.type).toBe("items");
     expect(r.items!.length).toBeGreaterThan(0);
     for (const item of r.items!) {
-      const sid = (item.sprint_id ?? item.sprintId) as number;
+      const sid = (item.sprint_id ?? item.sprintId) as string;
       expect(sid).toBe(EXPECTED.ACTIVE_SPRINT_ALP);
       expect(item.state).not.toBe("done");
     }
@@ -30,8 +30,8 @@ describe("TraQL sprint health", () => {
     expect(r.type).toBe("items");
     expect(r.items!.length).toBeGreaterThan(0);
     for (const item of r.items!) {
-      const sid = (item.sprint_id ?? item.sprintId) as number;
-      expect([1, 2]).toContain(sid); // closed sprints
+      const sid = (item.sprint_id ?? item.sprintId) as string;
+      expect(["test-sprint-1", "test-sprint-2"]).toContain(sid); // closed sprints
       expect(item.state).not.toBe("done");
     }
   });
@@ -49,7 +49,7 @@ describe("TraQL sprint health", () => {
     expect(r.type).toBe("items");
     expect(r.items!.length).toBeGreaterThan(0);
     for (const item of r.items!) {
-      const sid = (item.sprint_id ?? item.sprintId) as number;
+      const sid = (item.sprint_id ?? item.sprintId) as string;
       expect(sid).toBe(EXPECTED.ACTIVE_SPRINT_ALP);
       expect(item.state).not.toBe("done");
     }

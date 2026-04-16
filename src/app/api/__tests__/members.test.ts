@@ -6,18 +6,29 @@
 // return nothing. The test verifies the endpoint works and returns an array,
 // even if empty due to no user rows in the test DB.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { NextRequest } from "next/server";
+
+// Mock auth — next-auth cannot be imported in vitest
+vi.mock("@/lib/api-auth", () => ({
+  resolveApiUser: vi.fn().mockResolvedValue({ id: "test-user", name: "Test User", email: "test@example.com" }),
+}));
+
+vi.mock("@/lib/project-auth", () => ({
+  requireProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+  resolveProjectAccess: vi.fn().mockResolvedValue({ allowed: true, role: "owner", via: "owner" }),
+}));
+
 import { GET } from "../projects/[id]/members/route";
 
 // The test user row ("test-user") is created by the global setup.ts.
 
 describe("GET /api/projects/:id/members", () => {
-  it("returns an array of members for project 1", async () => {
+  it("returns an array of members for the test project", async () => {
     const req = new NextRequest(
-      new URL("http://localhost:3100/api/projects/1/members")
+      new URL("http://localhost:3100/api/projects/test-project-1/members")
     );
-    const res = await GET(req, { params: Promise.resolve({ id: "1" }) });
+    const res = await GET(req, { params: Promise.resolve({ id: "test-project-1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(Array.isArray(data)).toBe(true);
@@ -25,9 +36,9 @@ describe("GET /api/projects/:id/members", () => {
 
   it("includes the project owner with id, name, email", async () => {
     const req = new NextRequest(
-      new URL("http://localhost:3100/api/projects/1/members")
+      new URL("http://localhost:3100/api/projects/test-project-1/members")
     );
-    const res = await GET(req, { params: Promise.resolve({ id: "1" }) });
+    const res = await GET(req, { params: Promise.resolve({ id: "test-project-1" }) });
     const data = await res.json();
     // The owner "test-user" should be present since we inserted a user row
     expect(data.length).toBeGreaterThanOrEqual(1);

@@ -37,16 +37,21 @@ function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 86400000);
 }
 
+// Deterministic ID generators
+function projectId(n: number): string { return `test-project-${n}`; }
+function sprintId(n: number): string { return `test-sprint-${n}`; }
+function wiId(n: number): string { return `test-wi-${n}`; }
+
 export async function seedTestData(db: any) {
   const now = FROZEN_NOW.toISOString();
 
   // --- Users ---
   // (Not creating real users — assignee is a plain string)
 
-  // --- Projects (sequence will be updated after seeding) ---
+  // --- Projects ---
   await db.insert(projects).values([
-    { id: 1, name: "Alpha", key: "ALP", description: "Deep hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
-    { id: 2, name: "Beta", key: "BET", description: "Wide hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
+    { id: projectId(1), name: "Alpha", key: "ALP", description: "Deep hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
+    { id: projectId(2), name: "Beta", key: "BET", description: "Wide hierarchy test project", visibility: "public", ownerId: "test-user", sequence: 0, createdAt: now, updatedAt: now },
   ]);
 
   // --- Workflow states (Standard for both) ---
@@ -56,28 +61,29 @@ export async function seedTestData(db: any) {
     { slug: "in_progress", displayName: "In Progress", position: 2, category: "in_progress" as const, color: "#6366F1" },
     { slug: "done", displayName: "Done", position: 3, category: "done" as const, color: "#10B981" },
   ];
-  for (const pid of [1, 2]) {
+  for (const pid of [projectId(1), projectId(2)]) {
     await db.insert(workflowStates).values(wfStates.map(s => ({ ...s, projectId: pid, createdAt: now })));
   }
 
   // --- Sprints ---
   await db.insert(sprints).values([
-    { id: 1, projectId: 1, name: "ALP Sprint 1", goal: "Foundation", startDate: "2026-01-05", endDate: "2026-01-18", state: "closed", createdAt: now },
-    { id: 2, projectId: 1, name: "ALP Sprint 2", goal: "Core features", startDate: "2026-01-19", endDate: "2026-02-01", state: "closed", createdAt: now },
-    { id: 3, projectId: 1, name: "ALP Sprint 3", goal: "Polish", startDate: "2026-03-30", endDate: "2026-04-12", state: "active", createdAt: now },
-    { id: 4, projectId: 1, name: "ALP Sprint 4", goal: "Next", startDate: "2026-04-13", endDate: "2026-04-26", state: "planning", createdAt: now },
-    { id: 5, projectId: 2, name: "BET Sprint 1", goal: "Launch", startDate: "2026-03-30", endDate: "2026-04-12", state: "active", createdAt: now },
-    { id: 6, projectId: 2, name: "BET Sprint 2", goal: "Iterate", startDate: "2026-04-13", endDate: "2026-04-26", state: "planning", createdAt: now },
+    { id: sprintId(1), projectId: projectId(1), name: "ALP Sprint 1", goal: "Foundation", startDate: "2026-01-05", endDate: "2026-01-18", state: "closed", createdAt: now },
+    { id: sprintId(2), projectId: projectId(1), name: "ALP Sprint 2", goal: "Core features", startDate: "2026-01-19", endDate: "2026-02-01", state: "closed", createdAt: now },
+    { id: sprintId(3), projectId: projectId(1), name: "ALP Sprint 3", goal: "Polish", startDate: "2026-03-30", endDate: "2026-04-12", state: "active", createdAt: now },
+    { id: sprintId(4), projectId: projectId(1), name: "ALP Sprint 4", goal: "Next", startDate: "2026-04-13", endDate: "2026-04-26", state: "planning", createdAt: now },
+    { id: sprintId(5), projectId: projectId(2), name: "BET Sprint 1", goal: "Launch", startDate: "2026-03-30", endDate: "2026-04-12", state: "active", createdAt: now },
+    { id: sprintId(6), projectId: projectId(2), name: "BET Sprint 2", goal: "Iterate", startDate: "2026-04-13", endDate: "2026-04-26", state: "planning", createdAt: now },
   ]);
 
   // --- Project ALPHA: deep hierarchy (~1000 items) ---
   const rngA = mulberry32(42);
   const alphaItems: any[] = [];
-  let alphaId = 1;
+  let alphaCounter = 1;
   let hourOffset = 0;
 
   function alphaItem(title: string, type: string, parentId: string | null, depth: number) {
-    const id = alphaId++;
+    const counter = alphaCounter++;
+    const id = wiId(counter);
     hourOffset += 2;
     const createdAt = addHours(BASE_DATE, hourOffset).toISOString();
     // Updated: some items stale (not updated in 14+ days), most updated recently
@@ -94,12 +100,12 @@ export async function seedTestData(db: any) {
     else state = "new";
 
     // Sprint assignment
-    let sprintId: string | null = null;
+    let sid: string | null = null;
     const sr = rngA();
-    if (sr < 0.25) sprintId = 1;
-    else if (sr < 0.5) sprintId = 2;
-    else if (sr < 0.7) sprintId = 3;
-    else if (sr < 0.8) sprintId = 4;
+    if (sr < 0.25) sid = sprintId(1);
+    else if (sr < 0.5) sid = sprintId(2);
+    else if (sr < 0.7) sid = sprintId(3);
+    else if (sr < 0.8) sid = sprintId(4);
     // else null (unsprinted)
 
     // Assignee
@@ -111,9 +117,9 @@ export async function seedTestData(db: any) {
     const priority = Math.floor(rngA() * 5);
 
     alphaItems.push({
-      id, projectId: 1, title, type, state, description: "",
-      displayId: `ALP-${id}`,
-      parentId, sprintId, assignee, points, priority,
+      id, projectId: projectId(1), title, type, state, description: "",
+      displayId: `ALP-${counter}`,
+      parentId, sprintId: sid, assignee, points, priority,
       createdAt, updatedAt,
     });
     return id;
@@ -159,21 +165,23 @@ export async function seedTestData(db: any) {
 
   // Ensure specific data guarantees:
   // - Title containing "sprint planning" for contains query
-  const spRetroId = alphaId++;
+  const spRetroCounter = alphaCounter++;
+  const spRetroId = wiId(spRetroCounter);
   alphaItems.push({
-    id: spRetroId, projectId: 1, title: "Sprint Planning Retrospective", type: "story",
-    displayId: `ALP-${spRetroId}`,
-    state: "done", description: "", parentId: alphaItems[1].id, sprintId: 1,
+    id: spRetroId, projectId: projectId(1), title: "Sprint Planning Retrospective", type: "story",
+    displayId: `ALP-${spRetroCounter}`,
+    state: "done", description: "", parentId: alphaItems[1].id, sprintId: sprintId(1),
     assignee: "Alice", points: 5, priority: 3,
     createdAt: "2026-02-15T10:00:00Z", updatedAt: "2026-02-20T10:00:00Z",
   });
 
   // - Item created during active sprint (2026-03-30 to 2026-04-12)
-  const activeId = alphaId++;
+  const activeCounter = alphaCounter++;
+  const activeId = wiId(activeCounter);
   alphaItems.push({
-    id: activeId, projectId: 1, title: "Active Sprint Item", type: "story",
-    displayId: `ALP-${activeId}`,
-    state: "in_progress", description: "", parentId: alphaItems[1].id, sprintId: 3,
+    id: activeId, projectId: projectId(1), title: "Active Sprint Item", type: "story",
+    displayId: `ALP-${activeCounter}`,
+    state: "in_progress", description: "", parentId: alphaItems[1].id, sprintId: sprintId(3),
     assignee: "Bob", points: 3, priority: 2,
     createdAt: "2026-04-02T10:00:00Z", updatedAt: "2026-04-10T10:00:00Z",
   });
@@ -186,27 +194,28 @@ export async function seedTestData(db: any) {
   // --- Project BETA: wide/shallow (~500 items, smaller for speed) ---
   const rngB = mulberry32(137);
   const betaItems: any[] = [];
-  let betaId = 2000; // offset to avoid ID collisions
+  let betaCounter = 2000; // offset to avoid ID collisions
   let betaSeq = 0;
 
   function betaItem(title: string, type: string, parentId: string | null) {
-    const id = betaId++;
+    const counter = betaCounter++;
+    const id = wiId(counter);
     betaSeq++;
-    const createdAt = addHours(BASE_DATE, (id - 2000) * 3).toISOString();
+    const createdAt = addHours(BASE_DATE, (counter - 2000) * 3).toISOString();
     const staleDays = rngB() < 0.15 ? 30 : Math.floor(rngB() * 10);
     const updatedAt = addDays(new Date(createdAt), staleDays).toISOString();
 
     const r = rngB();
     const state = r < 0.35 ? "done" : r < 0.55 ? "in_progress" : r < 0.75 ? "ready" : "new";
-    const sprintId = rngB() < 0.4 ? 5 : rngB() < 0.6 ? 6 : null;
+    const sid = rngB() < 0.4 ? sprintId(5) : rngB() < 0.6 ? sprintId(6) : null;
     const assignee = rngB() < 0.05 ? null : ASSIGNEES_BETA[Math.floor(rngB() * ASSIGNEES_BETA.length)];
     const points = (type === "story" || type === "bug") ? FIBONACCI[Math.floor(rngB() * FIBONACCI.length)] : null;
     const priority = Math.floor(rngB() * 5);
 
     betaItems.push({
-      id, projectId: 2, title, type, state, description: "",
+      id, projectId: projectId(2), title, type, state, description: "",
       displayId: `BET-${betaSeq}`,
-      parentId, sprintId, assignee, points, priority,
+      parentId, sprintId: sid, assignee, points, priority,
       createdAt, updatedAt,
     });
     return id;
@@ -231,15 +240,15 @@ export async function seedTestData(db: any) {
   // --- Cross-project links ---
   const linkValues = [];
   for (let i = 0; i < 5; i++) {
-    linkValues.push({ sourceId: alphaItems[i * 10 + 5]?.id ?? 5, targetId: betaItems[i * 10]?.id ?? 2000, type: "relates_to" as const, createdAt: now });
+    linkValues.push({ sourceId: alphaItems[i * 10 + 5]?.id ?? wiId(5), targetId: betaItems[i * 10]?.id ?? wiId(2000), type: "relates_to" as const, createdAt: now });
   }
 
   // Add "blocks" links within Alpha project for link traversal tests
   // Item 3 blocks item 4, item 5 blocks item 6
-  linkValues.push({ sourceId: 3, targetId: 4, type: "blocks" as const, createdAt: now });
-  linkValues.push({ sourceId: 5, targetId: 6, type: "blocks" as const, createdAt: now });
+  linkValues.push({ sourceId: wiId(3), targetId: wiId(4), type: "blocks" as const, createdAt: now });
+  linkValues.push({ sourceId: wiId(5), targetId: wiId(6), type: "blocks" as const, createdAt: now });
   // Item 7 blocks item 8 (item 7 is in_progress based on seed)
-  linkValues.push({ sourceId: 7, targetId: 8, type: "blocks" as const, createdAt: now });
+  linkValues.push({ sourceId: wiId(7), targetId: wiId(8), type: "blocks" as const, createdAt: now });
 
   if (linkValues.length > 0) {
     await db.insert(workItemLinks).values(linkValues);
@@ -248,40 +257,40 @@ export async function seedTestData(db: any) {
   // --- Status history for history query tests ---
   // Item 3: new -> ready -> in_progress -> done
   await db.insert(statusHistory).values([
-    { workItemId: 3, fromState: "new", toState: "ready", changedAt: "2026-01-06T10:00:00Z" },
-    { workItemId: 3, fromState: "ready", toState: "in_progress", changedAt: "2026-01-10T10:00:00Z" },
-    { workItemId: 3, fromState: "in_progress", toState: "done", changedAt: "2026-01-15T10:00:00Z" },
+    { workItemId: wiId(3), fromState: "new", toState: "ready", changedAt: "2026-01-06T10:00:00Z" },
+    { workItemId: wiId(3), fromState: "ready", toState: "in_progress", changedAt: "2026-01-10T10:00:00Z" },
+    { workItemId: wiId(3), fromState: "in_progress", toState: "done", changedAt: "2026-01-15T10:00:00Z" },
   ]);
 
   // Item 5: new -> in_progress (during active sprint: 2026-03-30 to 2026-04-12)
   await db.insert(statusHistory).values([
-    { workItemId: 5, fromState: "new", toState: "in_progress", changedAt: "2026-04-02T10:00:00Z" },
+    { workItemId: wiId(5), fromState: "new", toState: "in_progress", changedAt: "2026-04-02T10:00:00Z" },
   ]);
 
   // Item 10: new -> ready -> in_progress (assignee changes for CHANGED tests)
   await db.insert(statusHistory).values([
-    { workItemId: 10, fromState: "new", toState: "ready", changedAt: "2026-01-08T10:00:00Z" },
-    { workItemId: 10, fromState: "ready", toState: "in_progress", changedAt: "2026-01-12T10:00:00Z" },
+    { workItemId: wiId(10), fromState: "new", toState: "ready", changedAt: "2026-01-08T10:00:00Z" },
+    { workItemId: wiId(10), fromState: "ready", toState: "in_progress", changedAt: "2026-01-12T10:00:00Z" },
   ]);
 
   // --- Work item snapshots for assignee CHANGED / WAS tests ---
   // Item 10: assignee changed from Alice to Bob
   await db.insert(workItemSnapshots).values([
     {
-      workItemId: 10, version: 1,
-      snapshot: JSON.stringify({ id: 10, assignee: "Alice", state: "new" }),
+      workItemId: wiId(10), version: 1,
+      snapshot: JSON.stringify({ id: wiId(10), assignee: "Alice", state: "new" }),
       changedBy: "test-user", channel: "api",
       createdAt: "2026-01-06T10:00:00Z",
     },
     {
-      workItemId: 10, version: 2,
-      snapshot: JSON.stringify({ id: 10, assignee: "Bob", state: "ready" }),
+      workItemId: wiId(10), version: 2,
+      snapshot: JSON.stringify({ id: wiId(10), assignee: "Bob", state: "ready" }),
       changedBy: "test-user", channel: "api",
       createdAt: "2026-01-08T10:00:00Z",
     },
     {
-      workItemId: 10, version: 3,
-      snapshot: JSON.stringify({ id: 10, assignee: "Bob", state: "in_progress" }),
+      workItemId: wiId(10), version: 3,
+      snapshot: JSON.stringify({ id: wiId(10), assignee: "Bob", state: "in_progress" }),
       changedBy: "test-user", channel: "api",
       createdAt: "2026-01-12T10:00:00Z",
     },
@@ -290,14 +299,14 @@ export async function seedTestData(db: any) {
   // Item 3: snapshots for sprint history (was in closed sprint 1)
   await db.insert(workItemSnapshots).values([
     {
-      workItemId: 3, version: 1,
-      snapshot: JSON.stringify({ id: 3, assignee: "Alice", state: "new", sprintId: 1 }),
+      workItemId: wiId(3), version: 1,
+      snapshot: JSON.stringify({ id: wiId(3), assignee: "Alice", state: "new", sprintId: sprintId(1) }),
       changedBy: "test-user", channel: "api",
       createdAt: "2026-01-06T10:00:00Z",
     },
     {
-      workItemId: 3, version: 2,
-      snapshot: JSON.stringify({ id: 3, assignee: "Alice", state: "done", sprintId: 1 }),
+      workItemId: wiId(3), version: 2,
+      snapshot: JSON.stringify({ id: wiId(3), assignee: "Alice", state: "done", sprintId: sprintId(1) }),
       changedBy: "test-user", channel: "api",
       createdAt: "2026-01-15T10:00:00Z",
     },
@@ -307,7 +316,7 @@ export async function seedTestData(db: any) {
   // Item 3: has an open PR
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 3, eventType: "pull_request", action: "opened",
+      projectId: projectId(1), workItemId: wiId(3), eventType: "pull_request", action: "opened",
       prNumber: 42, prTitle: "Fix authentication", prState: "open", branch: "fix/auth",
       createdAt: "2026-04-01T10:00:00Z",
     },
@@ -315,12 +324,12 @@ export async function seedTestData(db: any) {
   // Item 5: has a merged PR (two events — opened then merged, latest is merged)
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 5, eventType: "pull_request", action: "opened",
+      projectId: projectId(1), workItemId: wiId(5), eventType: "pull_request", action: "opened",
       prNumber: 43, prTitle: "Add search feature", prState: "open", branch: "feat/search",
       createdAt: "2026-04-01T10:00:00Z",
     },
     {
-      projectId: 1, workItemId: 5, eventType: "pull_request", action: "closed",
+      projectId: projectId(1), workItemId: wiId(5), eventType: "pull_request", action: "closed",
       prNumber: 43, prTitle: "Add search feature", prState: "merged", branch: "feat/search",
       createdAt: "2026-04-03T10:00:00Z",
     },
@@ -328,7 +337,7 @@ export async function seedTestData(db: any) {
   // Item 7: has a closed (not merged) PR
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 7, eventType: "pull_request", action: "closed",
+      projectId: projectId(1), workItemId: wiId(7), eventType: "pull_request", action: "closed",
       prNumber: 44, prTitle: "Old approach", prState: "closed", branch: "feat/old",
       createdAt: "2026-04-02T10:00:00Z",
     },
@@ -336,7 +345,7 @@ export async function seedTestData(db: any) {
   // Item 10: has passing CI
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 10, eventType: "check_suite", action: "completed",
+      projectId: projectId(1), workItemId: wiId(10), eventType: "check_suite", action: "completed",
       ciStatus: "success", branch: "feat/metrics", sha: "abc123",
       createdAt: "2026-04-05T10:00:00Z",
     },
@@ -344,12 +353,12 @@ export async function seedTestData(db: any) {
   // Item 4: has failing CI (two events — first success, then failure)
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 4, eventType: "check_suite", action: "completed",
+      projectId: projectId(1), workItemId: wiId(4), eventType: "check_suite", action: "completed",
       ciStatus: "success", branch: "feat/dashboard", sha: "def456",
       createdAt: "2026-04-04T10:00:00Z",
     },
     {
-      projectId: 1, workItemId: 4, eventType: "check_suite", action: "completed",
+      projectId: projectId(1), workItemId: wiId(4), eventType: "check_suite", action: "completed",
       ciStatus: "failure", branch: "feat/dashboard", sha: "ghi789",
       createdAt: "2026-04-06T10:00:00Z",
     },
@@ -357,7 +366,7 @@ export async function seedTestData(db: any) {
   // Item 6: has pending CI
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 6, eventType: "check_suite", action: "requested",
+      projectId: projectId(1), workItemId: wiId(6), eventType: "check_suite", action: "requested",
       ciStatus: "pending", branch: "feat/export", sha: "jkl012",
       createdAt: "2026-04-07T10:00:00Z",
     },
@@ -365,7 +374,7 @@ export async function seedTestData(db: any) {
   // Item 8: has a branch push but no PR
   await db.insert(githubEvents).values([
     {
-      projectId: 1, workItemId: 8, eventType: "push", action: "push",
+      projectId: projectId(1), workItemId: wiId(8), eventType: "push", action: "push",
       branch: "feat/notifications", sha: "mno345",
       createdAt: "2026-04-03T10:00:00Z",
     },
@@ -373,33 +382,33 @@ export async function seedTestData(db: any) {
 
   // Update project sequences
   const { eq } = await import("drizzle-orm");
-  await db.update(projects).set({ sequence: alphaItems.length }).where(eq(projects.id, 1));
-  await db.update(projects).set({ sequence: betaSeq }).where(eq(projects.id, 2));
+  await db.update(projects).set({ sequence: alphaItems.length }).where(eq(projects.id, projectId(1)));
+  await db.update(projects).set({ sequence: betaSeq }).where(eq(projects.id, projectId(2)));
 }
 
 // Export counts for test assertions
 export const EXPECTED = {
-  ALPHA_PROJECT_ID: 1,
-  BETA_PROJECT_ID: 2,
-  ACTIVE_SPRINT_ALP: 3,
-  ACTIVE_SPRINT_BET: 5,
-  CLOSED_SPRINT_ALP_1: 1,
-  CLOSED_SPRINT_ALP_2: 2,
-  PLANNING_SPRINT_ALP: 4,
+  ALPHA_PROJECT_ID: "test-project-1",
+  BETA_PROJECT_ID: "test-project-2",
+  ACTIVE_SPRINT_ALP: "test-sprint-3",
+  ACTIVE_SPRINT_BET: "test-sprint-5",
+  CLOSED_SPRINT_ALP_1: "test-sprint-1",
+  CLOSED_SPRINT_ALP_2: "test-sprint-2",
+  PLANNING_SPRINT_ALP: "test-sprint-4",
   FROZEN_DATE: "2026-04-11T12:00:00Z",
   // Items with specific history for tests
-  ITEM_WITH_FULL_HISTORY: 3,  // new->ready->in_progress->done
-  ITEM_WITH_ACTIVE_CHANGE: 5, // state changed during active sprint
-  ITEM_WITH_ASSIGNEE_CHANGE: 10, // assignee: Alice -> Bob
+  ITEM_WITH_FULL_HISTORY: "test-wi-3",  // new->ready->in_progress->done
+  ITEM_WITH_ACTIVE_CHANGE: "test-wi-5", // state changed during active sprint
+  ITEM_WITH_ASSIGNEE_CHANGE: "test-wi-10", // assignee: Alice -> Bob
   // Items with blocks links
-  BLOCKER_ITEM: 3,  // blocks item 4
-  BLOCKED_ITEM: 4,  // blocked by item 3
+  BLOCKER_ITEM: "test-wi-3",  // blocks item 4
+  BLOCKED_ITEM: "test-wi-4",  // blocked by item 3
   // Items with GitHub events
-  ITEM_WITH_OPEN_PR: 3,
-  ITEM_WITH_MERGED_PR: 5,
-  ITEM_WITH_CLOSED_PR: 7,
-  ITEM_WITH_PASSING_CI: 10,
-  ITEM_WITH_FAILING_CI: 4,
-  ITEM_WITH_PENDING_CI: 6,
-  ITEM_WITH_BRANCH_ONLY: 8,  // has branch but no PR
+  ITEM_WITH_OPEN_PR: "test-wi-3",
+  ITEM_WITH_MERGED_PR: "test-wi-5",
+  ITEM_WITH_CLOSED_PR: "test-wi-7",
+  ITEM_WITH_PASSING_CI: "test-wi-10",
+  ITEM_WITH_FAILING_CI: "test-wi-4",
+  ITEM_WITH_PENDING_CI: "test-wi-6",
+  ITEM_WITH_BRANCH_ONLY: "test-wi-8",  // has branch but no PR
 };
