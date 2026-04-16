@@ -37,7 +37,7 @@ export async function GET(
   const { id } = await params;
   const projectId = id;
 
-  const access = await requireProjectAccess(projectId, user.id, "admin");
+  const access = await requireProjectAccess(projectId, user.id, "viewer");
   if (!access) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
