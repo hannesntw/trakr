@@ -1,12 +1,13 @@
 import { db } from "@/db";
-import { projects, projectInvites, organizationMembers } from "@/db/schema";
-import { eq, or } from "drizzle-orm";
+import { projects, organizationMembers } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { RealtimeRefresh } from "@/components/RealtimeRefresh";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { auth, signOut } from "@/auth";
 import { isPlatformAdmin } from "@/lib/admin-auth";
+import { resolveProjectAccess } from "@/lib/project-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -22,21 +23,18 @@ export default async function ProjectLayout({
 
   const { key } = await params;
   const allProjects = await db.select().from(projects).orderBy(projects.name);
+  const userId = session.user!.id!;
 
-  // Filter: public projects + private projects user owns or is invited to
-  const userEmail = session.user.email ?? "";
-  const invites = await db
-    .select({ projectId: projectInvites.projectId })
-    .from(projectInvites)
-    .where(eq(projectInvites.email, userEmail));
-  const invitedIds = new Set(invites.map((i) => i.projectId));
-
-  const visibleProjects = allProjects.filter(
-    (p) =>
-      p.visibility === "public" ||
-      p.ownerId === session.user!.id ||
-      invitedIds.has(p.id)
+  // Filter to projects the user can access (owner, org admin, team grant, invite, or public)
+  const accessChecks = await Promise.all(
+    allProjects.map(async (p) => ({
+      project: p,
+      access: await resolveProjectAccess(p.id, userId),
+    }))
   );
+  const visibleProjects = accessChecks
+    .filter(({ access }) => access.allowed)
+    .map(({ project }) => project);
 
   const currentProject = visibleProjects.find(
     (p) => p.key === key.toUpperCase()
