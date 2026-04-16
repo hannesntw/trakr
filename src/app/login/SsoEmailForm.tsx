@@ -74,13 +74,13 @@ export function SsoEmailForm() {
           value={email}
           onChange={(e) => { setEmail(e.target.value); setSsoStatus(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleContinue(); } }}
-          className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="flex-1 min-w-0 px-3 py-2 text-sm border border-border rounded-lg bg-content-bg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         />
         <button
           type="button"
           disabled={!email || checking || sending}
           onClick={handleContinue}
-          className="px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+          className="px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 shrink-0"
         >
           <Mail className="w-4 h-4" />
           {checking ? "Checking..." : sending ? "Sending..." : "Continue"}

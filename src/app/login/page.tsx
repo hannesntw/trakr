@@ -24,7 +24,7 @@ export default async function LoginPage({
         </div>
         <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+            <div className="bg-red-50 border border-red-200 dark:bg-red-500/10 dark:border-red-500/20 rounded-lg p-3 text-xs text-red-700 dark:text-red-400">
               {decodeURIComponent(error)}
             </div>
           )}
@@ -47,7 +47,7 @@ export default async function LoginPage({
           >
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white border border-border rounded-lg hover:bg-content-bg transition-colors text-sm font-medium text-text-primary"
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-lg hover:bg-content-bg transition-colors text-sm font-medium text-text-primary"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
