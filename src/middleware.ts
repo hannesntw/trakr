@@ -2,13 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Routes that don't need auth
-const PUBLIC_ROUTES = ["/login", "/api/auth", "/api/webhooks", "/api/health", "/api/scim"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/api/auth",
+  "/api/webhooks",
+  "/api/health",
+  "/api/scim",
+  "/api/mcp/authorize",
+  "/api/mcp/token",
+  "/api/mcp/register",
+  "/api/mcp/.well-known",
+];
 
 // Rate-limit rules for public routes: [pathPrefix, limit, windowMs]
 const RATE_LIMIT_RULES: Array<[string, number, number]> = [
   ["/api/auth/signin", 10, 60_000],
   ["/api/auth/device", 5, 60_000],
   ["/api/scim", 30, 60_000],
+  ["/api/mcp/token", 10, 60_000],
+  ["/api/mcp/register", 10, 60_000],
 ];
 
 function getClientIp(request: NextRequest): string {

@@ -122,9 +122,13 @@ async function handleMcpRequest(request: NextRequest) {
   const apiKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!apiKey) {
+    const baseUrl = process.env.AUTH_URL ?? "https://stori.zone";
     return new Response(JSON.stringify({ error: "Unauthorized — pass API key as Bearer token" }), {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "WWW-Authenticate": `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource/api/mcp"`,
+      },
     });
   }
 
