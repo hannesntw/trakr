@@ -4,6 +4,7 @@ import { attachments, workItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 /** Resolve displayId like "STRI-5" to the actual CUID2 id */
 async function resolveId(idParam: string): Promise<string | null> {
@@ -15,11 +16,21 @@ async function resolveId(idParam: string): Promise<string | null> {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const workItemId = await resolveId((await params).id);
   if (!workItemId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const [wi] = await db.select({ projectId: workItems.projectId }).from(workItems).where(eq(workItems.id, workItemId));
+  if (!wi) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const access = await requireProjectAccess(wi.projectId, user.id, "viewer");
+  if (!access) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const rows = await db
     .select({
       id: attachments.id,
@@ -45,6 +56,13 @@ export async function POST(
 
   const workItemId = await resolveId((await params).id);
   if (!workItemId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const [wi] = await db.select({ projectId: workItems.projectId }).from(workItems).where(eq(workItems.id, workItemId));
+  if (!wi) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const projectAccess = await requireProjectAccess(wi.projectId, user.id, "member");
+  if (!projectAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
 

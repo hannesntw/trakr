@@ -5,6 +5,7 @@ import { eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const createSchema = z.object({
   targetId: z.string().min(1),
@@ -31,14 +32,23 @@ const INVERSE_TYPE: Record<string, string> = {
 };
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const workItemId = await resolveId(id);
   if (!workItemId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const [wi] = await db.select({ projectId: workItems.projectId }).from(workItems).where(eq(workItems.id, workItemId));
+  if (!wi) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const access = await requireProjectAccess(wi.projectId, user.id, "viewer");
+  if (!access) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const rows = await db
     .select()
@@ -68,6 +78,12 @@ export async function POST(
   if (!sourceId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const [wi] = await db.select({ projectId: workItems.projectId }).from(workItems).where(eq(workItems.id, sourceId));
+  if (!wi) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const access = await requireProjectAccess(wi.projectId, user.id, "member");
+  if (!access) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await request.json();
   const parsed = createSchema.safeParse(body);

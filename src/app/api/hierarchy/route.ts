@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { workItems } from "@/db/schema";
-import { eq, isNull, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireProjectAccess } from "@/lib/project-auth";
 
@@ -27,26 +27,20 @@ export async function GET(request: NextRequest) {
   const projectId = url.get("projectId");
   const rootId = url.get("rootId");
 
-  if (projectId) {
-    const access = await requireProjectAccess(projectId, user.id, "viewer");
-    if (!access) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (!projectId) {
+    return NextResponse.json({ error: "projectId is required" }, { status: 400 });
   }
 
-  let allItems;
-  if (projectId) {
-    allItems = await db
-      .select()
-      .from(workItems)
-      .where(eq(workItems.projectId, projectId))
-      .orderBy(workItems.priority, workItems.id);
-  } else {
-    allItems = await db
-      .select()
-      .from(workItems)
-      .orderBy(workItems.priority, workItems.id);
+  const access = await requireProjectAccess(projectId, user.id, "viewer");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const allItems = await db
+    .select()
+    .from(workItems)
+    .where(eq(workItems.projectId, projectId))
+    .orderBy(workItems.priority, workItems.id);
 
   const itemMap = new Map<string, TreeNode>();
   for (const item of allItems) {

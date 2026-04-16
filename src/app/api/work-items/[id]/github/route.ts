@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { workItems, projects, githubEvents } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 /** Resolve a work item ID parameter — accepts CUID2 id or displayId like "STRI-5" */
 async function resolveId(idParam: string): Promise<string | null> {
@@ -44,6 +45,9 @@ export async function GET(
   if (!item) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const access = await requireProjectAccess(item.projectId, user.id, "viewer");
+  if (!access) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [project] = await db
     .select({

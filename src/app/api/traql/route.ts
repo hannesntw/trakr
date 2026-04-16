@@ -28,9 +28,10 @@ function checkRateLimit(key: string): boolean {
 
 export async function POST(request: NextRequest) {
   const user = await resolveApiUser(request);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Rate limit by user ID or IP
-  const rateLimitKey = user?.id ?? request.headers.get("x-forwarded-for") ?? "anonymous";
+  // Rate limit by user ID
+  const rateLimitKey = user.id;
   if (!checkRateLimit(rateLimitKey)) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Max 30 queries per minute." },
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
   const { query, projectId } = parsed.data;
 
   // Check project access if projectId provided
-  if (projectId && user) {
+  if (projectId) {
     const access = await requireProjectAccess(projectId, user.id, "viewer");
     if (!access) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

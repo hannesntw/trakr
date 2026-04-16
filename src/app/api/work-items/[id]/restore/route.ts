@@ -4,6 +4,7 @@ import { workItems, workItemSnapshots } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 /** Resolve a work item ID parameter — accepts CUID2 id or displayId like "STRI-5" */
 async function resolveId(idParam: string): Promise<string | null> {
@@ -35,6 +36,13 @@ export async function POST(
   if (!id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const [wi] = await db.select({ projectId: workItems.projectId }).from(workItems).where(eq(workItems.id, id));
+  if (!wi) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const access = await requireProjectAccess(wi.projectId, user.id, "member");
+  if (!access) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const body = await request.json();
   const parsed = restoreSchema.safeParse(body);
   if (!parsed.success) {
