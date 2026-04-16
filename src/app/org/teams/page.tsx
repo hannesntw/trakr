@@ -105,7 +105,7 @@ export default function TeamsPage() {
 
   const fetchOrgProjects = useCallback(async () => {
     try {
-      const res = await fetch(`/api/projects`);
+      const res = await fetch(`/api/projects?orgId=${org?.id}`);
       if (res.ok) {
         const data = await res.json();
         // data may be an array or { items: [...] }

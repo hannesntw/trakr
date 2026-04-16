@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
@@ -18,8 +19,12 @@ const createSchema = z.object({
   makerMode: z.boolean().optional(),
 });
 
-export async function GET() {
-  const rows = await db.select().from(projects).orderBy(projects.name);
+export async function GET(request: NextRequest) {
+  const orgId = request.nextUrl.searchParams.get("orgId");
+  const query = db.select().from(projects);
+  const rows = orgId
+    ? await query.where(eq(projects.orgId, orgId)).orderBy(projects.name)
+    : await query.orderBy(projects.name);
   return NextResponse.json(rows);
 }
 
