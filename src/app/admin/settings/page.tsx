@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  ToggleLeft, ToggleRight, AlertTriangle,
+  AlertTriangle,
   Mail, Gauge, Globe, Server,
 } from "lucide-react";
 import { AdminTabNav } from "@/components/AdminTabNav";
+import { Toggle } from "@/components/Toggle";
 
 interface FeatureFlag {
   id: string;
@@ -99,9 +100,7 @@ export default function AdminSettingsPage() {
                   <p className="text-sm text-text-primary font-medium">Enable maintenance mode</p>
                   <p className="text-xs text-text-tertiary mt-0.5">All users see a maintenance message. API returns 503.</p>
                 </div>
-                <button onClick={() => { const v = !maintenanceMode; setMaintenanceMode(v); saveSetting("maintenance_mode", String(v)); }} className="shrink-0">
-                  {maintenanceMode ? <ToggleRight className="w-10 h-6 text-amber-500" /> : <ToggleLeft className="w-10 h-6 text-text-tertiary" />}
-                </button>
+                <Toggle enabled={maintenanceMode} onChange={(v) => { setMaintenanceMode(v); saveSetting("maintenance_mode", String(v)); }} size="md" />
               </div>
               {maintenanceMode && (
                 <div>
@@ -131,9 +130,7 @@ export default function AdminSettingsPage() {
                     <div className="bg-surface border border-border rounded-lg divide-y divide-border">
                       {catFlags.map((flag) => (
                         <div key={flag.id} className="px-4 py-3 flex items-center gap-4">
-                          <button onClick={() => toggleFlag(flag.id)} className="shrink-0">
-                            {flag.enabled ? <ToggleRight className="w-9 h-5 text-accent" /> : <ToggleLeft className="w-9 h-5 text-text-tertiary" />}
-                          </button>
+                          <Toggle enabled={flag.enabled} onChange={() => toggleFlag(flag.id)} size="md" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-text-primary font-medium">{flag.name}</p>
                             <p className="text-xs text-text-tertiary mt-0.5">{flag.description}</p>
@@ -190,9 +187,7 @@ export default function AdminSettingsPage() {
                   <p className="text-sm text-text-primary font-medium">Open sign-up</p>
                   <p className="text-xs text-text-tertiary mt-0.5">Allow anyone to create an account.</p>
                 </div>
-                <button onClick={() => { const v = !openSignup; setOpenSignup(v); saveSetting("open_signup", String(v)); }} className="shrink-0">
-                  {openSignup ? <ToggleRight className="w-10 h-6 text-accent" /> : <ToggleLeft className="w-10 h-6 text-text-tertiary" />}
-                </button>
+                <Toggle enabled={openSignup} onChange={(v) => { setOpenSignup(v); saveSetting("open_signup", String(v)); }} size="md" />
               </div>
               {!openSignup && (
                 <div>

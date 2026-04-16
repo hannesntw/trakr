@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Trash2, GripVertical, Plus, ExternalLink, Unlink, GitPullRequest, Rocket } from "lucide-react";
+import { Toggle } from "@/components/Toggle";
 import type { WorkflowState } from "@/lib/constants";
 
 function GitHubIcon({ className }: { className?: string }) {
@@ -14,13 +15,6 @@ function GitHubIcon({ className }: { className?: string }) {
   );
 }
 
-function ToggleButton({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${enabled ? "bg-accent" : "bg-text-tertiary/40"}`}>
-      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface transition-transform ${enabled ? "translate-x-[18px]" : "translate-x-[3px]"}`} />
-    </button>
-  );
-}
 
 interface Project {
   id: string;
@@ -255,7 +249,7 @@ export function SettingsClient({ project }: { project: Project }) {
             <h2 className="text-sm font-semibold text-text-primary mb-4">Project Mode</h2>
             <div className="bg-surface border border-border rounded-lg p-4">
               <label className="flex items-center gap-3 cursor-pointer">
-                <ToggleButton enabled={makerMode} onClick={toggleMakerMode} />
+                <Toggle enabled={makerMode} onChange={() => toggleMakerMode()} />
                 <div>
                   <p className="text-sm text-text-primary">Maker Mode</p>
                   <p className="text-xs text-text-tertiary">Simplified project without sprints — designed for solo development with AI tools</p>
@@ -638,9 +632,9 @@ export function SettingsClient({ project }: { project: Project }) {
                   <div className="space-y-2 mb-3">
                     {automations.map((rule) => (
                       <div key={rule.id} className="flex items-center gap-3 p-2.5 bg-content-bg rounded-md group">
-                        <ToggleButton
+                        <Toggle
                           enabled={rule.enabled}
-                          onClick={() => toggleAutomation(rule.id, !rule.enabled)}
+                          onChange={() => toggleAutomation(rule.id, !rule.enabled)}
                         />
 
                         <div className={`flex items-center gap-2 flex-1 ${!rule.enabled ? "opacity-40" : ""}`}>
@@ -721,7 +715,7 @@ export function SettingsClient({ project }: { project: Project }) {
 
                   <div className="space-y-3">
                     <label className="flex items-center gap-3 cursor-pointer">
-                      <ToggleButton enabled={statusChecks} onClick={toggleStatusChecks} />
+                      <Toggle enabled={statusChecks} onChange={() => toggleStatusChecks()} />
                       <div>
                         <p className="text-sm text-text-primary">Status checks</p>
                         <p className="text-xs text-text-tertiary">Show linked work item state as a GitHub Status Check on PRs</p>
@@ -729,7 +723,7 @@ export function SettingsClient({ project }: { project: Project }) {
                     </label>
 
                     <label className="flex items-center gap-3 cursor-pointer">
-                      <ToggleButton enabled={prComments} onClick={togglePrComments} />
+                      <Toggle enabled={prComments} onChange={() => togglePrComments()} />
                       <div>
                         <p className="text-sm text-text-primary">PR comments</p>
                         <p className="text-xs text-text-tertiary">Post work item context (title, acceptance criteria, sprint) as a comment on linked PRs</p>

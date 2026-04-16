@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Shield, Key, Globe, AlertTriangle, ToggleLeft, ToggleRight,
+  Shield, Key, Globe, AlertTriangle,
   Check, X, Plus, Monitor, BadgeCheck, Clock, Copy, RefreshCw, Link2,
 } from "lucide-react";
 import { OrgTabNav } from "@/components/OrgTabNav";
+import { Toggle } from "@/components/Toggle";
 import { useOrg } from "@/lib/use-org";
 
 interface Domain {
@@ -397,30 +398,21 @@ export default function SecurityPage() {
                               {ssoEnabled ? "Users with this domain must sign in via SSO" : "Configure SSO first to enable this policy"}
                             </p>
                           </div>
-                          <button
-                            onClick={() => ssoEnabled && toggleDomainPolicy(d.id, "requireSso")}
-                            className={!ssoEnabled ? "opacity-40 cursor-not-allowed" : ""}
-                          >
-                            {d.requireSso ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                          </button>
+                          <Toggle enabled={d.requireSso} onChange={() => ssoEnabled && toggleDomainPolicy(d.id, "requireSso")} disabled={!ssoEnabled} />
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs text-text-primary font-medium">Block magic link sign-in</p>
                             <p className="text-[10px] text-text-tertiary">Prevent passwordless email login for this domain</p>
                           </div>
-                          <button onClick={() => toggleDomainPolicy(d.id, "blockMagicLink")}>
-                            {d.blockMagicLink ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                          </button>
+                          <Toggle enabled={d.blockMagicLink} onChange={() => toggleDomainPolicy(d.id, "blockMagicLink")} />
                         </div>
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs text-text-primary font-medium">Auto-capture new sign-ups</p>
                             <p className="text-[10px] text-text-tertiary">Automatically add new users with this domain to your organization</p>
                           </div>
-                          <button onClick={() => toggleDomainPolicy(d.id, "autoCapture")}>
-                            {d.autoCapture ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                          </button>
+                          <Toggle enabled={d.autoCapture} onChange={() => toggleDomainPolicy(d.id, "autoCapture")} />
                         </div>
                       </div>
                     )}
@@ -476,15 +468,13 @@ export default function SecurityPage() {
                   <p className="text-sm text-text-primary font-medium">SSO Authentication</p>
                   <p className="text-xs text-text-tertiary">Allow members to sign in with your identity provider</p>
                 </div>
-                <button onClick={() => {
+                <Toggle enabled={ssoEnabled} onChange={() => {
                   if (ssoEnabled && ssoConfig) {
                     removeSso();
                   } else {
                     setSsoEnabled(!ssoEnabled);
                   }
-                }}>
-                  {ssoEnabled ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                </button>
+                }} />
               </div>
 
               {ssoEnabled && (
@@ -540,9 +530,7 @@ export default function SecurityPage() {
                       <p className="text-sm text-text-primary">Enforce SSO</p>
                       <p className="text-xs text-text-tertiary">Require all members to sign in via SSO (disable other login methods)</p>
                     </div>
-                    <button onClick={toggleSsoEnforced} disabled={!ssoConfig}>
-                      {ssoEnforced ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                    </button>
+                    <Toggle enabled={ssoEnforced} onChange={() => toggleSsoEnforced()} disabled={!ssoConfig} />
                   </div>
 
                   {ssoConfig && (
@@ -573,9 +561,7 @@ export default function SecurityPage() {
                   <p className="text-sm text-text-primary font-medium">SCIM User & Group Sync</p>
                   <p className="text-xs text-text-tertiary">Automatically sync users and groups from your identity provider</p>
                 </div>
-                <button onClick={() => setScimEnabled(!scimEnabled)}>
-                  {scimEnabled ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                </button>
+                <Toggle enabled={scimEnabled} onChange={(v) => setScimEnabled(v)} />
               </div>
 
               {scimEnabled && (
@@ -691,9 +677,7 @@ export default function SecurityPage() {
                   <p className="text-sm text-text-primary font-medium">Enforce MFA for all members</p>
                   <p className="text-xs text-text-tertiary">Require a second factor (TOTP, WebAuthn) for every login</p>
                 </div>
-                <button onClick={() => updateMfa(!mfaEnforced)}>
-                  {mfaEnforced ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                </button>
+                <Toggle enabled={mfaEnforced} onChange={(v) => updateMfa(v)} />
               </div>
 
               {mfaEnforced && (
@@ -778,9 +762,7 @@ export default function SecurityPage() {
                   <p className="text-sm text-text-primary font-medium">Restrict access by IP</p>
                   <p className="text-xs text-text-tertiary">Only allow connections from approved IP addresses or CIDR ranges</p>
                 </div>
-                <button onClick={() => setIpAllowlistEnabled(!ipAllowlistEnabled)}>
-                  {ipAllowlistEnabled ? <ToggleRight className="w-6 h-6 text-accent" /> : <ToggleLeft className="w-6 h-6 text-text-tertiary" />}
-                </button>
+                <Toggle enabled={ipAllowlistEnabled} onChange={(v) => setIpAllowlistEnabled(v)} />
               </div>
 
               {ipAllowlistEnabled && (

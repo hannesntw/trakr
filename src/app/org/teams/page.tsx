@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Users, FolderKanban, Search, ChevronRight, X, Check, Trash2, UserPlus, ToggleLeft, ToggleRight, AlertTriangle } from "lucide-react";
+import { Plus, Users, FolderKanban, Search, ChevronRight, X, Check, Trash2, UserPlus, AlertTriangle } from "lucide-react";
 import { OrgTabNav } from "@/components/OrgTabNav";
+import { Toggle } from "@/components/Toggle";
 import { Pagination, paginate } from "@/components/Pagination";
 import { useOrg } from "@/lib/use-org";
 import { formatDate } from "@/lib/utils";
@@ -554,16 +555,9 @@ export default function TeamsPage() {
                                   <span className="text-[10px] text-text-tertiary font-mono">{project.key}</span>
                                 </div>
                                 {isAdmin ? (
-                                  <button onClick={(e) => { e.stopPropagation(); toggleProjectAccess(team.id, project.id, isEnabled); }}>
-                                    {isEnabled
-                                      ? <ToggleRight className="w-5 h-5 text-accent" />
-                                      : <ToggleLeft className="w-5 h-5 text-text-tertiary" />
-                                    }
-                                  </button>
+                                  <Toggle enabled={isEnabled} onChange={() => toggleProjectAccess(team.id, project.id, isEnabled)} />
                                 ) : (
-                                  isEnabled
-                                    ? <ToggleRight className="w-5 h-5 text-accent" />
-                                    : <ToggleLeft className="w-5 h-5 text-text-tertiary" />
+                                  <Toggle enabled={isEnabled} onChange={() => {}} disabled />
                                 )}
                               </div>
                             );

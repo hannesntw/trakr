@@ -16,10 +16,9 @@ import {
   Settings2,
   GripVertical,
   Trash2,
-  ToggleLeft,
-  ToggleRight,
   Pencil,
 } from "lucide-react";
+import { Toggle } from "@/components/Toggle";
 
 interface WorkItem {
   id: string;
@@ -725,17 +724,7 @@ export function BoardClient({
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2.5">
                       <div className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold">Card rules</div>
-                      <button
-                        onClick={() => setCardRulesEnabled(!cardRulesEnabled)}
-                        className="text-text-tertiary hover:text-text-primary transition-colors"
-                        title={cardRulesEnabled ? "Disable all rules" : "Enable all rules"}
-                      >
-                        {cardRulesEnabled ? (
-                          <ToggleRight className="w-5 h-5 text-indigo-600" />
-                        ) : (
-                          <ToggleLeft className="w-5 h-5" />
-                        )}
-                      </button>
+                      <Toggle enabled={cardRulesEnabled} onChange={(v) => setCardRulesEnabled(v)} size="sm" />
                     </div>
 
                     {/* Rule list */}
@@ -795,13 +784,7 @@ export function BoardClient({
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
-                            <button
-                              onClick={() => toggleRuleEnabled(rule.id)}
-                              className="text-text-tertiary hover:text-text-primary p-0.5"
-                              title={rule.enabled ? "Disable" : "Enable"}
-                            >
-                              {rule.enabled ? <ToggleRight className="w-3.5 h-3.5 text-indigo-600" /> : <ToggleLeft className="w-3.5 h-3.5" />}
-                            </button>
+                            <Toggle enabled={rule.enabled} onChange={() => toggleRuleEnabled(rule.id)} size="sm" />
                             <button
                               onClick={() => deleteRule(rule.id)}
                               className="text-text-tertiary hover:text-red-500 p-0.5"
