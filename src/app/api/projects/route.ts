@@ -20,12 +20,20 @@ const createSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const user = await resolveApiUser(request);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const orgId = request.nextUrl.searchParams.get("orgId");
-  const query = db.select().from(projects);
-  const rows = orgId
-    ? await query.where(eq(projects.orgId, orgId)).orderBy(projects.name)
-    : await query.orderBy(projects.name);
-  return NextResponse.json(rows);
+  const allRows = orgId
+    ? await db.select().from(projects).where(eq(projects.orgId, orgId)).orderBy(projects.name)
+    : await db.select().from(projects).orderBy(projects.name);
+
+  // Filter to projects the user can access
+  const { resolveProjectAccess } = await import("@/lib/project-auth");
+  const accessChecks = await Promise.all(
+    allRows.map(async (p) => ({ project: p, access: await resolveProjectAccess(p.id, user.id) }))
+  );
+  return NextResponse.json(accessChecks.filter(({ access }) => access.allowed).map(({ project }) => project));
 }
 
 export async function POST(request: NextRequest) {
