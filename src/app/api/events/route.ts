@@ -1,8 +1,15 @@
 import { subscribe } from "@/lib/events";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Require authentication — don't leak events to anonymous users
+  const session = await auth();
+  if (!session?.user?.id) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const encoder = new TextEncoder();
   let unsubscribe: (() => void) | undefined;
   let keepalive: ReturnType<typeof setInterval> | undefined;

@@ -4,6 +4,7 @@ import { savedQueries, users } from "@/db/schema";
 import { eq, and, or, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const createSchema = z.object({
   projectId: z.string().min(1),
@@ -24,6 +25,11 @@ export async function GET(request: NextRequest) {
       { error: "projectId query parameter is required" },
       { status: 400 }
     );
+  }
+
+  const access = await requireProjectAccess(projectId, user.id, "viewer");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Return user's own queries + shared queries from others in this project
@@ -69,6 +75,12 @@ export async function POST(request: NextRequest) {
       { error: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
+  }
+
+  // Check project access
+  const postAccess = await requireProjectAccess(parsed.data.projectId, user.id, "member");
+  if (!postAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const [row] = await db

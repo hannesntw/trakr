@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { runTraql, ExecutionError } from "@/lib/traql";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const schema = z.object({
   query: z.string().min(1).max(2000), // cap query length
@@ -44,6 +45,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { query, projectId } = parsed.data;
+
+  // Check project access if projectId provided
+  if (projectId && user) {
+    const access = await requireProjectAccess(projectId, user.id, "viewer");
+    if (!access) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   try {
     const result = await runTraql(query, projectId, user?.id);

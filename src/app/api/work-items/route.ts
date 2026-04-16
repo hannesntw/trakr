@@ -5,6 +5,7 @@ import { eq, and, ilike, or, sql, asc, SQL } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const createSchema = z.object({
   projectId: z.string().min(1),
@@ -25,11 +26,26 @@ const createSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const url = request.nextUrl.searchParams;
   const conditions: SQL[] = [];
 
   const projectId = url.get("projectId");
-  if (projectId) conditions.push(eq(workItems.projectId, projectId));
+  if (!projectId) {
+    return NextResponse.json(
+      { error: "projectId query parameter is required" },
+      { status: 400 }
+    );
+  }
+  const access = await requireProjectAccess(projectId, user.id, "viewer");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  conditions.push(eq(workItems.projectId, projectId));
 
   const type = url.get("type");
   if (type) conditions.push(eq(workItems.type, type as "epic" | "feature" | "story"));
@@ -70,6 +86,12 @@ export async function POST(request: NextRequest) {
       { error: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
+  }
+
+  // Check project access
+  const access = await requireProjectAccess(parsed.data.projectId, user.id, "member");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Generate displayId from project key + sequence (atomic increment)

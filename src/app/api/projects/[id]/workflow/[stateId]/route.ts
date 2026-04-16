@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const updateSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -24,6 +25,12 @@ export async function PATCH(
   const { id, stateId } = await params;
   const projectId = id;
   const stateIdNum = stateId;
+
+  // Check admin access
+  const patchAccess = await requireProjectAccess(projectId, user.id, "admin");
+  if (!patchAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [existing] = await db
     .select()
@@ -69,6 +76,12 @@ export async function DELETE(
   const { id, stateId } = await params;
   const projectId = id;
   const stateIdNum = stateId;
+
+  // Check admin access
+  const deleteAccess = await requireProjectAccess(projectId, user.id, "admin");
+  if (!deleteAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [existing] = await db
     .select()

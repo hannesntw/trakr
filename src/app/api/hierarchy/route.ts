@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { workItems } from "@/db/schema";
 import { eq, isNull, and } from "drizzle-orm";
+import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 interface TreeNode {
   id: string;
@@ -16,9 +18,21 @@ interface TreeNode {
 }
 
 export async function GET(request: NextRequest) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const url = request.nextUrl.searchParams;
   const projectId = url.get("projectId");
   const rootId = url.get("rootId");
+
+  if (projectId) {
+    const access = await requireProjectAccess(projectId, user.id, "viewer");
+    if (!access) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   let allItems;
   if (projectId) {

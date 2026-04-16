@@ -4,6 +4,7 @@ import { githubAutomations, workflowStates } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const updateSchema = z.object({
   targetStateId: z.string().min(1).optional(),
@@ -22,6 +23,12 @@ export async function PATCH(
   const { id, automationId } = await params;
   const projectId = id;
   const ruleId = automationId;
+
+  // Check admin access
+  const patchAccess = await requireProjectAccess(projectId, user.id, "admin");
+  if (!patchAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
@@ -87,6 +94,12 @@ export async function DELETE(
   const { id, automationId } = await params;
   const projectId = id;
   const ruleId = automationId;
+
+  // Check admin access
+  const deleteAccess = await requireProjectAccess(projectId, user.id, "admin");
+  if (!deleteAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [row] = await db
     .delete(githubAutomations)

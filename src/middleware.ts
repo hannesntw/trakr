@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Routes that don't need auth
-const PUBLIC_ROUTES = ["/login", "/api/auth", "/api/events", "/api/webhooks", "/api/health", "/api/scim"];
+const PUBLIC_ROUTES = ["/login", "/api/auth", "/api/webhooks", "/api/health", "/api/scim"];
 
 // Rate-limit rules for public routes: [pathPrefix, limit, windowMs]
 const RATE_LIMIT_RULES: Array<[string, number, number]> = [

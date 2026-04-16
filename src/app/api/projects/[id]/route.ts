@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -23,10 +24,20 @@ const updateSchema = z.object({
 });
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
+  const access = await requireProjectAccess(id, user.id, "viewer");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const [row] = await db
     .select()
     .from(projects)
@@ -47,6 +58,13 @@ export async function PATCH(
   }
 
   const { id } = await params;
+
+  // Check admin access
+  const access = await requireProjectAccess(id, user.id, "admin");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
@@ -78,6 +96,13 @@ export async function DELETE(
   }
 
   const { id } = await params;
+
+  // Check owner access
+  const access = await requireProjectAccess(id, user.id, "owner");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const pid = id;
 
   // Postgres FK ON DELETE CASCADE is defined in the schema, but the

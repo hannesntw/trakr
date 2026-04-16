@@ -2,17 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { projects, githubEvents } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 /**
  * Returns the latest PR/CI state per work item for a project.
  * Used by the board to overlay GitHub badges on cards.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const projectId = id;
+
+  const access = await requireProjectAccess(projectId, user.id, "admin");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [project] = await db
     .select({

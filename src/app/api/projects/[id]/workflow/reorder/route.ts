@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const reorderSchema = z.object({
   ids: z.array(z.string().min(1)),
@@ -21,6 +22,12 @@ export async function POST(
 
   const { id } = await params;
   const projectId = id;
+
+  // Check admin access
+  const access = await requireProjectAccess(projectId, user.id, "admin");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [project] = await db
     .select()

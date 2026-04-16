@@ -4,6 +4,7 @@ import { githubAutomations, workflowStates, projects } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const VALID_EVENTS = ["pr_opened", "pr_merged", "pr_closed", "deploy_succeeded", "deploy_failed"] as const;
 
@@ -14,11 +15,21 @@ const createSchema = z.object({
 });
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const projectId = id;
+
+  const access = await requireProjectAccess(projectId, user.id, "admin");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [project] = await db
     .select({ id: projects.id })
@@ -56,6 +67,12 @@ export async function POST(
 
   const { id } = await params;
   const projectId = id;
+
+  // Check admin access
+  const postAccess = await requireProjectAccess(projectId, user.id, "admin");
+  if (!postAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [project] = await db
     .select({ id: projects.id })

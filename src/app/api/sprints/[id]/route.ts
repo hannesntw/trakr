@@ -5,6 +5,7 @@ import { eq, and, ne } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -15,9 +16,14 @@ const updateSchema = z.object({
 });
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const [row] = await db
     .select()
@@ -26,6 +32,12 @@ export async function GET(
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const access = await requireProjectAccess(row.projectId, user.id, "viewer");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   return NextResponse.json(row);
 }
 
@@ -39,6 +51,17 @@ export async function PATCH(
   }
 
   const { id } = await params;
+
+  // Fetch sprint to get projectId for access check
+  const [sprintRow] = await db.select().from(sprints).where(eq(sprints.id, id));
+  if (!sprintRow) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const patchAccess = await requireProjectAccess(sprintRow.projectId, user.id, "member");
+  if (!patchAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {

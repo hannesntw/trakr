@@ -6,6 +6,7 @@ import { z } from "zod";
 import { PRESETS, applyPreset } from "@/lib/workflow-presets";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const createSchema = z.object({
   displayName: z.string().min(1),
@@ -25,11 +26,21 @@ function toSlug(displayName: string): string {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const projectId = id;
+
+  const access = await requireProjectAccess(projectId, user.id, "admin");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [project] = await db
     .select()
@@ -66,6 +77,12 @@ export async function POST(
 
   const { id } = await params;
   const projectId = id;
+
+  // Check admin access
+  const postAccess = await requireProjectAccess(projectId, user.id, "admin");
+  if (!postAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const [project] = await db
     .select()

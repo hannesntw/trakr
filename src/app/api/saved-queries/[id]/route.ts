@@ -4,6 +4,7 @@ import { savedQueries } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -43,6 +44,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const patchAccess = await requireProjectAccess(existing.projectId, user.id, "member");
+  if (!patchAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const [row] = await db
     .update(savedQueries)
     .set(parsed.data)
@@ -72,6 +78,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (existing.userId !== user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const deleteAccess = await requireProjectAccess(existing.projectId, user.id, "member");
+  if (!deleteAccess) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

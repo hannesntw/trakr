@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { Resend } from "resend";
 import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 const resend = new Resend(process.env.AUTH_RESEND_KEY);
 
@@ -13,10 +14,21 @@ const createSchema = z.object({
 });
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
+
+  const access = await requireProjectAccess(id, user.id, "admin");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const rows = await db
     .select()
     .from(projectInvites)
@@ -35,6 +47,13 @@ export async function POST(
   }
 
   const { id } = await params;
+
+  // Check admin access
+  const postAccess = await requireProjectAccess(id, user.id, "admin");
+  if (!postAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = await request.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
@@ -91,6 +110,13 @@ export async function DELETE(
   }
 
   const { id } = await params;
+
+  // Check admin access
+  const deleteAccess = await requireProjectAccess(id, user.id, "admin");
+  if (!deleteAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { email } = await request.json();
   await db
     .delete(projectInvites)

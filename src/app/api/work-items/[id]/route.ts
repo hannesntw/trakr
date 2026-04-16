@@ -4,6 +4,8 @@ import { workItems, statusHistory, workItemSnapshots, comments, attachments } fr
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
+import { resolveApiUser } from "@/lib/api-auth";
+import { requireProjectAccess } from "@/lib/project-auth";
 
 /** Resolve a work item ID parameter — accepts CUID2 id or displayId like "TRK-5" */
 async function resolveWorkItemId(idParam: string): Promise<string | null> {
@@ -37,9 +39,14 @@ const updateSchema = z.object({
 });
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await resolveApiUser(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const resolvedId = await resolveWorkItemId(id);
   if (resolvedId === null) {
@@ -52,6 +59,11 @@ export async function GET(
     .where(eq(workItems.id, resolvedId));
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const access = await requireProjectAccess(row.projectId, user.id, "viewer");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const children = await db
@@ -67,6 +79,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Authenticate user
+  const apiUser = await resolveApiUser(request);
+  if (!apiUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
   const resolvedId = await resolveWorkItemId(id);
   if (resolvedId === null) {
@@ -91,17 +109,21 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Check project access
+  const access = await requireProjectAccess(current.projectId, apiUser.id, "member");
+  if (!access) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Validate canvasColor — default to "blue" if invalid
   const VALID_CANVAS_COLORS = ["red", "blue", "amber", "emerald", "violet", "orange", "pink", "cyan"];
   if (parsed.data.canvasColor && !VALID_CANVAS_COLORS.includes(parsed.data.canvasColor)) {
     parsed.data.canvasColor = "blue";
   }
 
-  // Detect channel and user
+  // Detect channel
   const channel = (request.headers.get("x-stori-channel") ?? "api") as "web" | "api" | "mcp";
-  const { resolveApiUser } = await import("@/lib/api-auth");
-  const apiUser = await resolveApiUser(request);
-  const changedBy = apiUser?.name ?? apiUser?.email ?? "system";
+  const changedBy = apiUser.name ?? apiUser.email ?? "system";
 
   // When promoting from idea to story, clear canvas position fields
   const updateData: Record<string, unknown> = { ...parsed.data, updatedAt: new Date().toISOString() };
@@ -151,7 +173,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { resolveApiUser } = await import("@/lib/api-auth");
   const user = await resolveApiUser(request);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -161,6 +182,16 @@ export async function DELETE(
   const resolvedId = await resolveWorkItemId(id);
   if (resolvedId === null) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Fetch the work item to get its projectId for access check
+  const [item] = await db.select().from(workItems).where(eq(workItems.id, resolvedId));
+  if (!item) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const deleteAccess = await requireProjectAccess(item.projectId, user.id, "member");
+  if (!deleteAccess) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Postgres FK ON DELETE CASCADE handles this at the DB level, but
