@@ -18,13 +18,13 @@ import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 /* -- Types ---------------------------------------------------- */
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
   state: string;
   description: string | null;
-  parentId: number | null;
+  parentId: string | null;
   assignee: string | null;
   points: number | null;
   canvasX: number | null;
@@ -35,7 +35,7 @@ interface WorkItem {
 }
 
 interface Idea {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   body: string;
@@ -46,7 +46,7 @@ interface Idea {
 }
 
 interface ParentOption {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
 }
@@ -101,8 +101,8 @@ function brandCardColor(colorIndex: number) {
   };
 }
 
-function cardColor(id: number, colorOverride?: number) {
-  const idx = colorOverride !== undefined ? colorOverride : id;
+function cardColor(id: string, colorOverride?: number) {
+  const idx = colorOverride !== undefined ? colorOverride : id.charCodeAt(0) % BRAND_COLORS.length;
   return brandCardColor(idx);
 }
 
@@ -142,8 +142,8 @@ function PromoteDialog({
 }: {
   idea: Idea;
   parents: ParentOption[];
-  projectId: number;
-  onPromote: (id: number, data: { title: string; description: string; parentId: number | null; points: number | null; assignee: string | null }) => void;
+  projectId: string;
+  onPromote: (id: string, data: { title: string; description: string; parentId: string | null; points: number | null; assignee: string | null }) => void;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(idea.title);
@@ -244,7 +244,7 @@ function PromoteDialog({
               onPromote(idea.id, {
                 title,
                 description,
-                parentId: parent ? Number(parent) : null,
+                parentId: parent || null,
                 points: points ? Number(points) : null,
                 assignee: assignee || null,
               })
@@ -267,7 +267,7 @@ export function IdeasClient({
   projectKey,
   projectName,
 }: {
-  projectId: number;
+  projectId: string;
   projectKey: string;
   projectName: string;
 }) {
@@ -281,19 +281,19 @@ export function IdeasClient({
   const [zoom, setZoom] = useState(1);
 
   // Interaction state
-  const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lassoRect, setLassoRect] = useState<{
     startX: number;
     startY: number;
     currentX: number;
     currentY: number;
   } | null>(null);
-  const lassoStartSelection = useRef<Set<number>>(new Set());
+  const lassoStartSelection = useRef<Set<string>>(new Set());
   const dragStart = useRef({
     x: 0,
     y: 0,
-    origPositions: new Map<number, { x: number; y: number }>(),
+    origPositions: new Map<string, { x: number; y: number }>(),
   });
 
   // Track mouse position for the floating selection badge
@@ -307,7 +307,7 @@ export function IdeasClient({
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Edit mode
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editBody, setEditBody] = useState("");
 
@@ -321,7 +321,7 @@ export function IdeasClient({
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Debounce timer for position saves
-  const saveTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   /* -- Data fetching ------------------------------------------ */
 
@@ -360,7 +360,7 @@ export function IdeasClient({
   /* -- API helpers -------------------------------------------- */
 
   const patchWorkItem = useCallback(
-    async (id: number, data: Record<string, unknown>) => {
+    async (id: string, data: Record<string, unknown>) => {
       await fetch(`/api/work-items/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-stori-channel": "web" },
@@ -371,7 +371,7 @@ export function IdeasClient({
   );
 
   const savePosition = useCallback(
-    (id: number, x: number, y: number) => {
+    (id: string, x: number, y: number) => {
       const existing = saveTimers.current.get(id);
       if (existing) clearTimeout(existing);
       saveTimers.current.set(
@@ -386,7 +386,7 @@ export function IdeasClient({
   );
 
   const savePositionsBatch = useCallback(
-    (positions: Map<number, { x: number; y: number }>) => {
+    (positions: Map<string, { x: number; y: number }>) => {
       for (const [id, pos] of positions) {
         patchWorkItem(id, { canvasX: Math.round(pos.x), canvasY: Math.round(pos.y) });
       }
@@ -451,7 +451,7 @@ export function IdeasClient({
   /* -- Color cycling ------------------------------------------ */
 
   const cycleColor = useCallback(
-    (id: number) => {
+    (id: string) => {
       setIdeas((prev) =>
         prev.map((i) => {
           if (i.id !== id) return i;
@@ -485,7 +485,7 @@ export function IdeasClient({
         return;
       }
 
-      let effectiveSelection: Set<number>;
+      let effectiveSelection: Set<string>;
       if (selectedIds.has(idea.id)) {
         effectiveSelection = selectedIds;
       } else {
@@ -493,7 +493,7 @@ export function IdeasClient({
         setSelectedIds(effectiveSelection);
       }
 
-      const origPositions = new Map<number, { x: number; y: number }>();
+      const origPositions = new Map<string, { x: number; y: number }>();
       for (const id of effectiveSelection) {
         const card = ideas.find((i) => i.id === id);
         if (card) origPositions.set(id, { x: card.x, y: card.y });
@@ -606,7 +606,7 @@ export function IdeasClient({
       if (draggingId !== null) {
         // Save final positions for all dragged cards
         const origPositions = dragStart.current.origPositions;
-        const finalPositions = new Map<number, { x: number; y: number }>();
+        const finalPositions = new Map<string, { x: number; y: number }>();
         // Read current positions from state synchronously via a state setter that returns unchanged
         setIdeas((prev) => {
           for (const idea of prev) {
@@ -737,7 +737,7 @@ export function IdeasClient({
     const colorIndex = Date.now() % BRAND_COLORS.length;
 
     // Optimistic add with a temp id
-    const tempId = -Date.now();
+    const tempId = `temp-${Date.now()}`;
     const tempIdea: Idea = {
       id: tempId,
       displayId: null,
@@ -803,7 +803,7 @@ export function IdeasClient({
 
   /* -- Delete ------------------------------------------------- */
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     setIdeas((prev) => prev.filter((i) => i.id !== id));
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -816,11 +816,11 @@ export function IdeasClient({
   /* -- Promote ------------------------------------------------ */
 
   async function handlePromote(
-    id: number,
+    id: string,
     data: {
       title: string;
       description: string;
-      parentId: number | null;
+      parentId: string | null;
       points: number | null;
       assignee: string | null;
     }

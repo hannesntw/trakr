@@ -14,7 +14,7 @@ import type { TraqlResult } from "./executor";
 
 export async function runTraql(
   query: string,
-  contextProjectId?: number,
+  contextProjectId?: string,
   currentUserId?: string,
 ): Promise<TraqlResult> {
   try {

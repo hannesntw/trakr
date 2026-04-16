@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { StoriLogo } from "@/components/StoriLogo";
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   key: string;
   ownerId?: string | null;

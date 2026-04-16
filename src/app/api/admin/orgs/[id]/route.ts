@@ -19,7 +19,7 @@ export async function PATCH(
   if ("error" in result) return result.error;
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const body = await request.json();
   const parsed = patchSchema.safeParse(body);
@@ -52,7 +52,7 @@ export async function DELETE(
   if ("error" in result) return result.error;
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   await db.delete(organizationInvitations).where(eq(organizationInvitations.orgId, orgId));
   await db.delete(orgRoles).where(eq(orgRoles.orgId, orgId));

@@ -11,7 +11,7 @@ interface AdminUser {
   id: string;
   name: string | null;
   email: string | null;
-  orgs: { id: number; name: string; role: string }[];
+  orgs: { id: string; name: string; role: string }[];
   isPlatformAdmin: boolean;
 }
 

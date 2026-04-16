@@ -7,11 +7,11 @@ import { resolveApiUser } from "@/lib/api-auth";
 import { requireOrgRole, checkIpAllowlist } from "@/lib/org-auth";
 
 const addSchema = z.object({
-  projectId: z.number().int().positive(),
+  projectId: z.string().min(1),
 });
 
 const removeSchema = z.object({
-  projectId: z.number().int().positive(),
+  projectId: z.string().min(1),
 });
 
 export async function GET(
@@ -24,8 +24,8 @@ export async function GET(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ to view project access
   const member = await requireOrgRole(orgId, user.id, "member");
@@ -73,8 +73,8 @@ export async function POST(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ only
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -133,8 +133,8 @@ export async function DELETE(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ only
   const member = await requireOrgRole(orgId, user.id, "admin");

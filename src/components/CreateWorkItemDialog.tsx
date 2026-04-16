@@ -8,20 +8,20 @@ import { Combobox, type ComboboxOption } from "@/components/Combobox";
 import type { WorkItemType } from "@/lib/constants";
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
 }
 
 interface Sprint {
-  id: number;
+  id: string;
   name: string;
   state: string;
 }
 
 interface CreatedItem {
-  id: number;
+  id: string;
   displayId: string | null;
   type: string;
 }
@@ -29,7 +29,7 @@ interface CreatedItem {
 interface CreateWorkItemDialogProps {
   open: boolean;
   onClose: () => void;
-  projectId: number;
+  projectId: string;
   projectKey: string;
   onCreated: () => void;
   defaultParentId?: number | null;

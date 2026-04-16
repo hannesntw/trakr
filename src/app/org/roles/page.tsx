@@ -9,7 +9,7 @@ import { PERMISSIONS } from "@/lib/plans";
 type PermissionKey = typeof PERMISSIONS[number];
 
 interface Role {
-  id: number;
+  id: string;
   name: string;
   isDefault: boolean;
   permissions: PermissionKey[];
@@ -63,7 +63,7 @@ export default function RolesPage() {
 
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
 
-  async function togglePermission(roleId: number, perm: PermissionKey) {
+  async function togglePermission(roleId: string, perm: PermissionKey) {
     const role = roles.find((r) => r.id === roleId);
     if (!role || role.name === "owner") return;
 
@@ -98,7 +98,7 @@ export default function RolesPage() {
     }
   }
 
-  async function duplicateRole(roleId: number) {
+  async function duplicateRole(roleId: string) {
     const source = roles.find((r) => r.id === roleId);
     if (!source) return;
     const res = await fetch(`/api/orgs/${org.id}/roles`, {
@@ -112,7 +112,7 @@ export default function RolesPage() {
     }
   }
 
-  async function deleteRole(roleId: number) {
+  async function deleteRole(roleId: string) {
     const res = await fetch(`/api/orgs/${org.id}/roles/${roleId}`, { method: "DELETE" });
     if (res.ok) {
       setRoles(roles.filter((r) => r.id !== roleId));

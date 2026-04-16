@@ -30,7 +30,7 @@ export async function GET(
   const [row] = await db
     .select()
     .from(projects)
-    .where(eq(projects.id, Number(id)));
+    .where(eq(projects.id, id));
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -59,7 +59,7 @@ export async function PATCH(
   const [row] = await db
     .update(projects)
     .set({ ...parsed.data, updatedAt: new Date().toISOString() })
-    .where(eq(projects.id, Number(id)))
+    .where(eq(projects.id, id))
     .returning();
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -78,7 +78,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const pid = Number(id);
+  const pid = id;
 
   // Postgres FK ON DELETE CASCADE is defined in the schema, but the
   // neon-http driver (stateless HTTP per query) doesn't reliably see

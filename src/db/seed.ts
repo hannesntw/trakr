@@ -7,9 +7,9 @@ const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql);
 
 // Track per-project sequence counters for displayId generation
-const sequenceCounters = new Map<number, { key: string; seq: number }>();
+const sequenceCounters = new Map<string, { key: string; seq: number }>();
 
-function nextDisplayId(projectId: number): string {
+function nextDisplayId(projectId: string): string {
   const entry = sequenceCounters.get(projectId);
   if (!entry) throw new Error(`Unknown project ${projectId}`);
   entry.seq += 1;

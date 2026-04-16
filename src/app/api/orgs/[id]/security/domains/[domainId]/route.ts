@@ -36,8 +36,8 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, domainId } = await params;
-  const orgId = Number(id);
-  const dId = Number(domainId);
+  const orgId = id;
+  const dId = domainId;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -107,8 +107,8 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, domainId } = await params;
-  const orgId = Number(id);
-  const dId = Number(domainId);
+  const orgId = id;
+  const dId = domainId;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

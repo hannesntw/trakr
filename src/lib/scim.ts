@@ -10,7 +10,7 @@ import { createHash } from "crypto";
  */
 export async function authenticateScimToken(
   request: NextRequest,
-): Promise<{ orgId: number } | null> {
+): Promise<{ orgId: string } | null> {
   const authHeader = request.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
 
@@ -100,7 +100,7 @@ export function toScimUser(user: {
  * Format a team record as a SCIM Group resource.
  */
 export function toScimGroup(team: {
-  id: number;
+  id: string;
   name: string;
   createdAt: string;
   members?: { userId: string; email?: string | null }[];

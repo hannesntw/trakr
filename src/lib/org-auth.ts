@@ -7,7 +7,7 @@ import { DEFAULT_ROLES, type Permission } from "./plans";
 const ROLE_HIERARCHY = ["guest", "viewer", "member", "admin", "owner"] as const;
 type RoleName = (typeof ROLE_HIERARCHY)[number];
 
-export async function resolveOrgMember(orgId: number, userId: string) {
+export async function resolveOrgMember(orgId: string, userId: string) {
   const [member] = await db
     .select()
     .from(organizationMembers)
@@ -15,7 +15,7 @@ export async function resolveOrgMember(orgId: number, userId: string) {
   return member ?? null;
 }
 
-export async function requireOrgRole(orgId: number, userId: string, minRole: RoleName) {
+export async function requireOrgRole(orgId: string, userId: string, minRole: RoleName) {
   const member = await resolveOrgMember(orgId, userId);
   if (!member) return null;
   const memberLevel = ROLE_HIERARCHY.indexOf(member.role as RoleName);
@@ -59,7 +59,7 @@ function ipInCidr(ip: string, cidr: string): boolean {
  * If the org has no enabled allowlist entries the request is always allowed.
  */
 export async function checkIpAllowlist(
-  orgId: number,
+  orgId: string,
   request: NextRequest,
 ): Promise<NextResponse | null> {
   const entries = await db

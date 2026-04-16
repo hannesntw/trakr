@@ -6,7 +6,7 @@ export type SprintState = (typeof SPRINT_STATES)[number];
 
 /** Shape returned by GET /api/projects/:id/workflow */
 export interface WorkflowState {
-  id: number;
+  id: string;
   slug: string;
   displayName: string;
   position: number;

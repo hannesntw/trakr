@@ -6,8 +6,8 @@ import { RelativeTime } from "@/components/RelativeTime";
 import type { WorkflowState } from "@/lib/constants";
 
 interface Snapshot {
-  id: number;
-  workItemId: number;
+  id: string;
+  workItemId: string;
   version: number;
   snapshot: Record<string, unknown>;
   changedBy: string | null;

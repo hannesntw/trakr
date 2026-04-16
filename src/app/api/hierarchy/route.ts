@@ -4,13 +4,13 @@ import { workItems } from "@/db/schema";
 import { eq, isNull, and } from "drizzle-orm";
 
 interface TreeNode {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   title: string;
   type: string;
   state: string;
   assignee: string | null;
-  sprintId: number | null;
+  sprintId: string | null;
   priority: number | null;
   children: TreeNode[];
 }
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     allItems = await db
       .select()
       .from(workItems)
-      .where(eq(workItems.projectId, Number(projectId)))
+      .where(eq(workItems.projectId, projectId))
       .orderBy(workItems.priority, workItems.id);
   } else {
     allItems = await db
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       .orderBy(workItems.priority, workItems.id);
   }
 
-  const itemMap = new Map<number, TreeNode>();
+  const itemMap = new Map<string, TreeNode>();
   for (const item of allItems) {
     itemMap.set(item.id, { ...item, children: [] });
   }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   const roots: TreeNode[] = [];
   for (const item of allItems) {
     const node = itemMap.get(item.id)!;
-    if (rootId && item.id === Number(rootId)) {
+    if (rootId && item.id === rootId) {
       roots.push(node);
     } else if (item.parentId && itemMap.has(item.parentId)) {
       itemMap.get(item.parentId)!.children.push(node);
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (rootId) {
-    const root = itemMap.get(Number(rootId));
+    const root = itemMap.get(rootId);
     return NextResponse.json(root ?? { error: "Not found" }, root ? {} : { status: 404 });
   }
 

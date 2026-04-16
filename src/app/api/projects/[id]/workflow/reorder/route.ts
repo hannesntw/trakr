@@ -7,7 +7,7 @@ import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const reorderSchema = z.object({
-  ids: z.array(z.number().int().positive()),
+  ids: z.array(z.string().min(1)),
 });
 
 export async function POST(
@@ -20,7 +20,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const projectId = Number(id);
+  const projectId = id;
 
   const [project] = await db
     .select()

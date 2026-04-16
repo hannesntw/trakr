@@ -15,10 +15,10 @@ import { POST as reorder } from "../projects/[id]/workflow/reorder/route";
 // Alpha's workflow states used by other tests.
 const PROJECT_ID = 2;
 
-function projParams(id: number = PROJECT_ID) {
+function projParams(id: string = PROJECT_ID) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
-function stateParams(stateId: number, id: number = PROJECT_ID) {
+function stateParams(stateId: string, id: string = PROJECT_ID) {
   return { params: Promise.resolve({ id: String(id), stateId: String(stateId) }) };
 }
 

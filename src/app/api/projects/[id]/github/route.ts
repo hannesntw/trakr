@@ -23,7 +23,7 @@ export async function GET(
       githubRepo: projects.githubRepo,
     })
     .from(projects)
-    .where(eq(projects.id, Number(id)));
+    .where(eq(projects.id, id));
 
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -65,7 +65,7 @@ export async function POST(
       githubWebhookSecret: webhookSecret,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(projects.id, Number(id)))
+    .where(eq(projects.id, id))
     .returning();
 
   if (!row) {
@@ -90,7 +90,7 @@ export async function POST(
   const inProgressStates = states.filter((s) => s.category === "in_progress");
   const doneStates = states.filter((s) => s.category === "done");
 
-  const defaultRules: Array<{ event: string; targetStateId: number }> = [];
+  const defaultRules: Array<{ event: string; targetStateId: string }> = [];
 
   // pr_opened → first in_progress state
   if (inProgressStates.length > 0) {
@@ -142,7 +142,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const pid = Number(id);
+  const pid = id;
 
   // Delete all github events and automation rules for this project
   await db.delete(githubEvents).where(eq(githubEvents.projectId, pid));

@@ -23,7 +23,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can view invitations
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -56,7 +56,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can invite
   const member = await requireOrgRole(orgId, user.id, "admin");

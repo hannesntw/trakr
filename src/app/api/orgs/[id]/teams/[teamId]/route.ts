@@ -12,7 +12,7 @@ const updateSchema = z.object({
   description: z.string().max(500).optional(),
 });
 
-async function isTeamLead(teamId: number, userId: string): Promise<boolean> {
+async function isTeamLead(teamId: string, userId: string): Promise<boolean> {
   const [m] = await db
     .select()
     .from(teamMembers)
@@ -30,8 +30,8 @@ export async function GET(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   const member = await resolveOrgMember(orgId, user.id);
   if (!member) {
@@ -98,8 +98,8 @@ export async function PATCH(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ or team lead can update
   const orgMember = await resolveOrgMember(orgId, user.id);
@@ -154,8 +154,8 @@ export async function DELETE(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ only
   const member = await requireOrgRole(orgId, user.id, "admin");

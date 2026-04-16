@@ -97,7 +97,7 @@ function resolveDate(value: string): string {
 }
 
 // Build SQL WHERE clause from filter AST
-function buildWhere(node: FilterNode, contextProjectId?: number, currentUserId?: string): SQL | undefined {
+function buildWhere(node: FilterNode, contextProjectId?: string, currentUserId?: string): SQL | undefined {
   const expanded = expandShortcuts(node);
 
   // Dynamic shortcuts that need DB access (done-category states from workflow)
@@ -319,7 +319,7 @@ function isDateField(field: string): boolean {
 }
 
 // GitHub filter: pr:open/merged/closed/none, ci:passing/failing/pending/none, has:pr/branch
-function buildGitHubFilter(node: GitHubFilterNode, contextProjectId?: number): SQL {
+function buildGitHubFilter(node: GitHubFilterNode, contextProjectId?: string): SQL {
   const { filterType, value } = node;
 
   if (filterType === "pr") {
@@ -401,7 +401,7 @@ function buildGitHubFilter(node: GitHubFilterNode, contextProjectId?: number): S
   throw new ExecutionError(`Unsupported GitHub filter: ${filterType}:${value}`);
 }
 
-function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProjectId?: number, currentUserId?: string): SQL | undefined {
+function buildHierarchyFilter(node: FilterNode & { kind: "field" }, contextProjectId?: string, currentUserId?: string): SQL | undefined {
   const [prefix, subField] = node.field.split(".", 2);
   const { operator, value, funcName } = node;
 
@@ -619,7 +619,7 @@ async function buildProjectAccessFilter(currentUserId?: string): Promise<SQL | u
 // Main executor
 export async function executeTraql(
   ast: TraqlAST,
-  contextProjectId?: number,
+  contextProjectId?: string,
   currentUserId?: string,
 ): Promise<TraqlResult> {
   const whereClause = ast.filter
@@ -683,7 +683,7 @@ async function executeSelect(
 
     // Also fetch project keys for {url} and {project} placeholders
     const projectIds = [...new Set(items.map(i => i.projectId))];
-    const projectMap = new Map<number, string>();
+    const projectMap = new Map<string, string>();
     if (projectIds.length > 0) {
       const projs = await db.select().from(projects).where(inArray(projects.id, projectIds));
       for (const p of projs) projectMap.set(p.id, p.key);
@@ -691,7 +691,7 @@ async function executeSelect(
 
     // Pre-compute sprint health if template uses {sprint.health}
     const needsHealth = template.includes("{sprint.health}");
-    let healthMap = new Map<number, string>();
+    let healthMap = new Map<string, string>();
     if (needsHealth) {
       healthMap = await computeSprintHealthMap(items);
     }
@@ -781,14 +781,14 @@ async function executeSelect(
 }
 
 // Compute sprint health classification for a set of items (for format output)
-async function computeSprintHealthMap(items: any[]): Promise<Map<number, string>> {
-  const result = new Map<number, string>();
+async function computeSprintHealthMap(items: any[]): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
   const itemIds = items.map(i => i.id);
   if (itemIds.length === 0) return result;
 
   // Fetch sprints for all items
   const sprintIds = [...new Set(items.map(i => i.sprintId).filter(Boolean))];
-  const sprintMap = new Map<number, any>();
+  const sprintMap = new Map<string, any>();
   if (sprintIds.length > 0) {
     const sprintRows = await db.select().from(sprints).where(inArray(sprints.id, sprintIds));
     for (const s of sprintRows) sprintMap.set(s.id, s);
@@ -796,7 +796,7 @@ async function computeSprintHealthMap(items: any[]): Promise<Map<number, string>
 
   // Fetch done-category states per project
   const projectIds = [...new Set(items.map(i => i.projectId))];
-  const doneStates = new Map<number, Set<string>>();
+  const doneStates = new Map<string, Set<string>>();
   if (projectIds.length > 0) {
     const wfRows = await db.execute(
       sql`SELECT project_id, slug FROM workflow_states WHERE project_id IN (${sql.join(projectIds.map(id => sql`${id}`), sql`, `)}) AND category = 'done'`

@@ -34,7 +34,7 @@ function makeRequest(
   return new NextRequest(new URL(url, "http://localhost"), init);
 }
 
-function idParams(id: number | string) {
+function idParams(id: string | string) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
 
@@ -250,7 +250,7 @@ describe("Points validation", () => {
 // ---------------------------------------------------------------------------
 
 describe("Parent/child relationships", () => {
-  let parentId: number;
+  let parentId: string;
   let childId: number;
   let altParentId: number;
 

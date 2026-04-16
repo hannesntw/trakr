@@ -5,7 +5,7 @@ import { formatFullDateTime } from "@/lib/utils";
 import type { WorkflowState } from "@/lib/constants";
 
 interface StatusChange {
-  id: number;
+  id: string;
   fromState: string;
   toState: string;
   changedAt: string;

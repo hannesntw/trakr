@@ -18,25 +18,25 @@ import {
 } from "@/lib/constants";
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
   state: string;
   assignee: string | null;
-  parentId: number | null;
-  sprintId: number | null;
+  parentId: string | null;
+  sprintId: string | null;
   priority: number | null;
   points: number | null;
 }
 
 interface Sprint {
-  id: number;
+  id: string;
   name: string;
 }
 
 interface BacklogClientProps {
-  projectId: number;
+  projectId: string;
   projectKey: string;
   projectName: string;
   makerMode?: boolean;
@@ -162,8 +162,8 @@ export function BacklogClient({
   makerMode,
 }: BacklogClientProps) {
   const [items, setItems] = useState<WorkItem[]>([]);
-  const [sprintMap, setSprintMap] = useState<Map<number, string>>(new Map());
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [sprintMap, setSprintMap] = useState<Map<string, string>>(new Map());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   // Filter state
@@ -177,8 +177,8 @@ export function BacklogClient({
   const [initialFilterApplied, setInitialFilterApplied] = useState(false);
 
   // Drag-to-reparent state
-  const [dragId, setDragId] = useState<number | null>(null);
-  const [dropTargetId, setDropTargetId] = useState<number | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropValid, setDropValid] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -249,7 +249,7 @@ export function BacklogClient({
   // Apply filters — also compute ghost parent IDs (done parents with visible descendants)
   const { filteredItems, ghostParentIds } = useMemo(() => {
     // First pass: determine which items pass the filters normally
-    const passing = new Set<number>();
+    const passing = new Set<string>();
     for (const item of items) {
       let passes = true;
       // Text search — match title or displayId
@@ -273,7 +273,7 @@ export function BacklogClient({
     // A ghost parent is a done item that is NOT in `passing` but has a
     // descendant that IS in `passing`. Walk up the parent chain of every
     // visible item and mark ancestors that were filtered out due to being done.
-    const ghostIds = new Set<number>();
+    const ghostIds = new Set<string>();
     if (!showCompleted && workflowStates.length > 0) {
       const doneSlugs = new Set(
         workflowStates.filter((ws) => ws.category === "done").map((ws) => ws.slug)
@@ -365,7 +365,7 @@ export function BacklogClient({
     const roots = items.filter(
       (i) => !i.parentId || !itemIds.has(i.parentId)
     );
-    const childrenOf = (parentId: number) =>
+    const childrenOf = (parentId: string) =>
       items
         .filter((i) => i.parentId === parentId)
         .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
@@ -397,7 +397,7 @@ export function BacklogClient({
     return true;
   }
 
-  function handleDragStart(e: React.DragEvent, id: number) {
+  function handleDragStart(e: React.DragEvent, id: string) {
     setDragId(id);
     e.dataTransfer.effectAllowed = "move";
   }

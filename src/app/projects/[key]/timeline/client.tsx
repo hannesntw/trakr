@@ -10,18 +10,18 @@ import { ZoomIn, ZoomOut, ChevronRight, ChevronDown, Plus, Minus, AlertTriangle,
 // --- Types ---
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
   state: string;
-  parentId: number | null;
-  sprintId: number | null;
+  parentId: string | null;
+  sprintId: string | null;
   children?: WorkItem[];
 }
 
 interface Sprint {
-  id: number;
+  id: string;
   name: string;
   startDate: string | null;
   endDate: string | null;
@@ -46,9 +46,9 @@ interface Marker {
 }
 
 interface WorkItemLink {
-  id: number;
-  sourceId: number;
-  targetId: number;
+  id: string;
+  sourceId: string;
+  targetId: string;
   type: string;
 }
 
@@ -102,7 +102,7 @@ function StateIcon({ state, workflowStates }: { state: string; workflowStates?: 
 // --- Component ---
 
 interface TimelineClientProps {
-  projectId: number;
+  projectId: string;
   projectKey: string;
   projectName: string;
 }
@@ -110,10 +110,10 @@ interface TimelineClientProps {
 export function TimelineClient({ projectId, projectKey, projectName }: TimelineClientProps) {
   const [hierarchy, setHierarchy] = useState<WorkItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [historyMap, setHistoryMap] = useState<Map<number, StatusTransition[]>>(new Map());
+  const [historyMap, setHistoryMap] = useState<Map<string, StatusTransition[]>>(new Map());
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoomIdx, setZoomIdx] = useState(1);
 
   // --- Date Markers state ---
@@ -125,15 +125,15 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
 
   // --- Dependencies state ---
   const [showLinks, setShowLinks] = useState(false);
-  const [linksMap, setLinksMap] = useState<Map<number, WorkItemLink[]>>(new Map());
+  const [linksMap, setLinksMap] = useState<Map<string, WorkItemLink[]>>(new Map());
 
   // --- Drag-to-resize state ---
   // Local overrides for bar positions (visual-only, not persisted)
   // TODO: Once work_items table has startDate/endDate fields, persist overrides
   //       via PATCH /api/work-items/:id on drag end instead of only updating local state
-  const [barOverrides, setBarOverrides] = useState<Map<number, { start: number; duration: number }>>(new Map());
+  const [barOverrides, setBarOverrides] = useState<Map<string, { start: number; duration: number }>>(new Map());
   const [dragState, setDragState] = useState<{
-    itemId: number;
+    itemId: string;
     edge: "start" | "end";
     initialMouseX: number;
     initialStart: number;
@@ -191,8 +191,8 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   useEffect(() => { fetchData(); }, [fetchData]);
   useRealtimeRefresh(fetchData);
 
-  function collectIds(items: WorkItem[]): number[] {
-    const ids: number[] = [];
+  function collectIds(items: WorkItem[]): string[] {
+    const ids: string[] = [];
     for (const item of items) {
       ids.push(item.id);
       if (item.children) ids.push(...collectIds(item.children));
@@ -200,7 +200,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
     return ids;
   }
 
-  function toggleExpand(id: number) {
+  function toggleExpand(id: string) {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
@@ -217,8 +217,8 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   }
 
   // Expand/collapse all
-  function collectExpandable(items: WorkItem[], depth = 0): Map<number, number[]> {
-    const map = new Map<number, number[]>();
+  function collectExpandable(items: WorkItem[], depth = 0): Map<number, string[]> {
+    const map = new Map<number, string[]>();
     for (const item of items) {
       if (item.children && item.children.length > 0) {
         map.set(depth, [...(map.get(depth) ?? []), item.id]);
@@ -262,7 +262,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   /** Start a drag interaction on a bar edge */
   function handleDragStart(
     e: React.MouseEvent,
-    itemId: number,
+    itemId: string,
     edge: "start" | "end",
     bar: { start: number; duration: number },
   ) {
@@ -373,7 +373,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   }
 
   function getChildSprintRange(item: WorkItem): { start: number; duration: number } | null {
-    const sprintIds = new Set<number>();
+    const sprintIds = new Set<string>();
     function collect(wi: WorkItem) {
       if (wi.sprintId) sprintIds.add(wi.sprintId);
       wi.children?.forEach(collect);
@@ -395,7 +395,7 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   }
 
   // Retrospective bars from history
-  function getRetroBars(itemId: number) {
+  function getRetroBars(itemId: string) {
     const hist = historyMap.get(itemId);
     if (!hist || hist.length === 0) return null;
     const inProgressSlugs = new Set(workflowStates.filter(w => w.category === "in_progress").map(w => w.slug));
@@ -412,9 +412,9 @@ export function TimelineClient({ projectId, projectKey, projectName }: TimelineC
   }
 
   // Collect unique "blocks" links for dependency arrows
-  function getBlocksLinks(): { sourceId: number; targetId: number }[] {
+  function getBlocksLinks(): { sourceId: string; targetId: string }[] {
     const seen = new Set<string>();
-    const result: { sourceId: number; targetId: number }[] = [];
+    const result: { sourceId: string; targetId: string }[] = [];
     for (const [, links] of linksMap) {
       for (const link of links) {
         if (link.type === "blocks") {

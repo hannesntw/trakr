@@ -7,7 +7,7 @@ import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
-  targetId: z.number().int().positive(),
+  targetId: z.string().min(1),
   type: z.enum(["blocks", "blocked_by", "relates_to", "duplicates"]),
 });
 
@@ -23,7 +23,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const workItemId = Number(id);
+  const workItemId = id;
 
   const rows = await db
     .select()
@@ -49,7 +49,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const sourceId = Number(id);
+  const sourceId = id;
 
   const body = await request.json();
   const parsed = createSchema.safeParse(body);

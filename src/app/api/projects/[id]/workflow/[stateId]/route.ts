@@ -22,8 +22,8 @@ export async function PATCH(
   }
 
   const { id, stateId } = await params;
-  const projectId = Number(id);
-  const stateIdNum = Number(stateId);
+  const projectId = id;
+  const stateIdNum = stateId;
 
   const [existing] = await db
     .select()
@@ -67,8 +67,8 @@ export async function DELETE(
   }
 
   const { id, stateId } = await params;
-  const projectId = Number(id);
-  const stateIdNum = Number(stateId);
+  const projectId = id;
+  const stateIdNum = stateId;
 
   const [existing] = await db
     .select()

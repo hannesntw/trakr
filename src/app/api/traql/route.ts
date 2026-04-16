@@ -5,7 +5,7 @@ import { resolveApiUser } from "@/lib/api-auth";
 
 const schema = z.object({
   query: z.string().min(1).max(2000), // cap query length
-  projectId: z.number().int().positive().optional(),
+  projectId: z.string().min(1).optional(),
 });
 
 // Simple in-memory rate limiter: max 30 TraQL queries per minute per user/IP

@@ -25,7 +25,7 @@ export default function OrgDashboardPage() {
         .catch(() => 0),
       fetch("/api/projects")
         .then((r) => r.json())
-        .then((data: { orgId?: number | null }[]) =>
+        .then((data: { orgId?: string | null }[]) =>
           data.filter((p) => p.orgId === org.id).length
         )
         .catch(() => 0),

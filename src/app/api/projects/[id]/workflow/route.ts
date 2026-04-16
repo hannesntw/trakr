@@ -29,7 +29,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const projectId = Number(id);
+  const projectId = id;
 
   const [project] = await db
     .select()
@@ -65,7 +65,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const projectId = Number(id);
+  const projectId = id;
 
   const [project] = await db
     .select()

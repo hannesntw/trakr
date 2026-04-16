@@ -6,7 +6,7 @@ import { expect } from "vitest";
 
 export async function query(
   q: string,
-  opts?: { projectId?: number; userId?: string },
+  opts?: { projectId?: string; userId?: string },
 ): Promise<TraqlResult> {
   return runTraql(
     q,
@@ -15,7 +15,7 @@ export async function query(
   );
 }
 
-export async function queryError(q: string, projectId?: number): Promise<string> {
+export async function queryError(q: string, projectId?: string): Promise<string> {
   try {
     await runTraql(q, projectId ?? EXPECTED.ALPHA_PROJECT_ID, "test-user");
     throw new Error("Expected query to throw");

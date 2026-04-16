@@ -11,7 +11,7 @@ export async function GET(
   const rows = await db
     .select()
     .from(workItemSnapshots)
-    .where(eq(workItemSnapshots.workItemId, Number(id)))
+    .where(eq(workItemSnapshots.workItemId, id))
     .orderBy(workItemSnapshots.version);
 
   // Parse snapshot JSON for each row

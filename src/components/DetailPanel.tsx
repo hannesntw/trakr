@@ -15,22 +15,22 @@ import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import type { WorkItemType, WorkflowState } from "@/lib/constants";
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
-  projectId: number;
+  projectId: string;
   title: string;
   type: string;
   state: string;
   description: string | null;
-  parentId: number | null;
-  sprintId: number | null;
+  parentId: string | null;
+  sprintId: string | null;
   assignee: string | null;
   createdAt: string;
   children?: WorkItem[];
 }
 
 interface Comment {
-  id: number;
+  id: string;
   author: string;
   body: string;
   createdAt: string;
@@ -44,9 +44,9 @@ interface Member {
 }
 
 interface DetailPanelProps {
-  workItemId: number | null;
+  workItemId: string | null;
   projectKey: string;
-  projectId: number;
+  projectId: string;
   onClose: () => void;
   onUpdated: () => void;
 }
@@ -60,7 +60,7 @@ export function DetailPanel({
 }: DetailPanelProps) {
   const [item, setItem] = useState<WorkItem | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [attachmentList, setAttachmentList] = useState<{id: number; filename: string; contentType: string}[]>([]);
+  const [attachmentList, setAttachmentList] = useState<{id: string; filename: string; contentType: string}[]>([]);
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [newComment, setNewComment] = useState("");

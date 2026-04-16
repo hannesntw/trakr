@@ -30,7 +30,7 @@ export default async function WorkItemDetailPage({
     const [row] = await db
       .select()
       .from(workItems)
-      .where(eq(workItems.id, Number(id)));
+      .where(eq(workItems.id, id));
     item = row;
   }
 

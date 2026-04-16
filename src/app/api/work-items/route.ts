@@ -7,13 +7,13 @@ import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
-  projectId: z.number().int().positive(),
+  projectId: z.string().min(1),
   title: z.string().min(1),
   type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]),
   state: z.string().optional(),
   description: z.string().optional(),
-  parentId: z.number().int().positive().nullable().optional(),
-  sprintId: z.number().int().positive().nullable().optional(),
+  parentId: z.string().min(1).nullable().optional(),
+  sprintId: z.string().min(1).nullable().optional(),
   assignee: z.string().nullable().optional(),
   points: z.number().int().refine((v) => [1, 2, 3, 5, 8, 13].includes(v), {
     message: "Points must be one of: 1, 2, 3, 5, 8, 13",
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const conditions: SQL[] = [];
 
   const projectId = url.get("projectId");
-  if (projectId) conditions.push(eq(workItems.projectId, Number(projectId)));
+  if (projectId) conditions.push(eq(workItems.projectId, projectId));
 
   const type = url.get("type");
   if (type) conditions.push(eq(workItems.type, type as "epic" | "feature" | "story"));
@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
   if (state) conditions.push(eq(workItems.state, state));
 
   const sprintId = url.get("sprintId");
-  if (sprintId) conditions.push(eq(workItems.sprintId, Number(sprintId)));
+  if (sprintId) conditions.push(eq(workItems.sprintId, sprintId));
 
   const parentId = url.get("parentId");
-  if (parentId) conditions.push(eq(workItems.parentId, Number(parentId)));
+  if (parentId) conditions.push(eq(workItems.parentId, parentId));
 
   const q = url.get("q");
   if (q) conditions.push(or(ilike(workItems.title, `%${q}%`), ilike(workItems.displayId, `%${q}%`))!);

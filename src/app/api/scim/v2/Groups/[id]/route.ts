@@ -16,7 +16,7 @@ export async function GET(
   if (!auth) return scimError(401, "Unauthorized");
 
   const { id } = await params;
-  const teamId = Number(id);
+  const teamId = id;
 
   const [team] = await db
     .select()
@@ -46,7 +46,7 @@ export async function PUT(
   if (!auth) return scimError(401, "Unauthorized");
 
   const { id } = await params;
-  const teamId = Number(id);
+  const teamId = id;
 
   const [team] = await db
     .select()
@@ -108,7 +108,7 @@ export async function PATCH(
   if (!auth) return scimError(401, "Unauthorized");
 
   const { id } = await params;
-  const teamId = Number(id);
+  const teamId = id;
 
   const [team] = await db
     .select()
@@ -209,7 +209,7 @@ export async function DELETE(
   if (!auth) return scimError(401, "Unauthorized");
 
   const { id } = await params;
-  const teamId = Number(id);
+  const teamId = id;
 
   const [team] = await db
     .select()

@@ -77,7 +77,7 @@ describe("TraQL hierarchy traversal", () => {
     expect(result.items!.length).toBeGreaterThan(0);
 
     // Count descendants recursively for the first few results
-    async function countDescendants(id: number): Promise<number> {
+    async function countDescendants(id: string): Promise<number> {
       const children = await db.select().from(workItems).where(eq(workItems.parentId, id));
       let total = children.length;
       for (const child of children) {

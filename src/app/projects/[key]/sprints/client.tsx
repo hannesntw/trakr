@@ -13,18 +13,18 @@ import {
 import type { WorkflowState } from "@/lib/constants";
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
   state: string;
   assignee: string | null;
-  sprintId: number | null;
+  sprintId: string | null;
   points: number | null;
 }
 
 interface Sprint {
-  id: number;
+  id: string;
   name: string;
   goal: string | null;
   startDate: string | null;
@@ -50,7 +50,7 @@ function StateIcon({ state, workflowStates }: { state: string; workflowStates?: 
 // Generate virtual sprint blocks from a base date
 function generateVirtualSprints(realSprints: Sprint[], baseDate: Date, count: number) {
   const blocks: Array<{
-    id: number | null; // null = virtual (not in DB yet)
+    id: string | null; // null = virtual (not in DB yet)
     virtualKey: string;
     number: number;
     name: string;
@@ -101,7 +101,7 @@ function generateVirtualSprints(realSprints: Sprint[], baseDate: Date, count: nu
 }
 
 interface SprintsClientProps {
-  projectId: number;
+  projectId: string;
   projectKey: string;
   projectName: string;
 }
@@ -110,10 +110,10 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [items, setItems] = useState<WorkItem[]>([]);
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [backlogCollapsed, setBacklogCollapsed] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
-  const [draggingItemId, setDraggingItemId] = useState<number | null>(null);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null); // virtualKey or "backlog"
   const activeRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -165,7 +165,7 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
   const realBlocks = sprints.map(s => {
     const state: "closed" | "active" | "future" = s.state === "closed" ? "closed" : s.state === "active" ? "active" : "future";
     return {
-      id: s.id as number | null,
+      id: s.id as string | null,
       virtualKey: String(s.id),
       number: 0,
       name: s.name,
@@ -216,7 +216,7 @@ export function SprintsClient({ projectId, projectKey, projectName }: SprintsCli
   const backlogItems = items.filter(i => !i.sprintId && i.type === "story");
 
   // Get stories for a sprint
-  function getSprintStories(sprintId: number | null): WorkItem[] {
+  function getSprintStories(sprintId: string | null): WorkItem[] {
     if (sprintId) return items.filter(i => i.sprintId === sprintId);
     return [];
   }
@@ -411,9 +411,9 @@ function SprintBlock({
 }: {
   block: ReturnType<typeof generateVirtualSprints>[0];
   stories: WorkItem[];
-  onStoryClick: (id: number) => void;
-  draggingItemId: number | null;
-  setDraggingItemId: (id: number | null) => void;
+  onStoryClick: (id: string) => void;
+  draggingItemId: string | null;
+  setDraggingItemId: (id: string | null) => void;
   dragOverTarget: string | null;
   setDragOverTarget: (t: string | null) => void;
   onDrop: (virtualKey: string) => void;

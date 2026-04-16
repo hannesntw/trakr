@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/utils";
 type OrgRole = "owner" | "admin" | "member" | "viewer" | "guest";
 
 interface MemberItem {
-  id: number;
+  id: string;
   userId: string;
   role: string;
   joinedAt: string;
@@ -18,7 +18,7 @@ interface MemberItem {
 }
 
 interface Invitation {
-  id: number;
+  id: string;
   email: string;
   role: string;
   expiresAt: string;
@@ -44,8 +44,8 @@ export default function MembersPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<OrgRole>("member");
-  const [menuOpen, setMenuOpen] = useState<number | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
@@ -87,7 +87,7 @@ export default function MembersPage() {
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
   useEffect(() => { fetchInvitations(); }, [fetchInvitations]);
 
-  async function changeRole(memberId: number, role: OrgRole) {
+  async function changeRole(memberId: string, role: OrgRole) {
     const res = await fetch(`/api/orgs/${org.id}/members/${memberId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ export default function MembersPage() {
     setMenuOpen(null);
   }
 
-  async function removeMember(memberId: number) {
+  async function removeMember(memberId: string) {
     const res = await fetch(`/api/orgs/${org.id}/members/${memberId}`, { method: "DELETE" });
     if (res.ok) {
       setMembers((prev) => prev.filter((m) => m.id !== memberId));
@@ -123,14 +123,14 @@ export default function MembersPage() {
     }
   }
 
-  async function revokeInvite(inviteId: number) {
+  async function revokeInvite(inviteId: string) {
     const res = await fetch(`/api/orgs/${org.id}/invitations/${inviteId}`, { method: "DELETE" });
     if (res.ok) {
       setInvitations((prev) => prev.filter((i) => i.id !== inviteId));
     }
   }
 
-  async function resendInvite(inviteId: number) {
+  async function resendInvite(inviteId: string) {
     await fetch(`/api/orgs/${org.id}/invitations/${inviteId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,7 +138,7 @@ export default function MembersPage() {
     });
   }
 
-  function handleRowClick(memberId: number) {
+  function handleRowClick(memberId: string) {
     setExpandedId(expandedId === memberId ? null : memberId);
     setMenuOpen(null);
   }

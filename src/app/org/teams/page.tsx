@@ -8,7 +8,7 @@ import { useOrg } from "@/lib/use-org";
 import { formatDate } from "@/lib/utils";
 
 interface TeamMember {
-  id: number;
+  id: string;
   userId: string;
   role: string;
   joinedAt: string;
@@ -16,27 +16,27 @@ interface TeamMember {
 }
 
 interface ProjectAccess {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   name: string;
   key: string;
 }
 
 interface OrgMember {
-  id: number;
+  id: string;
   userId: string;
   role: string;
   user: { name: string | null; email: string | null };
 }
 
 interface OrgProject {
-  id: number;
+  id: string;
   name: string;
   key: string;
 }
 
 interface TeamRow {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   membersCount: number;
@@ -57,16 +57,16 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedDetail, setExpandedDetail] = useState<TeamDetail | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -120,7 +120,7 @@ export default function TeamsPage() {
   useEffect(() => { fetchOrgMembers(); }, [fetchOrgMembers]);
   useEffect(() => { fetchOrgProjects(); }, [fetchOrgProjects]);
 
-  async function fetchTeamDetail(teamId: number) {
+  async function fetchTeamDetail(teamId: string) {
     const res = await fetch(`/api/orgs/${org.id}/teams/${teamId}`);
     if (res.ok) {
       const detail = await res.json();
@@ -156,7 +156,7 @@ export default function TeamsPage() {
     }
   }
 
-  async function removeTeam(id: number) {
+  async function removeTeam(id: string) {
     const res = await fetch(`/api/orgs/${org.id}/teams/${id}`, { method: "DELETE" });
     if (res.ok) {
       setTeams(teams.filter((t) => t.id !== id));
@@ -168,7 +168,7 @@ export default function TeamsPage() {
     }
   }
 
-  async function removeMemberFromTeam(teamId: number, userId: string) {
+  async function removeMemberFromTeam(teamId: string, userId: string) {
     const res = await fetch(`/api/orgs/${org.id}/teams/${teamId}/members`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -181,7 +181,7 @@ export default function TeamsPage() {
     }
   }
 
-  async function addMemberToTeam(teamId: number, userId: string) {
+  async function addMemberToTeam(teamId: string, userId: string) {
     const res = await fetch(`/api/orgs/${org.id}/teams/${teamId}/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -196,7 +196,7 @@ export default function TeamsPage() {
     setMemberSearch("");
   }
 
-  async function toggleProjectAccess(teamId: number, projectId: number, isCurrentlyEnabled: boolean) {
+  async function toggleProjectAccess(teamId: string, projectId: string, isCurrentlyEnabled: boolean) {
     if (isCurrentlyEnabled) {
       const res = await fetch(`/api/orgs/${org.id}/teams/${teamId}/projects`, {
         method: "DELETE",
@@ -229,7 +229,7 @@ export default function TeamsPage() {
     setEditDesc(team.description ?? "");
   }
 
-  async function saveEditing(teamId: number) {
+  async function saveEditing(teamId: string) {
     const res = await fetch(`/api/orgs/${org.id}/teams/${teamId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -245,7 +245,7 @@ export default function TeamsPage() {
     setEditingTeamId(null);
   }
 
-  function handleRowClick(teamId: number) {
+  function handleRowClick(teamId: string) {
     if (expandedId === teamId) {
       setExpandedId(null);
       setExpandedDetail(null);

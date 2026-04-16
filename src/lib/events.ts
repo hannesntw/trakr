@@ -6,9 +6,9 @@ type Listener = (event: ChangeEvent) => void;
 export interface ChangeEvent {
   type: "work-item" | "sprint" | "comment" | "attachment" | "link" | "project" | "workflow" | "github-event";
   action: "created" | "updated" | "deleted";
-  id: number;
-  projectId?: number; // allows clients to filter by project
-  workItemId?: number; // for comments/attachments
+  id: string;
+  projectId?: string; // allows clients to filter by project
+  workItemId?: string; // for comments/attachments
 }
 
 const listeners = new Set<Listener>();

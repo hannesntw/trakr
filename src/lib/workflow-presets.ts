@@ -39,7 +39,7 @@ export const PRESETS: Record<string, PresetState[]> = {
 /**
  * Delete all existing workflow states for a project and create new ones from a preset.
  */
-export async function applyPreset(projectId: number, presetKey: string) {
+export async function applyPreset(projectId: string, presetKey: string) {
   const states = PRESETS[presetKey];
   if (!states) {
     throw new Error(`Unknown preset: ${presetKey}`);

@@ -6,7 +6,7 @@ import { Plus, Cpu, Copy, Check, Key, Sun, Moon, Monitor } from "lucide-react";
 import { formatFullDateTime } from "@/lib/utils";
 
 interface ApiKeyInfo {
-  id: number;
+  id: string;
   label: string;
   keyPrefix: string;
   lastUsedAt: string | null;
@@ -77,7 +77,7 @@ export function AccountClient({ user }: AccountClientProps) {
     }
   }
 
-  async function revokeKey(id: number) {
+  async function revokeKey(id: string) {
     await fetch("/api/account/keys", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

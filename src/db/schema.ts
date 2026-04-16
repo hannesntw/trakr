@@ -19,7 +19,8 @@
  * No app-side cascade logic is needed — route handlers just delete
  * the parent row and Postgres handles the rest.
  */
-import { pgTable, text, integer, serial, boolean, timestamp, customType, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, customType, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { createId } from "@paralleldrive/cuid2";
 
 const bytea = customType<{ data: Buffer }>({
   dataType() { return "bytea"; },
@@ -66,7 +67,7 @@ export const verificationTokens = pgTable("verificationToken", {
 // --- Organization tables ---
 
 export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   plan: text("plan").notNull().default("free"), // free, developer, team, enterprise
@@ -76,16 +77,16 @@ export const organizations = pgTable("organizations", {
 });
 
 export const organizationMembers = pgTable("organization_members", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("member"), // owner, admin, member, viewer, guest
   joinedAt: text("joined_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
 export const organizationInvitations = pgTable("organization_invitations", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
   role: text("role").notNull().default("member"),
   token: text("token").notNull().unique(),
@@ -94,8 +95,8 @@ export const organizationInvitations = pgTable("organization_invitations", {
 });
 
 export const orgRoles = pgTable("org_roles", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   isDefault: boolean("is_default").notNull().default(false),
   permissions: text("permissions").notNull(), // JSON string of permission array
@@ -103,32 +104,32 @@ export const orgRoles = pgTable("org_roles", {
 });
 
 export const teams = pgTable("teams", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
 export const teamMembers = pgTable("team_members", {
-  id: serial("id").primaryKey(),
-  teamId: integer("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("member"), // lead, member
   joinedAt: text("joined_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
 export const teamProjectAccess = pgTable("team_project_access", {
-  id: serial("id").primaryKey(),
-  teamId: integer("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
 });
 
 // --- Audit log ---
 
 export const auditLog = pgTable("audit_log", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
   actorName: text("actor_name"), // denormalized for when user is deleted
   action: text("action").notNull(), // e.g. "member.invited", "project.created", "role.updated"
@@ -136,7 +137,7 @@ export const auditLog = pgTable("audit_log", {
   targetId: text("target_id"),
   description: text("description").notNull(),
   ipAddress: text("ip_address"),
-  projectId: integer("project_id"),
+  projectId: text("project_id"),
   metadata: text("metadata"), // JSON for extra context
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
@@ -144,8 +145,8 @@ export const auditLog = pgTable("audit_log", {
 // --- Security tables ---
 
 export const ssoConfigurations = pgTable("sso_configurations", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   protocol: text("protocol").notNull(), // "saml" or "oidc"
   entityId: text("entity_id"),
   metadataUrl: text("metadata_url"),
@@ -159,8 +160,8 @@ export const ssoConfigurations = pgTable("sso_configurations", {
 });
 
 export const verifiedDomains = pgTable("verified_domains", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   domain: text("domain").notNull(),
   status: text("status").notNull().default("pending"), // "pending", "verified"
   verificationToken: text("verification_token").notNull(),
@@ -171,8 +172,8 @@ export const verifiedDomains = pgTable("verified_domains", {
 });
 
 export const ipAllowlist = pgTable("ip_allowlist", {
-  id: serial("id").primaryKey(),
-  orgId: integer("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   cidr: text("cidr").notNull(),
   description: text("description"),
   enabled: boolean("enabled").notNull().default(true),
@@ -182,7 +183,7 @@ export const ipAllowlist = pgTable("ip_allowlist", {
 // --- App tables ---
 
 export const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   name: text("name").notNull(),
   key: text("key").notNull().unique(),
   description: text("description").default(""),
@@ -201,11 +202,11 @@ export const projects = pgTable("projects", {
   githubStatusChecks: boolean("github_status_checks").notNull().default(true),
   githubPrComments: boolean("github_pr_comments").notNull().default(true),
   makerMode: boolean("maker_mode").notNull().default(false),
-  orgId: integer("org_id").references(() => organizations.id, { onDelete: "set null" }),
+  orgId: text("org_id").references(() => organizations.id, { onDelete: "set null" }),
 });
 
 export const apiKeys = pgTable("api_keys", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   keyHash: text("key_hash").notNull().unique(),
   keyPrefix: text("key_prefix").notNull(),
@@ -217,7 +218,7 @@ export const apiKeys = pgTable("api_keys", {
 });
 
 export const deviceCodes = pgTable("device_codes", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   code: text("code").notNull().unique(),
   userId: text("user_id"),
   apiKey: text("api_key"),
@@ -229,8 +230,8 @@ export const deviceCodes = pgTable("device_codes", {
 });
 
 export const projectInvites = pgTable("project_invites", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
   createdAt: text("created_at")
     .notNull()
@@ -238,8 +239,8 @@ export const projectInvites = pgTable("project_invites", {
 });
 
 export const workflowStates = pgTable("workflow_states", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   slug: text("slug").notNull(),
@@ -253,9 +254,9 @@ export const workflowStates = pgTable("workflow_states", {
 });
 
 export const workItems = pgTable("work_items", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => createId()),
   displayId: text("display_id").unique(),
-  projectId: integer("project_id")
+  projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
@@ -264,8 +265,8 @@ export const workItems = pgTable("work_items", {
     .notNull()
     .default("new"),
   description: text("description").default(""),
-  parentId: integer("parent_id").references((): AnyPgColumn => workItems.id, { onDelete: "set null" }),
-  sprintId: integer("sprint_id"),
+  parentId: text("parent_id").references((): AnyPgColumn => workItems.id, { onDelete: "set null" }),
+  sprintId: text("sprint_id").references(() => sprints.id, { onDelete: "set null" }),
   assignee: text("assignee"),
   points: integer("points"),
   priority: integer("priority").default(0),
@@ -281,8 +282,8 @@ export const workItems = pgTable("work_items", {
 });
 
 export const workItemSnapshots = pgTable("work_item_snapshots", {
-  id: serial("id").primaryKey(),
-  workItemId: integer("work_item_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  workItemId: text("work_item_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
   version: integer("version").notNull(),
@@ -295,8 +296,8 @@ export const workItemSnapshots = pgTable("work_item_snapshots", {
 });
 
 export const sprints = pgTable("sprints", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -312,8 +313,8 @@ export const sprints = pgTable("sprints", {
 });
 
 export const attachments = pgTable("attachments", {
-  id: serial("id").primaryKey(),
-  workItemId: integer("work_item_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  workItemId: text("work_item_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
   filename: text("filename").notNull(),
@@ -325,8 +326,8 @@ export const attachments = pgTable("attachments", {
 });
 
 export const statusHistory = pgTable("status_history", {
-  id: serial("id").primaryKey(),
-  workItemId: integer("work_item_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  workItemId: text("work_item_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
   fromState: text("from_state").notNull(),
@@ -337,11 +338,11 @@ export const statusHistory = pgTable("status_history", {
 });
 
 export const workItemLinks = pgTable("work_item_links", {
-  id: serial("id").primaryKey(),
-  sourceId: integer("source_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  sourceId: text("source_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
-  targetId: integer("target_id")
+  targetId: text("target_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
@@ -351,8 +352,8 @@ export const workItemLinks = pgTable("work_item_links", {
 });
 
 export const savedQueries = pgTable("saved_queries", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   userId: text("user_id")
@@ -368,8 +369,8 @@ export const savedQueries = pgTable("saved_queries", {
 });
 
 export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  workItemId: integer("work_item_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  workItemId: text("work_item_id")
     .notNull()
     .references(() => workItems.id, { onDelete: "cascade" }),
   author: text("author").notNull(),
@@ -380,12 +381,12 @@ export const comments = pgTable("comments", {
 });
 
 export const githubAutomations = pgTable("github_automations", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   event: text("event").notNull(), // "pr_opened", "pr_merged", "pr_closed", "deploy_succeeded", "deploy_failed"
-  targetStateId: integer("target_state_id")
+  targetStateId: text("target_state_id")
     .notNull()
     .references(() => workflowStates.id),
   enabled: boolean("enabled").notNull().default(true),
@@ -395,11 +396,11 @@ export const githubAutomations = pgTable("github_automations", {
 });
 
 export const githubEvents = pgTable("github_events", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id")
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
-  workItemId: integer("work_item_id")
+  workItemId: text("work_item_id")
     .references(() => workItems.id, { onDelete: "cascade" }),
   eventType: text("event_type").notNull(),
   action: text("action"),

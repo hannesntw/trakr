@@ -9,7 +9,7 @@ import { OrgTabNav } from "@/components/OrgTabNav";
 import { useOrg } from "@/lib/use-org";
 
 interface Domain {
-  id: number;
+  id: string;
   domain: string;
   status: string;
   verificationToken: string;
@@ -19,7 +19,7 @@ interface Domain {
 }
 
 interface SsoConfig {
-  id: number;
+  id: string;
   protocol: string;
   entityId: string | null;
   metadataUrl: string | null;
@@ -29,7 +29,7 @@ interface SsoConfig {
 }
 
 interface IpEntry {
-  id: number;
+  id: string;
   cidr: string;
   description: string | null;
 }
@@ -200,7 +200,7 @@ export default function SecurityPage() {
 
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  async function verifyDomain(domainId: number) {
+  async function verifyDomain(domainId: string) {
     setVerifyError(null);
     const res = await fetch(`/api/orgs/${org.id}/security/domains/${domainId}`, {
       method: "POST",
@@ -216,7 +216,7 @@ export default function SecurityPage() {
     }
   }
 
-  async function toggleDomainPolicy(domainId: number, policy: "requireSso" | "blockMagicLink" | "autoCapture") {
+  async function toggleDomainPolicy(domainId: string, policy: "requireSso" | "blockMagicLink" | "autoCapture") {
     const domain = domains.find((d) => d.id === domainId);
     if (!domain) return;
     const res = await fetch(`/api/orgs/${org.id}/security/domains/${domainId}`, {
@@ -230,7 +230,7 @@ export default function SecurityPage() {
     }
   }
 
-  async function removeDomain(domainId: number) {
+  async function removeDomain(domainId: string) {
     const res = await fetch(`/api/orgs/${org.id}/security/domains`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -257,7 +257,7 @@ export default function SecurityPage() {
     }
   }
 
-  async function removeIp(entryId: number) {
+  async function removeIp(entryId: string) {
     const res = await fetch(`/api/orgs/${org.id}/security/ip-allowlist`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

@@ -7,15 +7,15 @@ import { StateBadge } from "@/components/Badge";
 import type { WorkflowState } from "@/lib/constants";
 
 interface LinkRow {
-  id: number;
-  sourceId: number;
-  targetId: number;
+  id: string;
+  sourceId: string;
+  targetId: string;
   type: string;
   createdAt: string;
 }
 
 interface LinkedWorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
@@ -23,7 +23,7 @@ interface LinkedWorkItem {
 }
 
 interface ResolvedLink {
-  linkId: number;
+  linkId: string;
   type: string;
   direction: "outgoing" | "incoming";
   target: LinkedWorkItem;
@@ -62,8 +62,8 @@ const LINK_TYPE_ICONS: Record<string, React.ReactNode> = {
 const LINK_TYPES = ["blocks", "blocked_by", "relates_to", "duplicates"] as const;
 
 interface WorkItemLinksProps {
-  workItemId: number;
-  projectId: number;
+  workItemId: string;
+  projectId: string;
   projectKey: string;
   workflowStates?: WorkflowState[];
 }
@@ -132,7 +132,7 @@ export function WorkItemLinks({ workItemId, projectId, projectKey, workflowState
     }, 300);
   }
 
-  async function addLink(targetId: number) {
+  async function addLink(targetId: string) {
     await fetch(`/api/work-items/${workItemId}/links`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -144,7 +144,7 @@ export function WorkItemLinks({ workItemId, projectId, projectKey, workflowState
     fetchLinks();
   }
 
-  async function removeLink(linkId: number) {
+  async function removeLink(linkId: string) {
     await fetch(`/api/work-items/${workItemId}/links/${linkId}`, {
       method: "DELETE",
     });

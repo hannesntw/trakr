@@ -30,14 +30,14 @@ interface GitHubEventData {
 }
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
   state: string;
   description: string | null;
-  parentId: number | null;
-  sprintId: number | null;
+  parentId: string | null;
+  sprintId: string | null;
   assignee: string | null;
   points: number | null;
   createdAt: string;
@@ -45,14 +45,14 @@ interface WorkItem {
 }
 
 interface Comment {
-  id: number;
+  id: string;
   author: string;
   body: string;
   createdAt: string;
 }
 
 interface Sprint {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -64,7 +64,7 @@ interface Member {
 }
 
 interface ParentCandidate {
-  id: number;
+  id: string;
   title: string;
   type: string;
 }
@@ -75,17 +75,17 @@ export function WorkItemDetailFull({
   projectKey,
   projectName,
 }: {
-  workItemId: number;
-  projectId: number;
+  workItemId: string;
+  projectId: string;
   projectKey: string;
   projectName: string;
 }) {
   const [item, setItem] = useState<WorkItem | null>(null);
   const [parent, setParent] = useState<WorkItem | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [attachmentList, setAttachmentList] = useState<{id: number; filename: string; contentType: string}[]>([]);
+  const [attachmentList, setAttachmentList] = useState<{id: string; filename: string; contentType: string}[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [statusChanges, setStatusChanges] = useState<{id: number; fromState: string; toState: string; changedAt: string}[]>([]);
+  const [statusChanges, setStatusChanges] = useState<{id: string; fromState: string; toState: string; changedAt: string}[]>([]);
   const [versions, setVersions] = useState<any[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [parentCandidates, setParentCandidates] = useState<ParentCandidate[]>([]);

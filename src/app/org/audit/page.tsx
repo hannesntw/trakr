@@ -8,8 +8,8 @@ import { useOrg } from "@/lib/use-org";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface AuditEntry {
-  id: number;
-  orgId: number;
+  id: string;
+  orgId: string;
   actorId: string | null;
   actorName: string | null;
   action: string;
@@ -17,7 +17,7 @@ interface AuditEntry {
   targetId: string | null;
   description: string;
   ipAddress: string | null;
-  projectId: number | null;
+  projectId: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
 }

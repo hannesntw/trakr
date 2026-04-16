@@ -17,7 +17,7 @@ vi.mock("@/lib/api-auth", () => ({
 import { GET, POST } from "../saved-queries/route";
 import { PATCH, DELETE } from "../saved-queries/[id]/route";
 
-function makeParams(id: number) {
+function makeParams(id: string) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
 

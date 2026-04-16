@@ -23,7 +23,7 @@ function ToggleButton({ enabled, onClick }: { enabled: boolean; onClick: () => v
 }
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   key: string;
   description: string | null;
@@ -37,7 +37,7 @@ interface Project {
 }
 
 interface Invite {
-  id: number;
+  id: string;
   email: string;
 }
 
@@ -69,12 +69,12 @@ export function SettingsClient({ project }: { project: Project }) {
   const [connecting, setConnecting] = useState(false);
   const [webhookSecret, setWebhookSecret] = useState<string | null>(null); // shown once after connecting
   const [secretCopied, setSecretCopied] = useState(false);
-  const [automations, setAutomations] = useState<Array<{ id: number; event: string; targetStateId: number; enabled: boolean; stateName: string }>>([]);
+  const [automations, setAutomations] = useState<Array<{ id: string; event: string; targetStateId: string; enabled: boolean; stateName: string }>>([]);
   const [statusChecks, setStatusChecks] = useState(project.githubStatusChecks);
   const [prComments, setPrComments] = useState(project.githubPrComments);
   const [addingAutomation, setAddingAutomation] = useState(false);
   const [newAutomationEvent, setNewAutomationEvent] = useState("pr_opened");
-  const [newAutomationStateId, setNewAutomationStateId] = useState<number | null>(null);
+  const [newAutomationStateId, setNewAutomationStateId] = useState<string | null>(null);
 
   const eventLabels: Record<string, string> = {
     pr_opened: "PR opened",
@@ -134,7 +134,7 @@ export function SettingsClient({ project }: { project: Project }) {
     }
   }
 
-  async function toggleAutomation(ruleId: number, enabled: boolean) {
+  async function toggleAutomation(ruleId: string, enabled: boolean) {
     await fetch(`/api/projects/${project.id}/github/automations/${ruleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -143,7 +143,7 @@ export function SettingsClient({ project }: { project: Project }) {
     setAutomations(prev => prev.map(a => a.id === ruleId ? { ...a, enabled } : a));
   }
 
-  async function updateAutomationState(ruleId: number, targetStateId: number) {
+  async function updateAutomationState(ruleId: string, targetStateId: string) {
     const res = await fetch(`/api/projects/${project.id}/github/automations/${ruleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -155,7 +155,7 @@ export function SettingsClient({ project }: { project: Project }) {
     }
   }
 
-  async function deleteAutomation(ruleId: number) {
+  async function deleteAutomation(ruleId: string) {
     await fetch(`/api/projects/${project.id}/github/automations/${ruleId}`, { method: "DELETE" });
     setAutomations(prev => prev.filter(a => a.id !== ruleId));
   }
@@ -232,7 +232,7 @@ export function SettingsClient({ project }: { project: Project }) {
     }
   }
 
-  async function removeInvite(inviteId: number) {
+  async function removeInvite(inviteId: string) {
     await fetch(`/api/projects/${project.id}/invites`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -740,7 +740,7 @@ export function SettingsClient({ project }: { project: Project }) {
                           <span className="text-xs text-text-tertiary">&rarr;</span>
                           <select
                             value={rule.targetStateId}
-                            onChange={e => updateAutomationState(rule.id, Number(e.target.value))}
+                            onChange={e => updateAutomationState(rule.id, e.target.value)}
                             className="text-xs px-2 py-0.5 border border-border rounded bg-surface text-text-primary"
                           >
                             {workflowStates.map(s => (
@@ -773,7 +773,7 @@ export function SettingsClient({ project }: { project: Project }) {
                       <span className="text-xs text-text-tertiary">&rarr;</span>
                       <select
                         value={newAutomationStateId ?? ""}
-                        onChange={e => setNewAutomationStateId(Number(e.target.value))}
+                        onChange={e => setNewAutomationStateId(e.target.value)}
                         className="text-xs px-2 py-1 border border-border rounded bg-surface text-text-primary"
                       >
                         <option value="" disabled>Select state...</option>

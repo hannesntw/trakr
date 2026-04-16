@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const projectId = Number(id);
+  const projectId = id;
 
   const [project] = await db
     .select({
@@ -40,7 +40,7 @@ export async function GET(
 
   // Build a map of workItemId -> latest PR/CI/branch info
   const itemMap: Record<
-    number,
+    string,
     {
       prNumber: number | null;
       prTitle: string | null;

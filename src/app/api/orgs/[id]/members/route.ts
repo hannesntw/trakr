@@ -22,7 +22,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Must be at least a member to view
   const member = await resolveOrgMember(orgId, user.id);
@@ -90,7 +90,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can add members
   const member = await requireOrgRole(orgId, user.id, "admin");

@@ -113,11 +113,11 @@ server.tool(
   "list_work_items",
   "List work items with optional filters",
   {
-    projectId: z.number().optional().describe("Filter by project ID"),
-    type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
+    projectId: z.string().optional().describe("Filter by project ID"),
+    type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]).optional(),
     state: z.string().optional().describe("Workflow state slug"),
-    sprintId: z.number().optional(),
-    parentId: z.number().optional(),
+    sprintId: z.string().optional(),
+    parentId: z.string().optional(),
     query: z.string().optional().describe("Search title")
   },
   async (params) => {
@@ -133,20 +133,20 @@ server.tool(
 );
 server.tool(
   "get_work_item",
-  "Get a single work item by ID or displayId like 'TRK-5' (includes children)",
-  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'") },
+  "Get a single work item by CUID2 ID or displayId like 'STRI-5' (includes children)",
+  { id: z.string().describe("CUID2 ID or displayId like 'STRI-5'") },
   async (params) => textResult(await api(`/api/work-items/${params.id}`))
 );
 server.tool(
   "create_work_item",
-  "Create a new work item (epic, feature, or story)",
+  "Create a new work item (epic, feature, story, or idea)",
   {
-    projectId: z.number().describe("Project ID"),
+    projectId: z.string().describe("Project ID"),
     title: z.string(),
-    type: z.enum(["epic", "feature", "story", "bug", "task"]),
+    type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]),
     description: z.string().optional(),
-    parentId: z.number().optional().describe("Parent work item ID"),
-    sprintId: z.number().optional(),
+    parentId: z.string().optional().describe("Parent work item ID"),
+    sprintId: z.string().optional(),
     assignee: z.string().optional(),
     state: z.string().optional().describe("Workflow state slug"),
     points: z.number().nullable().optional().describe("Story points (fibonacci: 1,2,3,5,8,13)"),
@@ -158,13 +158,13 @@ server.tool(
   "update_work_item",
   "Update fields on a work item",
   {
-    id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'"),
+    id: z.string().describe("CUID2 ID or displayId like 'STRI-5'"),
     title: z.string().optional(),
-    type: z.enum(["epic", "feature", "story", "bug", "task"]).optional(),
+    type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]).optional(),
     state: z.string().optional().describe("Workflow state slug"),
     description: z.string().optional(),
-    parentId: z.number().nullable().optional(),
-    sprintId: z.number().nullable().optional(),
+    parentId: z.string().nullable().optional(),
+    sprintId: z.string().nullable().optional(),
     assignee: z.string().nullable().optional(),
     points: z.number().nullable().optional().describe("Story points (fibonacci: 1,2,3,5,8,13)"),
     priority: z.number().optional()
@@ -174,19 +174,19 @@ server.tool(
 server.tool(
   "delete_work_item",
   "Delete a work item",
-  { id: z.union([z.number(), z.string()]).describe("Numeric ID or displayId like 'TRK-5'") },
+  { id: z.string().describe("CUID2 ID or displayId like 'STRI-5'") },
   async (params) => textResult(await api(`/api/work-items/${params.id}`, { method: "DELETE" }))
 );
 server.tool(
   "list_attachments",
   "List attachments for a work item",
-  { workItemId: z.number() },
+  { workItemId: z.string() },
   async (params) => textResult(await api(`/api/work-items/${params.workItemId}/attachments`))
 );
 server.tool(
   "upload_attachment",
   "Upload an image attachment to a work item. Provide base64-encoded file data.",
-  { workItemId: z.number(), filename: z.string(), contentType: z.string().describe("e.g. image/png"), base64Data: z.string() },
+  { workItemId: z.string(), filename: z.string(), contentType: z.string().describe("e.g. image/png"), base64Data: z.string() },
   async ({ workItemId, filename, contentType, base64Data }) => {
     const buffer = Buffer.from(base64Data, "base64");
     const blob = new Blob([buffer], { type: contentType });
@@ -204,37 +204,37 @@ server.tool(
 server.tool(
   "get_status_history",
   "Get the status change history for a work item (shows when it moved between states)",
-  { workItemId: z.number() },
+  { workItemId: z.string() },
   async (params) => textResult(await api(`/api/work-items/${params.workItemId}/history`))
 );
 server.tool(
   "get_work_item_versions",
   "Get all snapshots/versions of a work item with full field history",
-  { workItemId: z.number() },
+  { workItemId: z.string() },
   async (params) => textResult(await api(`/api/work-items/${params.workItemId}/versions`))
 );
 server.tool(
   "restore_work_item_version",
   "Restore a work item to a previous version (non-destructive \u2014 creates a new version)",
-  { workItemId: z.number(), version: z.number().describe("Version number to restore to") },
+  { workItemId: z.string(), version: z.number().describe("Version number to restore to") },
   async (params) => textResult(await api(`/api/work-items/${params.workItemId}/restore`, { method: "POST", body: JSON.stringify({ version: params.version }) }))
 );
 server.tool(
   "list_comments",
   "List comments for a work item",
-  { workItemId: z.number() },
+  { workItemId: z.string() },
   async (params) => textResult(await api(`/api/work-items/${params.workItemId}/comments`))
 );
 server.tool(
   "add_comment",
   "Add a comment to a work item",
-  { workItemId: z.number(), author: z.string(), body: z.string() },
+  { workItemId: z.string(), author: z.string(), body: z.string() },
   async ({ workItemId, ...data }) => textResult(await api(`/api/work-items/${workItemId}/comments`, { method: "POST", body: JSON.stringify(data) }))
 );
 server.tool(
   "get_hierarchy",
   "Get the full epic > feature > story tree",
-  { projectId: z.number().optional(), rootId: z.number().optional() },
+  { projectId: z.string().optional(), rootId: z.string().optional() },
   async (params) => {
     const qs = new URLSearchParams();
     if (params.projectId) qs.set("projectId", String(params.projectId));
@@ -245,7 +245,7 @@ server.tool(
 server.tool(
   "list_sprints",
   "List sprints, optionally filtered by project or state",
-  { projectId: z.number().optional(), state: z.enum(["planning", "active", "closed"]).optional() },
+  { projectId: z.string().optional(), state: z.enum(["planning", "active", "closed"]).optional() },
   async (params) => {
     const qs = new URLSearchParams();
     if (params.projectId) qs.set("projectId", String(params.projectId));
@@ -257,7 +257,7 @@ server.tool(
   "create_sprint",
   "Create a new sprint",
   {
-    projectId: z.number(),
+    projectId: z.string(),
     name: z.string(),
     goal: z.string().optional(),
     startDate: z.string().optional().describe("ISO date e.g. 2026-04-14"),
@@ -269,7 +269,7 @@ server.tool(
   "update_sprint",
   "Update a sprint",
   {
-    id: z.number(),
+    id: z.string(),
     name: z.string().optional(),
     goal: z.string().nullable().optional(),
     state: z.enum(["planning", "active", "closed"]).optional(),
@@ -283,62 +283,62 @@ server.tool(
   `Run a TraQL query. Returns work items, aggregates, or formatted text. Examples: 'type:story is:open', 'SELECT count() GROUP BY state', 'SELECT format("- {title}") WHERE sprint:active'`,
   {
     query: z.string().describe("TraQL query string"),
-    projectId: z.number().optional().describe("Scope to a project ID. Omit for cross-project queries using project: field.")
+    projectId: z.string().optional().describe("Scope to a project ID. Omit for cross-project queries using project: field.")
   },
   async (params) => textResult(await api("/api/traql", { method: "POST", body: JSON.stringify(params) }))
 );
 server.tool(
   "get_workflow",
   "Get the workflow states for a project, ordered by position",
-  { projectId: z.number() },
+  { projectId: z.string() },
   async ({ projectId }) => textResult(await api(`/api/projects/${projectId}/workflow`))
 );
 server.tool(
   "add_workflow_state",
   "Add a new state to a project's workflow",
-  { projectId: z.number(), displayName: z.string(), category: z.enum(["todo", "in_progress", "done"]), color: z.string().optional() },
+  { projectId: z.string(), displayName: z.string(), category: z.enum(["todo", "in_progress", "done"]), color: z.string().optional() },
   async ({ projectId, ...data }) => textResult(await api(`/api/projects/${projectId}/workflow`, { method: "POST", body: JSON.stringify(data) }))
 );
 server.tool(
   "update_workflow_state",
   "Update a workflow state (display name, category, or color \u2014 slug is immutable)",
-  { projectId: z.number(), stateId: z.number(), displayName: z.string().optional(), category: z.enum(["todo", "in_progress", "done"]).optional(), color: z.string().optional() },
+  { projectId: z.string(), stateId: z.string(), displayName: z.string().optional(), category: z.enum(["todo", "in_progress", "done"]).optional(), color: z.string().optional() },
   async ({ projectId, stateId, ...data }) => textResult(await api(`/api/projects/${projectId}/workflow/${stateId}`, { method: "PATCH", body: JSON.stringify(data) }))
 );
 server.tool(
   "delete_workflow_state",
   "Delete a workflow state. Cannot delete the last state in a category. If items exist in this state, provide migrateToSlug.",
-  { projectId: z.number(), stateId: z.number(), migrateToSlug: z.string().optional() },
+  { projectId: z.string(), stateId: z.string(), migrateToSlug: z.string().optional() },
   async ({ projectId, stateId, ...data }) => textResult(await api(`/api/projects/${projectId}/workflow/${stateId}`, { method: "DELETE", body: JSON.stringify(data) }))
 );
 server.tool(
   "list_links",
   "List all links for a work item",
-  { workItemId: z.number() },
+  { workItemId: z.string() },
   async ({ workItemId }) => textResult(await api(`/api/work-items/${workItemId}/links`))
 );
 server.tool(
   "create_link",
   "Create a link between two work items. Inverse link is created automatically.",
-  { workItemId: z.number(), targetId: z.number(), type: z.enum(["blocks", "blocked_by", "relates_to", "duplicates"]) },
+  { workItemId: z.string(), targetId: z.string(), type: z.enum(["blocks", "blocked_by", "relates_to", "duplicates"]) },
   async ({ workItemId, ...data }) => textResult(await api(`/api/work-items/${workItemId}/links`, { method: "POST", body: JSON.stringify(data) }))
 );
 server.tool(
   "delete_link",
   "Delete a work item link and its inverse",
-  { workItemId: z.number(), linkId: z.number() },
+  { workItemId: z.string(), linkId: z.string() },
   async ({ workItemId, linkId }) => textResult(await api(`/api/work-items/${workItemId}/links/${linkId}`, { method: "DELETE" }))
 );
 server.tool(
   "list_saved_queries",
   "List saved TraQL queries for a project",
-  { projectId: z.number() },
+  { projectId: z.string() },
   async ({ projectId }) => textResult(await api(`/api/saved-queries?projectId=${projectId}`))
 );
 server.tool(
   "save_query",
   "Save a TraQL query",
-  { projectId: z.number(), name: z.string(), query: z.string() },
+  { projectId: z.string(), name: z.string(), query: z.string() },
   async (params) => textResult(await api("/api/saved-queries", { method: "POST", body: JSON.stringify(params) }))
 );
 var transport = new StdioServerTransport();

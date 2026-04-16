@@ -35,7 +35,7 @@ export async function PATCH(
   const [existing] = await db
     .select()
     .from(savedQueries)
-    .where(eq(savedQueries.id, Number(id)));
+    .where(eq(savedQueries.id, id));
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -46,7 +46,7 @@ export async function PATCH(
   const [row] = await db
     .update(savedQueries)
     .set(parsed.data)
-    .where(eq(savedQueries.id, Number(id)))
+    .where(eq(savedQueries.id, id))
     .returning();
 
   return NextResponse.json(row);
@@ -67,7 +67,7 @@ export async function DELETE(
   const [existing] = await db
     .select()
     .from(savedQueries)
-    .where(eq(savedQueries.id, Number(id)));
+    .where(eq(savedQueries.id, id));
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -77,7 +77,7 @@ export async function DELETE(
 
   await db
     .delete(savedQueries)
-    .where(eq(savedQueries.id, Number(id)));
+    .where(eq(savedQueries.id, id));
 
   return NextResponse.json({ deleted: true });
 }

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const updateSchema = z.object({
-  targetStateId: z.number().int().positive().optional(),
+  targetStateId: z.string().min(1).optional(),
   enabled: z.boolean().optional(),
 });
 
@@ -20,8 +20,8 @@ export async function PATCH(
   }
 
   const { id, automationId } = await params;
-  const projectId = Number(id);
-  const ruleId = Number(automationId);
+  const projectId = id;
+  const ruleId = automationId;
 
   const body = await request.json();
   const parsed = updateSchema.safeParse(body);
@@ -85,8 +85,8 @@ export async function DELETE(
   }
 
   const { id, automationId } = await params;
-  const projectId = Number(id);
-  const ruleId = Number(automationId);
+  const projectId = id;
+  const ruleId = automationId;
 
   const [row] = await db
     .delete(githubAutomations)

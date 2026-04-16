@@ -14,14 +14,14 @@ export interface GitHubStatus {
 }
 
 export interface ChildTask {
-  id: number;
+  id: string;
   displayId?: string | null;
   title: string;
   state: string;
 }
 
 interface BoardCardProps {
-  id: number;
+  id: string;
   displayId?: string | null;
   title: string;
   type: WorkItemType;
@@ -32,7 +32,7 @@ interface BoardCardProps {
   points?: number | null;
   github?: GitHubStatus | null;
   childTasks?: ChildTask[];
-  onToggleTask?: (taskId: number, done: boolean) => void;
+  onToggleTask?: (taskId: string, done: boolean) => void;
 }
 
 export function BoardCard({

@@ -25,7 +25,7 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -49,7 +49,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -101,7 +101,7 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -132,7 +132,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

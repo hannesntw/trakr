@@ -31,7 +31,7 @@ const mfaPolicySchema = z.object({
 });
 
 // In-memory store per org (sufficient for demo, persists across requests in dev)
-const mfaPolicies = new Map<number, { enforced: boolean; gracePeriodDays: number }>();
+const mfaPolicies = new Map<string, { enforced: boolean; gracePeriodDays: number }>();
 
 export async function GET(
   request: NextRequest,
@@ -41,7 +41,7 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -61,7 +61,7 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await requireOrgRole(orgId, user.id, "owner");
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

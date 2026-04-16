@@ -11,7 +11,7 @@ const STORI_BASE = "https://stori.zone";
 const COMMENT_MARKER = "<!-- stori-bot -->";
 
 interface WorkItemInfo {
-  id: number;
+  id: string;
   displayId: string;
   title: string;
   state: string;
@@ -159,7 +159,7 @@ export async function postPrComment(params: PrCommentParams): Promise<void> {
       return;
     }
 
-    const comments = (await listRes.json()) as Array<{ id: number; body: string }>;
+    const comments = (await listRes.json()) as Array<{ id: string; body: string }>;
     const existing = comments.find((c) => c.body.includes(COMMENT_MARKER));
 
     if (existing) {

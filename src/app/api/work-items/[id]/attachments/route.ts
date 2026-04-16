@@ -19,7 +19,7 @@ export async function GET(
       createdAt: attachments.createdAt,
     })
     .from(attachments)
-    .where(eq(attachments.workItemId, Number(id)))
+    .where(eq(attachments.workItemId, id))
     .orderBy(attachments.createdAt);
   return NextResponse.json(rows);
 }
@@ -46,7 +46,7 @@ export async function POST(
   const [row] = await db
     .insert(attachments)
     .values({
-      workItemId: Number(id),
+      workItemId: id,
       filename: file.name,
       contentType: file.type,
       data: buffer,
@@ -59,6 +59,6 @@ export async function POST(
       createdAt: attachments.createdAt,
     });
 
-  emit({ type: "attachment", action: "created", id: row.id, workItemId: Number(id) });
+  emit({ type: "attachment", action: "created", id: row.id, workItemId: id });
   return NextResponse.json(row, { status: 201 });
 }

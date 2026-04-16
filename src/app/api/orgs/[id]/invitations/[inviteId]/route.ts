@@ -15,7 +15,7 @@ export async function DELETE(
   }
 
   const { id, inviteId } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can revoke invitations
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -29,13 +29,13 @@ export async function DELETE(
   const [invite] = await db
     .select()
     .from(organizationInvitations)
-    .where(eq(organizationInvitations.id, Number(inviteId)));
+    .where(eq(organizationInvitations.id, inviteId));
 
   if (!invite || invite.orgId !== orgId) {
     return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
   }
 
-  await db.delete(organizationInvitations).where(eq(organizationInvitations.id, Number(inviteId)));
+  await db.delete(organizationInvitations).where(eq(organizationInvitations.id, inviteId));
 
   return NextResponse.json({ deleted: true });
 }
@@ -50,7 +50,7 @@ export async function POST(
   }
 
   const { id, inviteId } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can resend invitations
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -69,7 +69,7 @@ export async function POST(
   const [invite] = await db
     .select()
     .from(organizationInvitations)
-    .where(eq(organizationInvitations.id, Number(inviteId)));
+    .where(eq(organizationInvitations.id, inviteId));
 
   if (!invite || invite.orgId !== orgId) {
     return NextResponse.json({ error: "Invitation not found" }, { status: 404 });

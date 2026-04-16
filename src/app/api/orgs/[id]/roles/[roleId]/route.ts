@@ -23,7 +23,7 @@ export async function PATCH(
   }
 
   const { id, roleId } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can update roles
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -40,7 +40,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const [existing] = await db.select().from(orgRoles).where(eq(orgRoles.id, Number(roleId)));
+  const [existing] = await db.select().from(orgRoles).where(eq(orgRoles.id, roleId));
   if (!existing || existing.orgId !== orgId) {
     return NextResponse.json({ error: "Role not found" }, { status: 404 });
   }
@@ -56,7 +56,7 @@ export async function PATCH(
   const [row] = await db
     .update(orgRoles)
     .set(updates)
-    .where(eq(orgRoles.id, Number(roleId)))
+    .where(eq(orgRoles.id, roleId))
     .returning();
 
   logAudit({
@@ -83,7 +83,7 @@ export async function DELETE(
   }
 
   const { id, roleId } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can delete roles
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -94,7 +94,7 @@ export async function DELETE(
   const ipBlock = await checkIpAllowlist(orgId, request);
   if (ipBlock) return ipBlock;
 
-  const [existing] = await db.select().from(orgRoles).where(eq(orgRoles.id, Number(roleId)));
+  const [existing] = await db.select().from(orgRoles).where(eq(orgRoles.id, roleId));
   if (!existing || existing.orgId !== orgId) {
     return NextResponse.json({ error: "Role not found" }, { status: 404 });
   }
@@ -104,7 +104,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Cannot delete default roles" }, { status: 403 });
   }
 
-  await db.delete(orgRoles).where(eq(orgRoles.id, Number(roleId)));
+  await db.delete(orgRoles).where(eq(orgRoles.id, roleId));
 
   return NextResponse.json({ deleted: true });
 }

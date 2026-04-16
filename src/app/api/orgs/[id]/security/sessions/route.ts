@@ -15,7 +15,7 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Admin+ can view session summary
   const member = await requireOrgRole(orgId, user.id, "admin");
@@ -59,7 +59,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Admin+ can revoke sessions
   const member = await requireOrgRole(orgId, user.id, "admin");

@@ -47,8 +47,8 @@ const EXAMPLE_QUERIES = [
 // ---------- Types ----------
 
 interface SavedQuery {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   userId: string;
   name: string;
   query: string;
@@ -70,7 +70,7 @@ interface TraqlResult {
 }
 
 interface QueriesClientProps {
-  projectId: number;
+  projectId: string;
   projectKey: string;
   projectName: string;
 }
@@ -340,7 +340,7 @@ export function QueriesClient({
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
-  const [activeQueryId, setActiveQueryId] = useState<number | null>(null);
+  const [activeQueryId, setActiveQueryId] = useState<string | null>(null);
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saveName, setSaveName] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -432,7 +432,7 @@ export function QueriesClient({
   }
 
   // CRUD helpers
-  async function handleRename(id: number, name: string) {
+  async function handleRename(id: string, name: string) {
     await fetch(`/api/saved-queries/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -441,7 +441,7 @@ export function QueriesClient({
     fetchSaved();
   }
 
-  async function handleToggleStar(id: number, current: boolean) {
+  async function handleToggleStar(id: string, current: boolean) {
     await fetch(`/api/saved-queries/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -450,7 +450,7 @@ export function QueriesClient({
     fetchSaved();
   }
 
-  async function handleToggleShare(id: number, current: boolean) {
+  async function handleToggleShare(id: string, current: boolean) {
     await fetch(`/api/saved-queries/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -459,7 +459,7 @@ export function QueriesClient({
     fetchSaved();
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     await fetch(`/api/saved-queries/${id}`, { method: "DELETE" });
     if (activeQueryId === id) setActiveQueryId(null);
     fetchSaved();
@@ -526,7 +526,7 @@ export function QueriesClient({
                 }}
               >
                 <td className="px-4 py-2.5">
-                  {item.id != null && <IdBadge id={Number(item.id)} displayId={item.displayId as string | undefined} />}
+                  {item.id != null && <IdBadge id={String(item.id)} displayId={item.displayId as string | undefined} />}
                 </td>
                 <td className="px-3 py-2.5">
                   {item.type ? (

@@ -8,7 +8,7 @@ import {
 import { AdminTabNav } from "@/components/AdminTabNav";
 
 interface AdminOrg {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   plan: string;
@@ -30,7 +30,7 @@ export default function AdminOrgsPage() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [actionMenu, setActionMenu] = useState<number | null>(null);
+  const [actionMenu, setActionMenu] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchOrgs = useCallback(() => {
@@ -45,7 +45,7 @@ export default function AdminOrgsPage() {
 
   useEffect(() => { fetchOrgs(); }, [fetchOrgs]);
 
-  async function changePlan(orgId: number, newPlan: string) {
+  async function changePlan(orgId: string, newPlan: string) {
     await fetch(`/api/admin/orgs/${orgId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -55,7 +55,7 @@ export default function AdminOrgsPage() {
     fetchOrgs();
   }
 
-  async function deleteOrg(orgId: number) {
+  async function deleteOrg(orgId: string) {
     if (!confirm("Delete this organization?")) return;
     await fetch(`/api/admin/orgs/${orgId}`, { method: "DELETE" });
     setActionMenu(null);

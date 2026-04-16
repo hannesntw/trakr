@@ -11,7 +11,7 @@ import { emit } from "@/lib/events";
  */
 async function authorizeAttachmentAccess(
   request: NextRequest,
-  attachmentId: number
+  attachmentId: string
 ): Promise<
   | { allowed: true; row: typeof attachments.$inferSelect }
   | { allowed: false; status: number; message: string }
@@ -79,7 +79,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authResult = await authorizeAttachmentAccess(request, Number(id));
+  const authResult = await authorizeAttachmentAccess(request, id);
 
   if (!authResult.allowed) {
     return new Response(authResult.message, { status: authResult.status });
@@ -101,15 +101,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const authResult = await authorizeAttachmentAccess(request, Number(id));
+  const authResult = await authorizeAttachmentAccess(request, id);
 
   if (!authResult.allowed) {
     return new Response(authResult.message, { status: authResult.status });
   }
 
   const row = authResult.row;
-  await db.delete(attachments).where(eq(attachments.id, Number(id)));
-  emit({ type: "attachment", action: "deleted", id: Number(id), workItemId: row.workItemId });
+  await db.delete(attachments).where(eq(attachments.id, id));
+  emit({ type: "attachment", action: "deleted", id: id, workItemId: row.workItemId });
 
   return Response.json({ deleted: true });
 }

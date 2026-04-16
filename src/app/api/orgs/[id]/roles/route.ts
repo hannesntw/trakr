@@ -23,7 +23,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Must be a member to view roles
   const member = await resolveOrgMember(orgId, user.id);
@@ -55,7 +55,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can create custom roles
   const member = await requireOrgRole(orgId, user.id, "admin");

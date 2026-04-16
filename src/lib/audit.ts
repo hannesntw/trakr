@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { auditLog } from "@/db/schema";
 
 export interface AuditParams {
-  orgId: number;
+  orgId: string;
   actorId: string;
   actorName?: string;
   action: string;
@@ -10,7 +10,7 @@ export interface AuditParams {
   targetId?: string;
   description: string;
   ipAddress?: string;
-  projectId?: number;
+  projectId?: string;
   metadata?: Record<string, unknown>;
 }
 

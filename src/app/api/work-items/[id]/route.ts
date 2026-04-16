@@ -5,8 +5,8 @@ import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { emit } from "@/lib/events";
 
-/** Resolve a work item ID parameter — accepts numeric id or displayId like "TRK-5" */
-async function resolveWorkItemId(idParam: string): Promise<number | null> {
+/** Resolve a work item ID parameter — accepts CUID2 id or displayId like "TRK-5" */
+async function resolveWorkItemId(idParam: string): Promise<string | null> {
   if (idParam.includes("-")) {
     // Display ID format, e.g. "TRK-5"
     const [row] = await db
@@ -15,8 +15,8 @@ async function resolveWorkItemId(idParam: string): Promise<number | null> {
       .where(eq(workItems.displayId, idParam.toUpperCase()));
     return row?.id ?? null;
   }
-  const num = Number(idParam);
-  return isNaN(num) ? null : num;
+  // CUID2 string id — use as-is
+  return idParam;
 }
 
 const updateSchema = z.object({
@@ -24,8 +24,8 @@ const updateSchema = z.object({
   type: z.enum(["epic", "feature", "story", "bug", "task", "idea"]).optional(),
   state: z.string().optional(),
   description: z.string().optional(),
-  parentId: z.number().int().positive().nullable().optional(),
-  sprintId: z.number().int().positive().nullable().optional(),
+  parentId: z.string().min(1).nullable().optional(),
+  sprintId: z.string().min(1).nullable().optional(),
   assignee: z.string().nullable().optional(),
   points: z.number().int().refine((v) => [1, 2, 3, 5, 8, 13].includes(v), {
     message: "Points must be one of: 1, 2, 3, 5, 8, 13",

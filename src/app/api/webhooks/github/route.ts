@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
   }
 
   const action = typeof payload.action === "string" ? payload.action : undefined;
-  const results: Array<{ projectId: number; eventsCreated: number; automationsApplied: number }> = [];
+  const results: Array<{ projectId: string; eventsCreated: number; automationsApplied: number }> = [];
 
   for (const project of linkedProjects) {
     // Verify HMAC signature using this project's webhook secret
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     const uniqueIds = [...new Set(allMentionedIds)];
 
     // Look up work items by displayId within this project
-    let matchedItems: Array<{ id: number; displayId: string | null }> = [];
+    let matchedItems: Array<{ id: string; displayId: string | null }> = [];
     if (uniqueIds.length > 0) {
       matchedItems = await db
         .select({ id: workItems.id, displayId: workItems.displayId })
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
       emit({
         type: "github-event",
         action: "created",
-        id: workItemId ?? 0,
+        id: workItemId ?? "",
         projectId: project.id,
         workItemId: workItemId ?? undefined,
       });

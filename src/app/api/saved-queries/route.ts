@@ -6,7 +6,7 @@ import { z } from "zod";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
-  projectId: z.number().int().positive(),
+  projectId: z.string().min(1),
   name: z.string().min(1),
   query: z.string().min(1),
 });
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     .leftJoin(users, eq(savedQueries.userId, users.id))
     .where(
       and(
-        eq(savedQueries.projectId, Number(projectId)),
+        eq(savedQueries.projectId, projectId),
         or(
           eq(savedQueries.userId, user.id),
           eq(savedQueries.shared, true)

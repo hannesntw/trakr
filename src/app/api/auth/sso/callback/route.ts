@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let ssoState: { state: string; nonce: string; orgId: number; email: string };
+  let ssoState: { state: string; nonce: string; orgId: string; email: string };
   try {
     ssoState = JSON.parse(ssoCookie.value);
   } catch {

@@ -9,7 +9,7 @@ const VALID_EVENTS = ["pr_opened", "pr_merged", "pr_closed", "deploy_succeeded",
 
 const createSchema = z.object({
   event: z.enum(VALID_EVENTS),
-  targetStateId: z.number().int().positive(),
+  targetStateId: z.string().min(1),
   enabled: z.boolean().optional(),
 });
 
@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const projectId = Number(id);
+  const projectId = id;
 
   const [project] = await db
     .select({ id: projects.id })
@@ -55,7 +55,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const projectId = Number(id);
+  const projectId = id;
 
   const [project] = await db
     .select({ id: projects.id })

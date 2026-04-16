@@ -18,8 +18,8 @@ export async function GET(
   }
 
   const { id } = await params;
-  const workItemId = Number(id);
-  if (isNaN(workItemId)) {
+  const workItemId = id;
+  if (!workItemId) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 

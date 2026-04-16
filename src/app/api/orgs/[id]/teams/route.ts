@@ -22,7 +22,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await resolveOrgMember(orgId, user.id);
   if (!member) {
@@ -86,7 +86,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Admin+ only
   const member = await requireOrgRole(orgId, user.id, "admin");

@@ -22,7 +22,7 @@ export async function GET(
   const [row] = await db
     .select()
     .from(sprints)
-    .where(eq(sprints.id, Number(id)));
+    .where(eq(sprints.id, id));
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -50,7 +50,7 @@ export async function PATCH(
 
   // When activating a sprint, close all other active sprints in the same project
   if (parsed.data.state === "active") {
-    const [existing] = await db.select().from(sprints).where(eq(sprints.id, Number(id)));
+    const [existing] = await db.select().from(sprints).where(eq(sprints.id, id));
     if (existing) {
       await db
         .update(sprints)
@@ -59,7 +59,7 @@ export async function PATCH(
           and(
             eq(sprints.projectId, existing.projectId),
             eq(sprints.state, "active"),
-            ne(sprints.id, Number(id))
+            ne(sprints.id, id)
           )
         );
     }
@@ -68,7 +68,7 @@ export async function PATCH(
   const [row] = await db
     .update(sprints)
     .set(parsed.data)
-    .where(eq(sprints.id, Number(id)))
+    .where(eq(sprints.id, id))
     .returning();
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

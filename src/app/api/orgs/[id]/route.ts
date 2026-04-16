@@ -23,7 +23,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   const member = await resolveOrgMember(orgId, user.id);
   if (!member) {
@@ -51,7 +51,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only owner can update org
   const member = await requireOrgRole(orgId, user.id, "owner");
@@ -111,7 +111,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only owner can delete org
   const member = await requireOrgRole(orgId, user.id, "owner");

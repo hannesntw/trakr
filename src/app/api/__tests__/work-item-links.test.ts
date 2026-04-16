@@ -15,10 +15,10 @@ const SOURCE_ID = 1;
 const TARGET_ID = 2;
 const ANOTHER_ID = 3;
 
-function makeParams(id: number) {
+function makeParams(id: string) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
-function makeDeleteParams(id: number, linkId: number) {
+function makeDeleteParams(id: string, linkId: string) {
   return { params: Promise.resolve({ id: String(id), linkId: String(linkId) }) };
 }
 

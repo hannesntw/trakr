@@ -21,7 +21,7 @@ export async function PATCH(
   }
 
   const { id, memberId } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can change roles
   const actor = await requireOrgRole(orgId, user.id, "admin");
@@ -39,7 +39,7 @@ export async function PATCH(
   }
 
   // Find target member
-  const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+  const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, memberId));
   if (!target || target.orgId !== orgId) {
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
   }
@@ -54,7 +54,7 @@ export async function PATCH(
   const [row] = await db
     .update(organizationMembers)
     .set({ role: parsed.data.role })
-    .where(eq(organizationMembers.id, Number(memberId)))
+    .where(eq(organizationMembers.id, memberId))
     .returning();
 
   logAudit({
@@ -82,7 +82,7 @@ export async function DELETE(
   }
 
   const { id, memberId } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only admin+ can remove members
   const actor = await requireOrgRole(orgId, user.id, "admin");
@@ -94,7 +94,7 @@ export async function DELETE(
   if (ipBlock) return ipBlock;
 
   // Find target member
-  const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+  const [target] = await db.select().from(organizationMembers).where(eq(organizationMembers.id, memberId));
   if (!target || target.orgId !== orgId) {
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
   }
@@ -104,7 +104,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Cannot remove owner" }, { status: 403 });
   }
 
-  await db.delete(organizationMembers).where(eq(organizationMembers.id, Number(memberId)));
+  await db.delete(organizationMembers).where(eq(organizationMembers.id, memberId));
 
   logAudit({
     orgId,

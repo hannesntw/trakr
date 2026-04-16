@@ -20,7 +20,7 @@ export async function GET(
   const rows = await db
     .select()
     .from(projectInvites)
-    .where(eq(projectInvites.projectId, Number(id)))
+    .where(eq(projectInvites.projectId, id))
     .orderBy(projectInvites.createdAt);
   return NextResponse.json(rows);
 }
@@ -44,11 +44,11 @@ export async function POST(
   // Save invite
   const [row] = await db
     .insert(projectInvites)
-    .values({ projectId: Number(id), email: parsed.data.email })
+    .values({ projectId: id, email: parsed.data.email })
     .returning();
 
   // Get project name for the email
-  const [project] = await db.select().from(projects).where(eq(projects.id, Number(id)));
+  const [project] = await db.select().from(projects).where(eq(projects.id, id));
   const projectName = project?.name ?? "a project";
   const appUrl = process.env.AUTH_URL ?? "http://localhost:3100";
 
@@ -94,6 +94,6 @@ export async function DELETE(
   const { email } = await request.json();
   await db
     .delete(projectInvites)
-    .where(eq(projectInvites.projectId, Number(id)));
+    .where(eq(projectInvites.projectId, id));
   return NextResponse.json({ deleted: true });
 }

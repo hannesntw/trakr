@@ -31,7 +31,7 @@ export async function POST(
     .from(workItemSnapshots)
     .where(
       and(
-        eq(workItemSnapshots.workItemId, Number(id)),
+        eq(workItemSnapshots.workItemId, id),
         eq(workItemSnapshots.version, parsed.data.version)
       )
     );

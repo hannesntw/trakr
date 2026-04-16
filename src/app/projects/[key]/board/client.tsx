@@ -22,26 +22,26 @@ import {
 } from "lucide-react";
 
 interface WorkItem {
-  id: number;
+  id: string;
   displayId: string | null;
   title: string;
   type: string;
   state: string;
   assignee: string | null;
-  parentId: number | null;
-  sprintId: number | null;
+  parentId: string | null;
+  sprintId: string | null;
   priority: number | null;
   points: number | null;
 }
 
 interface Sprint {
-  id: number;
+  id: string;
   name: string;
   state: string;
 }
 
 interface BoardClientProps {
-  projectId: number;
+  projectId: string;
   projectKey: string;
   projectName: string;
   makerMode?: boolean;
@@ -163,14 +163,14 @@ export function BoardClient({
   const router = useRouter();
 
   const [items, setItems] = useState<WorkItem[]>([]);
-  const [parentMap, setParentMap] = useState<Map<number, string>>(new Map());
+  const [parentMap, setParentMap] = useState<Map<string, string>>(new Map());
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
   const [workflowStates, setWorkflowStates] = useState<WorkflowState[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [dragOverState, setDragOverState] = useState<string | null>(null);
-  const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [githubStatusMap, setGithubStatusMap] = useState<Record<number, GitHubStatus>>({});
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [githubStatusMap, setGithubStatusMap] = useState<Record<string, GitHubStatus>>({});
 
   // TRK-137: Type filter — hide epics/features by default
   const [hideContainers, setHideContainers] = useState(true);
@@ -384,7 +384,7 @@ export function BoardClient({
 
   // Build child tasks map for task checklists on story/feature cards
   const childTasksMap = useMemo(() => {
-    const map = new Map<number, ChildTask[]>();
+    const map = new Map<string, ChildTask[]>();
     for (const item of items) {
       if (item.type === "task" && item.parentId) {
         const existing = map.get(item.parentId) ?? [];
@@ -401,7 +401,7 @@ export function BoardClient({
   }, [items]);
 
   // Toggle task done/undone
-  async function handleToggleTask(taskId: number, done: boolean) {
+  async function handleToggleTask(taskId: string, done: boolean) {
     const doneState = workflowStates.find((s) => s.category === "done")?.slug ?? "done";
     const todoState = workflowStates.find((s) => s.category === "todo")?.slug ?? "new";
     const newState = done ? doneState : todoState;

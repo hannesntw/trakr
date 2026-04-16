@@ -44,7 +44,7 @@ function jsonRequest(url: string, body: unknown, method = "POST") {
   });
 }
 
-function idParams(id: number | string) {
+function idParams(id: string | string) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
 
@@ -52,8 +52,8 @@ function idParams(id: number | string) {
 const RUN = Math.random().toString(36).slice(2, 5).toUpperCase();
 
 describe("Work item cascade delete (TRK-72)", () => {
-  let projectId: number;
-  let workItemId: number;
+  let projectId: string;
+  let workItemId: string;
 
   it("setup: create a project and work item with children", async () => {
     // Create project
@@ -148,8 +148,8 @@ describe("Work item cascade delete (TRK-72)", () => {
 });
 
 describe("Parent work item delete sets children parentId to NULL (TRK-72)", () => {
-  let projectId: number;
-  let parentId: number;
+  let projectId: string;
+  let parentId: string;
   let childId: number;
 
   it("setup: create parent and child work items", async () => {
@@ -224,7 +224,7 @@ describe("Parent work item delete sets children parentId to NULL (TRK-72)", () =
 });
 
 describe("Project cascade delete (TRK-73)", () => {
-  let projectId: number;
+  let projectId: string;
 
   it("setup: create project with work items, sprints, and workflow states", async () => {
     const pRes = await createProject(

@@ -15,13 +15,13 @@ export async function DELETE(
   }
 
   const { id, linkId } = await params;
-  const workItemId = Number(id);
+  const workItemId = id;
 
   // Find the link to delete
   const [link] = await db
     .select()
     .from(workItemLinks)
-    .where(eq(workItemLinks.id, Number(linkId)));
+    .where(eq(workItemLinks.id, linkId));
 
   if (!link) {
     return NextResponse.json({ error: "Link not found" }, { status: 404 });
@@ -54,7 +54,7 @@ export async function DELETE(
   // Delete the link itself
   await db
     .delete(workItemLinks)
-    .where(eq(workItemLinks.id, Number(linkId)));
+    .where(eq(workItemLinks.id, linkId));
 
   emit({ type: "link", action: "deleted", id: link.id, workItemId });
 

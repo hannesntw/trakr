@@ -19,7 +19,7 @@ export async function GET(
   const rows = await db
     .select()
     .from(comments)
-    .where(eq(comments.workItemId, Number(id)))
+    .where(eq(comments.workItemId, id))
     .orderBy(comments.createdAt);
   return NextResponse.json(rows);
 }
@@ -47,8 +47,8 @@ export async function POST(
 
   const [row] = await db
     .insert(comments)
-    .values({ author, body: parsed.data.body, workItemId: Number(id) })
+    .values({ author, body: parsed.data.body, workItemId: id })
     .returning();
-  emit({ type: "comment", action: "created", id: row.id, workItemId: Number(id) });
+  emit({ type: "comment", action: "created", id: row.id, workItemId: id });
   return NextResponse.json(row, { status: 201 });
 }

@@ -4,13 +4,13 @@ import { useState, useRef } from "react";
 import { ImagePlus, Trash2, Upload } from "lucide-react";
 
 interface Attachment {
-  id: number;
+  id: string;
   filename: string;
   contentType: string;
 }
 
 interface AttachmentGalleryProps {
-  workItemId: number;
+  workItemId: string;
   attachments: Attachment[];
   onChanged: () => void;
 }
@@ -22,7 +22,7 @@ export function AttachmentGallery({
 }: AttachmentGalleryProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   async function handleUpload(file: File) {
@@ -37,7 +37,7 @@ export function AttachmentGallery({
     onChanged();
   }
 
-  async function handleDelete(attachmentId: number) {
+  async function handleDelete(attachmentId: string) {
     setDeleting(attachmentId);
     await fetch(`/api/attachments/${attachmentId}`, { method: "DELETE" });
     setDeleting(null);

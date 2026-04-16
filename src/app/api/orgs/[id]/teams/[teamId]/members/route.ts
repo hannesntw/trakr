@@ -15,7 +15,7 @@ const removeSchema = z.object({
   userId: z.string().min(1),
 });
 
-async function isTeamLead(teamId: number, userId: string): Promise<boolean> {
+async function isTeamLead(teamId: string, userId: string): Promise<boolean> {
   const [m] = await db
     .select()
     .from(teamMembers)
@@ -33,8 +33,8 @@ export async function GET(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   const member = await resolveOrgMember(orgId, user.id);
   if (!member) {
@@ -84,8 +84,8 @@ export async function POST(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ or team lead
   const orgMember = await resolveOrgMember(orgId, user.id);
@@ -163,8 +163,8 @@ export async function DELETE(
   }
 
   const { id, teamId: tid } = await params;
-  const orgId = Number(id);
-  const teamId = Number(tid);
+  const orgId = id;
+  const teamId = tid;
 
   // Admin+ or team lead
   const orgMember = await resolveOrgMember(orgId, user.id);

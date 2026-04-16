@@ -21,8 +21,8 @@ export function useRealtimeRefresh(onRefresh: () => void) {
   onRefreshRef.current = onRefresh;
 
   const lastSseEvent = useRef(0);
-  const [changedIds, setChangedIds] = useState<Set<number>>(new Set());
-  const clearTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const [changedIds, setChangedIds] = useState<Set<string>>(new Set());
+  const clearTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const trackChange = useCallback((event: ChangeEvent) => {
     // For work-item events, track the item ID directly.

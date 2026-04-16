@@ -76,7 +76,7 @@ export async function seedTestData(db: any) {
   let alphaId = 1;
   let hourOffset = 0;
 
-  function alphaItem(title: string, type: string, parentId: number | null, depth: number) {
+  function alphaItem(title: string, type: string, parentId: string | null, depth: number) {
     const id = alphaId++;
     hourOffset += 2;
     const createdAt = addHours(BASE_DATE, hourOffset).toISOString();
@@ -94,7 +94,7 @@ export async function seedTestData(db: any) {
     else state = "new";
 
     // Sprint assignment
-    let sprintId: number | null = null;
+    let sprintId: string | null = null;
     const sr = rngA();
     if (sr < 0.25) sprintId = 1;
     else if (sr < 0.5) sprintId = 2;
@@ -189,7 +189,7 @@ export async function seedTestData(db: any) {
   let betaId = 2000; // offset to avoid ID collisions
   let betaSeq = 0;
 
-  function betaItem(title: string, type: string, parentId: number | null) {
+  function betaItem(title: string, type: string, parentId: string | null) {
     const id = betaId++;
     betaSeq++;
     const createdAt = addHours(BASE_DATE, (id - 2000) * 3).toISOString();

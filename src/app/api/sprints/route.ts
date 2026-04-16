@@ -7,7 +7,7 @@ import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 
 const createSchema = z.object({
-  projectId: z.number().int().positive(),
+  projectId: z.string().min(1),
   name: z.string().min(1),
   goal: z.string().optional(),
   startDate: z.string().optional(),
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const conditions: SQL[] = [];
 
   const projectId = url.get("projectId");
-  if (projectId) conditions.push(eq(sprints.projectId, Number(projectId)));
+  if (projectId) conditions.push(eq(sprints.projectId, projectId));
 
   const state = url.get("state");
   if (state)

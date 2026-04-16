@@ -74,7 +74,7 @@ export function InlineEdit({
 }
 
 interface Attachment {
-  id: number;
+  id: string;
   filename: string;
   contentType: string;
 }
@@ -84,7 +84,7 @@ interface InlineTextareaProps {
   onSave: (value: string) => void;
   placeholder?: string;
   className?: string;
-  workItemId?: number;
+  workItemId?: string;
   attachments?: Attachment[];
 }
 

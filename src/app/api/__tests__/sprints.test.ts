@@ -10,7 +10,7 @@ vi.mock("@/lib/api-auth", () => ({
 import { GET as listSprints } from "../sprints/route";
 import { GET as getSprint, PATCH as patchSprint } from "../sprints/[id]/route";
 
-function makeParams(id: number) {
+function makeParams(id: string) {
   return { params: Promise.resolve({ id: String(id) }) };
 }
 

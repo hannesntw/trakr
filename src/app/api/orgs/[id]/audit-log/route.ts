@@ -15,7 +15,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const orgId = Number(id);
+  const orgId = id;
 
   // Only owner or admin can view audit log
   const member = await requireOrgRole(orgId, user.id, "admin");

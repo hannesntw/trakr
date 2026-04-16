@@ -11,7 +11,7 @@ export async function GET(
   const rows = await db
     .select()
     .from(statusHistory)
-    .where(eq(statusHistory.workItemId, Number(id)))
+    .where(eq(statusHistory.workItemId, id))
     .orderBy(statusHistory.changedAt);
   return NextResponse.json(rows);
 }
