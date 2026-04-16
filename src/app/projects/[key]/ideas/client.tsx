@@ -88,15 +88,24 @@ function hexToRgb(hex: string) {
   return { r, g, b };
 }
 
+function isDarkMode() {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}
+
 function brandCardColor(colorIndex: number) {
   const c = BRAND_COLORS[colorIndex % BRAND_COLORS.length];
   const { r, g, b } = hexToRgb(c.hex);
-  const tintR = Math.round(255 + (r - 255) * 0.08);
-  const tintG = Math.round(255 + (g - 255) * 0.08);
-  const tintB = Math.round(255 + (b - 255) * 0.08);
+  const dark = isDarkMode();
+  // Light mode: very subtle tint toward white. Dark mode: subtle tint toward dark bg.
+  const base = dark ? 24 : 255; // #181818 vs #ffffff
+  const strength = dark ? 0.15 : 0.08;
+  const tintR = Math.round(base + (r - base) * strength);
+  const tintG = Math.round(base + (g - base) * strength);
+  const tintB = Math.round(base + (b - base) * strength);
   return {
     bg: `rgb(${tintR}, ${tintG}, ${tintB})`,
-    border: `rgba(${r}, ${g}, ${b}, 0.25)`,
+    border: `rgba(${r}, ${g}, ${b}, ${dark ? 0.35 : 0.25})`,
     dot: c.hex,
   };
 }
@@ -275,6 +284,18 @@ export function IdeasClient({
   const [parents, setParents] = useState<ParentOption[]>([]);
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(true);
+  const [, setThemeTick] = useState(0);
+
+  // Re-render cards when theme changes (dark mode affects card colors)
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === "data-theme") setThemeTick((t) => t + 1);
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
 
   // Canvas state
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -966,7 +987,7 @@ export function IdeasClient({
                           if (e.key === "Enter") saveEditing();
                         }}
                         autoFocus
-                        className="w-full text-[13px] font-medium leading-snug text-text-primary bg-white/60 border border-border rounded px-1.5 py-1 outline-none focus:border-accent"
+                        className="w-full text-[13px] font-medium leading-snug text-text-primary bg-surface/60 border border-border rounded px-1.5 py-1 outline-none focus:border-accent"
                       />
                       <textarea
                         value={editBody}
@@ -977,7 +998,7 @@ export function IdeasClient({
                         }}
                         rows={Math.max(4, editBody.split("\n").length + 1)}
                         style={{ minHeight: 100 }}
-                        className="w-full mt-1.5 text-[11px] leading-relaxed text-text-secondary bg-white/60 border border-border rounded px-1.5 py-1 outline-none focus:border-accent resize-none"
+                        className="w-full mt-1.5 text-[11px] leading-relaxed text-text-secondary bg-surface/60 border border-border rounded px-1.5 py-1 outline-none focus:border-accent resize-none"
                       />
                     </div>
                   ) : (
@@ -1009,7 +1030,7 @@ export function IdeasClient({
                           startEditing(idea);
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-white/60 transition-colors"
+                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-surface/60 transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-3 h-3" />
@@ -1020,7 +1041,7 @@ export function IdeasClient({
                           setPromoteIdea(idea);
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-white/60 transition-colors"
+                        className="p-1 text-text-tertiary hover:text-accent rounded hover:bg-surface/60 transition-colors"
                         title="Promote to story"
                       >
                         <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1031,7 +1052,7 @@ export function IdeasClient({
                           handleDelete(idea.id);
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className="p-1 text-text-tertiary hover:text-red-500 rounded hover:bg-white/60 transition-colors"
+                        className="p-1 text-text-tertiary hover:text-red-500 rounded hover:bg-surface/60 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
