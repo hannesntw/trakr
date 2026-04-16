@@ -122,6 +122,148 @@ server.tool(
   async (params) => textResult(await api("/api/projects", { method: "POST", body: JSON.stringify(params) }))
 );
 
+server.tool(
+  "update_project",
+  "Update a project's name, description, or maker mode",
+  {
+    id: z.string().describe("Project ID"),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    makerMode: z.boolean().optional(),
+  },
+  async ({ id, ...data }) => textResult(await api(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "delete_project",
+  "Delete a project and all its data (irreversible)",
+  { id: z.string().describe("Project ID") },
+  async ({ id }) => textResult(await api(`/api/projects/${id}`, { method: "DELETE" }))
+);
+
+// --- Organizations ---
+
+server.tool(
+  "list_orgs",
+  "List organizations the current user belongs to",
+  {},
+  async () => textResult(await api("/api/orgs"))
+);
+
+server.tool(
+  "create_org",
+  "Create a new organization",
+  { name: z.string(), slug: z.string().describe("URL-friendly slug, e.g. 'my-company'") },
+  async (params) => textResult(await api("/api/orgs", { method: "POST", body: JSON.stringify(params) }))
+);
+
+server.tool(
+  "update_org",
+  "Update an organization's name or slug",
+  { orgId: z.string(), name: z.string().optional(), slug: z.string().optional() },
+  async ({ orgId, ...data }) => textResult(await api(`/api/orgs/${orgId}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "list_org_members",
+  "List members of an organization",
+  { orgId: z.string() },
+  async ({ orgId }) => textResult(await api(`/api/orgs/${orgId}/members`))
+);
+
+server.tool(
+  "add_org_member",
+  "Add a user to an organization",
+  { orgId: z.string(), userId: z.string(), role: z.enum(["admin", "member", "viewer", "guest"]).optional() },
+  async ({ orgId, ...data }) => textResult(await api(`/api/orgs/${orgId}/members`, { method: "POST", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "update_org_member",
+  "Update a member's role in an organization",
+  { orgId: z.string(), memberId: z.string(), role: z.enum(["admin", "member", "viewer", "guest"]) },
+  async ({ orgId, memberId, ...data }) => textResult(await api(`/api/orgs/${orgId}/members/${memberId}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "remove_org_member",
+  "Remove a member from an organization",
+  { orgId: z.string(), memberId: z.string() },
+  async ({ orgId, memberId }) => textResult(await api(`/api/orgs/${orgId}/members/${memberId}`, { method: "DELETE" }))
+);
+
+// --- Teams ---
+
+server.tool(
+  "list_teams",
+  "List teams in an organization",
+  { orgId: z.string() },
+  async ({ orgId }) => textResult(await api(`/api/orgs/${orgId}/teams`))
+);
+
+server.tool(
+  "create_team",
+  "Create a team in an organization",
+  { orgId: z.string(), name: z.string(), description: z.string().optional() },
+  async ({ orgId, ...data }) => textResult(await api(`/api/orgs/${orgId}/teams`, { method: "POST", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "update_team",
+  "Update a team's name or description",
+  { orgId: z.string(), teamId: z.string(), name: z.string().optional(), description: z.string().optional() },
+  async ({ orgId, teamId, ...data }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "delete_team",
+  "Delete a team",
+  { orgId: z.string(), teamId: z.string() },
+  async ({ orgId, teamId }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}`, { method: "DELETE" }))
+);
+
+server.tool(
+  "list_team_members",
+  "List members of a team",
+  { orgId: z.string(), teamId: z.string() },
+  async ({ orgId, teamId }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}/members`))
+);
+
+server.tool(
+  "add_team_member",
+  "Add an org member to a team",
+  { orgId: z.string(), teamId: z.string(), userId: z.string(), role: z.enum(["lead", "member"]).optional() },
+  async ({ orgId, teamId, ...data }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}/members`, { method: "POST", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "update_team_member",
+  "Update a team member's role (lead or member)",
+  { orgId: z.string(), teamId: z.string(), memberId: z.string(), role: z.enum(["lead", "member"]) },
+  async ({ orgId, teamId, memberId, ...data }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}/members/${memberId}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "remove_team_member",
+  "Remove a member from a team",
+  { orgId: z.string(), teamId: z.string(), memberId: z.string() },
+  async ({ orgId, teamId, memberId }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}/members/${memberId}`, { method: "DELETE" }))
+);
+
+server.tool(
+  "grant_team_project_access",
+  "Grant a team access to a project",
+  { orgId: z.string(), teamId: z.string(), projectId: z.string() },
+  async ({ orgId, teamId, ...data }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}/projects`, { method: "POST", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "revoke_team_project_access",
+  "Revoke a team's access to a project",
+  { orgId: z.string(), teamId: z.string(), projectId: z.string() },
+  async ({ orgId, teamId, ...data }) => textResult(await api(`/api/orgs/${orgId}/teams/${teamId}/projects`, { method: "DELETE", body: JSON.stringify(data) }))
+);
+
 // --- Work Items ---
 
 server.tool(
@@ -225,6 +367,13 @@ server.tool(
     if (!res.ok) throw new Error(JSON.stringify(data));
     return textResult(data);
   }
+);
+
+server.tool(
+  "delete_attachment",
+  "Delete an attachment from a work item",
+  { attachmentId: z.string() },
+  async ({ attachmentId }) => textResult(await api(`/api/attachments/${attachmentId}`, { method: "DELETE" }))
 );
 
 // --- Status History ---
@@ -400,6 +549,50 @@ server.tool(
   "Save a TraQL query",
   { projectId: z.string(), name: z.string(), query: z.string() },
   async (params) => textResult(await api("/api/saved-queries", { method: "POST", body: JSON.stringify(params) }))
+);
+
+server.tool(
+  "update_saved_query",
+  "Update a saved query's name, query, starred, or shared status",
+  { id: z.string(), name: z.string().optional(), query: z.string().optional(), starred: z.boolean().optional(), shared: z.boolean().optional() },
+  async ({ id, ...data }) => textResult(await api(`/api/saved-queries/${id}`, { method: "PATCH", body: JSON.stringify(data) }))
+);
+
+server.tool(
+  "delete_saved_query",
+  "Delete a saved query",
+  { id: z.string() },
+  async ({ id }) => textResult(await api(`/api/saved-queries/${id}`, { method: "DELETE" }))
+);
+
+// --- Account ---
+
+server.tool(
+  "update_profile",
+  "Update the current user's display name",
+  { name: z.string() },
+  async (params) => textResult(await api("/api/account", { method: "PATCH", body: JSON.stringify(params) }))
+);
+
+server.tool(
+  "list_api_keys",
+  "List API keys for the current user",
+  {},
+  async () => textResult(await api("/api/account/keys"))
+);
+
+server.tool(
+  "create_api_key",
+  "Generate a new API key",
+  { label: z.string().describe("Label for the key, e.g. 'Claude Code'") },
+  async (params) => textResult(await api("/api/account/keys", { method: "POST", body: JSON.stringify(params) }))
+);
+
+server.tool(
+  "revoke_api_key",
+  "Revoke an API key",
+  { id: z.string() },
+  async (params) => textResult(await api("/api/account/keys", { method: "DELETE", body: JSON.stringify(params) }))
 );
 
 // --- Start ---
