@@ -6,8 +6,10 @@ import { Header, CreateButton } from "@/components/Header";
 import { BoardCard, type GitHubStatus, type ChildTask } from "@/components/BoardCard";
 import { DetailPanel } from "@/components/DetailPanel";
 import { CreateWorkItemDialog } from "@/components/CreateWorkItemDialog";
-import type { WorkflowState } from "@/lib/constants";
+import { WORK_ITEM_TYPES, TYPE_LABELS, type WorkflowState } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { FilterChip } from "@/components/FilterChip";
+import { Combobox, type ComboboxOption } from "@/components/Combobox";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import {
   ChevronDown,
@@ -17,6 +19,10 @@ import {
   GripVertical,
   Trash2,
   Pencil,
+  Search,
+  X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Toggle } from "@/components/Toggle";
 
@@ -171,8 +177,13 @@ export function BoardClient({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [githubStatusMap, setGithubStatusMap] = useState<Record<string, GitHubStatus>>({});
 
-  // TRK-137: Type filter — hide epics/features by default
-  const [hideContainers, setHideContainers] = useState(true);
+  // Filter bar state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
+  const [stateFilter, setStateFilter] = useState<Set<string>>(new Set());
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(true);
+  const [members, setMembers] = useState<ComboboxOption[]>([]);
 
   // TRK-135: Swimlane state from URL
   const swimlaneParam = (searchParams.get("swimlane") ?? "none") as SwimlaneSetting;
@@ -355,6 +366,10 @@ export function BoardClient({
 
   useEffect(() => {
     fetchData();
+    // Fetch members for assignee filter
+    fetch(`/api/projects/${projectId}/members`).then(r => r.ok ? r.json() : []).then(data => {
+      setMembers((data || []).map((m: any) => ({ value: m.name ?? m.email ?? m.userId, label: m.name ?? m.email ?? "Unknown" })));
+    });
   }, [fetchData]);
 
   // Keyboard shortcut listeners
@@ -375,11 +390,40 @@ export function BoardClient({
 
   const changedIds = useRealtimeRefresh(fetchData);
 
-  // TRK-137: Filtered items (hide epics/features when toggle is on)
+  // Filtered items — apply search, type, state, assignee, and showCompleted filters
+  const doneStateSlugs = useMemo(
+    () => new Set(workflowStates.filter(ws => ws.category === "done").map(ws => ws.slug)),
+    [workflowStates]
+  );
+
   const filteredItems = useMemo(() => {
-    if (!hideContainers) return items;
-    return items.filter((i) => i.type !== "epic" && i.type !== "feature");
-  }, [items, hideContainers]);
+    let result = items;
+    // Text search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(i =>
+        i.title.toLowerCase().includes(q) ||
+        (i.displayId && i.displayId.toLowerCase().includes(q))
+      );
+    }
+    // Type filter
+    if (typeFilter.size > 0) {
+      result = result.filter(i => typeFilter.has(i.type));
+    }
+    // State filter
+    if (stateFilter.size > 0) {
+      result = result.filter(i => stateFilter.has(i.state));
+    }
+    // Assignee filter
+    if (assigneeFilter) {
+      result = result.filter(i => i.assignee === assigneeFilter);
+    }
+    // Show completed toggle
+    if (!showCompleted) {
+      result = result.filter(i => !doneStateSlugs.has(i.state));
+    }
+    return result;
+  }, [items, searchQuery, typeFilter, stateFilter, assigneeFilter, showCompleted, doneStateSlugs]);
 
   // Build child tasks map for task checklists on story/feature cards
   const childTasksMap = useMemo(() => {
@@ -608,6 +652,17 @@ export function BoardClient({
     );
   }
 
+  // Filter bar helpers
+  const hasActiveFilters = searchQuery.length > 0 || typeFilter.size > 0 || stateFilter.size > 0 || assigneeFilter !== null || !showCompleted;
+
+  function clearAllFilters() {
+    setSearchQuery("");
+    setTypeFilter(new Set());
+    setStateFilter(new Set());
+    setAssigneeFilter(null);
+    setShowCompleted(true);
+  }
+
   // Flat columns for non-swimlane mode
   const flatColumns = workflowStates.map((ws) => ({
     state: ws.slug,
@@ -623,20 +678,6 @@ export function BoardClient({
         subtitle={makerMode ? "Board" : (activeSprint ? activeSprint.name : "Board")}
         actions={
           <div className="flex items-center gap-2">
-            {/* TRK-137: Type filter toggle */}
-            <button
-              onClick={() => setHideContainers((v) => !v)}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border transition-colors",
-                hideContainers
-                  ? "bg-accent/10 text-accent border-accent/30"
-                  : "bg-surface text-text-secondary border-border hover:border-border-hover"
-              )}
-            >
-              <Filter className="w-3 h-3" />
-              Stories & tasks only
-            </button>
-
             {/* Customize board button + popover */}
             <div className="relative">
               <button
@@ -859,6 +900,79 @@ export function BoardClient({
           </div>
         }
       />
+
+      {/* Filter bar */}
+      <div className="px-6 py-2.5 flex items-center gap-2 border-b border-border bg-surface shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title or ID..."
+            className="h-8 pl-8 pr-8 w-56 rounded-md border border-border bg-content-bg text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        <FilterChip
+          label="Type"
+          options={WORK_ITEM_TYPES}
+          selected={typeFilter}
+          onToggle={(v) => { const next = new Set(typeFilter); next.has(v) ? next.delete(v) : next.add(v); setTypeFilter(next); }}
+          labelMap={TYPE_LABELS}
+        />
+
+        {workflowStates.length > 0 && (
+          <FilterChip
+            label="State"
+            options={workflowStates.map(ws => ws.slug)}
+            selected={stateFilter}
+            onToggle={(v) => { const next = new Set(stateFilter); next.has(v) ? next.delete(v) : next.add(v); setStateFilter(next); }}
+            labelMap={Object.fromEntries(workflowStates.map(ws => [ws.slug, ws.displayName]))}
+          />
+        )}
+
+        {members.length > 0 && (
+          <div className="w-44">
+            <Combobox
+              options={members}
+              value={assigneeFilter}
+              onChange={setAssigneeFilter}
+              placeholder="Assignee"
+              searchPlaceholder="Search members..."
+              clearLabel="Clear filter"
+            />
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowCompleted(!showCompleted)}
+          className={cn(
+            "h-8 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer",
+            !showCompleted
+              ? "border border-accent bg-accent-light text-accent"
+              : "border border-border bg-surface text-text-secondary hover:border-border-hover"
+          )}
+        >
+          {showCompleted ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+          {showCompleted ? "Showing done" : "Hiding done"}
+        </button>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="h-8 inline-flex items-center gap-1 px-2 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+          >
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
+      </div>
+
       <div className="flex-1 overflow-auto p-6">
         {swimlaneGroups ? (
           /* TRK-135: Swimlane layout */

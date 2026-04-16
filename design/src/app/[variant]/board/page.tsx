@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useVariant } from "@/components/VariantContext";
 import { useStateOverride } from "@/components/StateOverrideContext";
 import { MockDetailPanel } from "@/components/MockDetailPanel";
-import { Bug, CheckSquare, Square, GitPullRequest, CheckCircle2, Circle, XCircle, GitBranch, ChevronDown, ChevronRight, Plus, Settings2, GripVertical, Trash2, ToggleLeft, ToggleRight, Pencil } from "lucide-react";
+import { Bug, CheckSquare, Square, GitPullRequest, CheckCircle2, Circle, XCircle, GitBranch, ChevronDown, ChevronRight, Plus, Settings2, GripVertical, Trash2, ToggleLeft, ToggleRight, Pencil, Search, X, Eye, EyeOff, Filter } from "lucide-react";
 import { PointsBadge } from "@/components/PointsBadge";
 
 const fullStates = [
@@ -188,6 +188,13 @@ export default function BoardPage() {
     return init;
   });
 
+  // Filter state (STRI-205)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTypeFilters, setActiveTypeFilters] = useState<Set<string>>(new Set());
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [typeFilterOpen, setTypeFilterOpen] = useState(false);
+
   // Swimlane state
   const [activeSwimlane, setActiveSwimlane] = useState("none");
   const [customSwimlaneExpr, setCustomSwimlaneExpr] = useState("");
@@ -280,10 +287,26 @@ export default function BoardPage() {
   const hasCustomizeFeatures = variant.features.swimlanes || variant.features.cardRules;
 
   // Group cards into swimlanes
+  /* ── Filter cards (STRI-205) ─────────────────────────────── */
+
+  function applyFilters(cards: Card[]): Card[] {
+    return cards.filter(c => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!c.title.toLowerCase().includes(q) && !String(c.id).includes(q)) return false;
+      }
+      if (activeTypeFilters.size > 0 && !activeTypeFilters.has(c.type)) return false;
+      if (assigneeFilter && c.assignee !== assigneeFilter) return false;
+      if (!showCompleted && effectiveState(c) === "done") return false;
+      return true;
+    });
+  }
+
   function getSwimlaneGroups(): { key: string; label: string; cards: Card[] }[] {
-    if (!isSwimlaneActive) return [{ key: "__all", label: "", cards: mockCards }];
+    const filtered = applyFilters(mockCards);
+    if (!isSwimlaneActive) return [{ key: "__all", label: "", cards: filtered }];
     const groups = new Map<string, Card[]>();
-    for (const card of mockCards) {
+    for (const card of filtered) {
       const key = swimlaneDef.groupFn(card);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(card);
@@ -685,6 +708,97 @@ export default function BoardPage() {
         </div>
       </header>
 
+      {/* Filter bar — aligned with backlog view (STRI-205) */}
+      <div className="px-6 py-2.5 flex items-center gap-2 border-b border-border bg-surface shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title or ID..."
+            className="h-8 pl-8 pr-3 w-56 rounded-md border border-border bg-content-bg text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Type filter */}
+        <div className="relative">
+          <button
+            onClick={() => setTypeFilterOpen(!typeFilterOpen)}
+            className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+              activeTypeFilters.size > 0
+                ? "border border-accent bg-accent/10 text-accent"
+                : "border border-border bg-surface text-text-secondary hover:border-border-hover"
+            }`}
+          >
+            Type
+            {activeTypeFilters.size > 0 && <span className="bg-accent text-white w-4 h-4 rounded-full text-[10px] flex items-center justify-center">{activeTypeFilters.size}</span>}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {typeFilterOpen && (
+            <div className="absolute top-full left-0 mt-1 bg-surface border border-border rounded-md shadow-lg z-50 py-1 min-w-[140px]">
+              {["epic", "feature", "story", "bug", "task"].map(t => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    const next = new Set(activeTypeFilters);
+                    next.has(t) ? next.delete(t) : next.add(t);
+                    setActiveTypeFilters(next);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-content-bg transition-colors"
+                >
+                  <span className={`w-3.5 h-3.5 rounded border ${activeTypeFilters.has(t) ? "bg-accent border-accent text-white flex items-center justify-center" : "border-border"}`}>
+                    {activeTypeFilters.has(t) && <span className="text-[8px]">✓</span>}
+                  </span>
+                  <span className="capitalize">{t}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Assignee filter */}
+        <button
+          onClick={() => setAssigneeFilter(assigneeFilter ? null : "Alice")}
+          className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+            assigneeFilter
+              ? "border border-accent bg-accent/10 text-accent"
+              : "border border-border bg-surface text-text-secondary hover:border-border-hover"
+          }`}
+        >
+          {assigneeFilter ? `Assignee: ${assigneeFilter}` : "Assignee"}
+          {assigneeFilter && <X className="w-3 h-3" onClick={(e) => { e.stopPropagation(); setAssigneeFilter(null); }} />}
+        </button>
+
+        {/* Show completed toggle */}
+        <button
+          onClick={() => setShowCompleted(!showCompleted)}
+          className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+            showCompleted
+              ? "border border-accent bg-accent/10 text-accent"
+              : "border border-border bg-surface text-text-secondary hover:border-border-hover"
+          }`}
+        >
+          {showCompleted ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          {showCompleted ? "Hide done" : "Show done"}
+        </button>
+
+        {/* Clear all */}
+        {(searchQuery || activeTypeFilters.size > 0 || assigneeFilter || showCompleted) && (
+          <button
+            onClick={() => { setSearchQuery(""); setActiveTypeFilters(new Set()); setAssigneeFilter(null); setShowCompleted(false); }}
+            className="h-8 inline-flex items-center gap-1 px-2 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+          >
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
+      </div>
+
       <div className="flex-1 overflow-auto relative">
 
         <div className="p-6">
@@ -754,7 +868,7 @@ export default function BoardPage() {
             </div>
           ) : (
             /* ── Default flat board ────────────────────────────── */
-            renderColumns(mockCards)
+            renderColumns(applyFilters(mockCards))
           )}
         </div>
       </div>
