@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ThemeSync } from "@/components/ThemeSync";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +23,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("stori-theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.setAttribute("data-theme","dark")}catch(e){}})()` }} />
       </head>
-      <body className="h-full">{children}</body>
+      <body className="h-full">
+        <ThemeSync />
+        {children}
+      </body>
     </html>
   );
 }

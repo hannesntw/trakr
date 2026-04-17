@@ -1,7 +1,7 @@
 "use client";
 
 import { Circle, CircleDot, CircleCheck, Play, Plus, Globe, Terminal, Cpu } from "lucide-react";
-import { formatFullDateTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/RelativeTime";
 import type { WorkflowState } from "@/lib/constants";
 
 interface StatusChange {
@@ -37,10 +37,6 @@ function formatDuration(ms: number): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
   return `${Math.floor(hrs / 24)}d`;
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function getStateLabel(state: string, workflowStates?: WorkflowState[]): string {
@@ -147,7 +143,7 @@ export function StatusTimeline({ changes, workflowStates }: { changes: StatusCha
                   <p className="text-[11px] font-medium text-text-primary">
                     {isCreationEntry(change) ? "Created" : getStateLabel(change.toState, workflowStates)}
                   </p>
-                  <p className="text-[10px] text-text-tertiary" title={formatFullDateTime(change.changedAt)}>{formatTime(change.changedAt)}</p>
+                  <RelativeTime date={change.changedAt} className="text-[10px] text-text-tertiary" />
                 </div>
                 {!isLast && (
                   <div className="text-center pt-2">
