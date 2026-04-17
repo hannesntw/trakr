@@ -36,7 +36,7 @@ function createServer(baseUrl: string, apiKey: string) {
   // --- Projects ---
   server.tool("list_projects", "List all projects", {}, async () => textResult(await api("/api/projects")));
   server.tool("create_project", "Create a new project", { name: z.string(), key: z.string().describe("2-5 char uppercase key"), description: z.string().optional() }, async (params) => textResult(await api("/api/projects", { method: "POST", body: JSON.stringify(params) })));
-  server.tool("update_project", "Update a project", { id: z.string(), name: z.string().optional(), description: z.string().optional(), makerMode: z.boolean().optional() }, async ({ id, ...data }) => textResult(await api(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) })));
+  server.tool("update_project", "Update a project's name, description, owner, or maker mode", { id: z.string(), name: z.string().optional(), description: z.string().optional(), ownerId: z.string().optional().describe("User ID of the new project owner"), makerMode: z.boolean().optional() }, async ({ id, ...data }) => textResult(await api(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) })));
   server.tool("delete_project", "Delete a project", { id: z.string() }, async ({ id }) => textResult(await api(`/api/projects/${id}`, { method: "DELETE" })));
 
   // --- Organizations ---

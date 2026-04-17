@@ -124,11 +124,12 @@ server.tool(
 
 server.tool(
   "update_project",
-  "Update a project's name, description, or maker mode",
+  "Update a project's name, description, owner, or maker mode",
   {
     id: z.string().describe("Project ID"),
     name: z.string().optional(),
     description: z.string().optional(),
+    ownerId: z.string().optional().describe("User ID of the new project owner"),
     makerMode: z.boolean().optional(),
   },
   async ({ id, ...data }) => textResult(await api(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) }))
