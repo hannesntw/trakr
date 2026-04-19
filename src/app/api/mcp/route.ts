@@ -109,6 +109,7 @@ function createServer(baseUrl: string, apiKey: string) {
   server.tool("delete_saved_query", "Delete a saved query", { id: z.string() }, async ({ id }) => textResult(await api(`/api/saved-queries/${id}`, { method: "DELETE" })));
 
   // --- Account ---
+  server.tool("whoami", "Get the current authenticated user (id, name, email, image, platform-admin flag, and org memberships with roles)", {}, async () => textResult(await api("/api/account")));
   server.tool("update_profile", "Update display name", { name: z.string() }, async (params) => textResult(await api("/api/account", { method: "PATCH", body: JSON.stringify(params) })));
   server.tool("list_api_keys", "List API keys", {}, async () => textResult(await api("/api/account/keys")));
   server.tool("create_api_key", "Generate a new API key", { label: z.string() }, async (params) => textResult(await api("/api/account/keys", { method: "POST", body: JSON.stringify(params) })));

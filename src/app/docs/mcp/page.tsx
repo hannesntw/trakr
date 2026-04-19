@@ -34,6 +34,28 @@ interface ToolCategory {
 
 const categories: ToolCategory[] = [
   {
+    title: "Account",
+    icon: "user",
+    tools: [
+      {
+        name: "whoami",
+        description: "Get the current authenticated user and their org memberships",
+        params: [],
+        example: `// Who am I signed in as?\nawait mcp.whoami()`,
+        response: `{
+  "id": "8f142b70-9b86-422d-a1c3-61a4bb13ef5d",
+  "name": "Hannes",
+  "email": "hannes@stori.zone",
+  "image": "https://...",
+  "isPlatformAdmin": true,
+  "orgs": [
+    { "id": "wcex78bs0rphcf1foycarwko", "name": "Stori", "slug": "stori", "role": "owner" }
+  ]
+}`,
+      },
+    ],
+  },
+  {
     title: "Projects",
     icon: "folder",
     tools: [
