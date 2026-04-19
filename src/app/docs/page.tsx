@@ -163,25 +163,25 @@ export default function DocsGettingStartedPage() {
               creating projects, managing work items, running TraQL queries, and more.
             </p>
             <div>
-              <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">1. Install the MCP server</p>
-              <pre className="text-xs text-text-secondary font-mono bg-content-bg rounded-md p-3 overflow-x-auto">
-{`cd stori/mcp-server && npm install`}
-              </pre>
-            </div>
-            <div>
-              <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">2. Configure in your MCP client</p>
+              <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">1. Configure in your MCP client</p>
               <pre className="text-xs text-text-secondary font-mono bg-content-bg rounded-md p-3 overflow-x-auto">
 {`// .mcp.json
 {
   "mcpServers": {
     "stori": {
-      "command": "node",
-      "args": ["stori/mcp-server/index.ts"],
-      "env": { "STORI_URL": "http://localhost:3100" }
+      "type": "http",
+      "url": "https://stori.zone/api/mcp"
     }
   }
 }`}
               </pre>
+            </div>
+            <div>
+              <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">2. Authorize</p>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Restart your MCP client and run <code className="text-[11px] bg-content-bg border border-border rounded px-1 py-0.5 font-mono">/mcp</code> in Claude Code.
+                Your browser opens the Stori consent screen; approve once and the token is stored automatically.
+              </p>
             </div>
             <div>
               <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">3. Use in Claude Code</p>

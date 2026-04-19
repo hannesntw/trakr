@@ -569,9 +569,10 @@ export default function McpToolsPage() {
           <h1 className="text-2xl font-bold text-text-primary">MCP Tools Reference</h1>
         </div>
         <p className="text-sm text-text-secondary leading-relaxed">
-          The <code className="px-1.5 py-0.5 bg-surface border border-border rounded text-xs font-mono">stori-mcp</code> server
-          exposes Stori&apos;s full API as MCP tools for use in Claude Code, Claude Desktop, and other MCP-compatible
-          clients. This page documents every available tool, its parameters, and example usage.
+          Stori hosts an MCP server at <code className="px-1.5 py-0.5 bg-surface border border-border rounded text-xs font-mono">https://stori.zone/api/mcp</code> that
+          exposes the full API as MCP tools for Claude Code, Claude Desktop, and other MCP-compatible clients.
+          Nothing to install — connect over HTTP and authorize in the browser. This page documents every available tool,
+          its parameters, and example usage.
         </p>
       </div>
 
@@ -584,50 +585,41 @@ export default function McpToolsPage() {
         >
           <div className="space-y-4 pt-3">
             <div>
-              <h3 className="text-xs font-semibold text-text-primary mb-2">Installation</h3>
-              <p className="text-xs text-text-secondary mb-2">
-                No install needed. The MCP server runs via <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">npx</code>:
-              </p>
-              <CodeBlock code="npx stori-mcp" />
-            </div>
-
-            <div>
               <h3 className="text-xs font-semibold text-text-primary mb-2">Claude Code Configuration</h3>
               <p className="text-xs text-text-secondary mb-2">
                 Add this to your <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">.mcp.json</code> in
-                the project root (or <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.claude/.mcp.json</code> for global access):
+                the project root (or <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.claude.json</code> for global access).
+                No install, no command — Claude Code connects directly over HTTP:
               </p>
               <CodeBlock
                 label=".mcp.json"
                 code={`{
   "mcpServers": {
     "stori": {
-      "command": "npx",
-      "args": ["stori-mcp"],
-      "env": {
-        "STORI_URL": "https://stori.zone"
-      }
+      "type": "http",
+      "url": "https://stori.zone/api/mcp"
     }
   }
 }`}
               />
+              <p className="text-xs text-text-secondary mt-2">
+                Restart Claude Code, then run <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">/mcp</code> to
+                authorize. Your browser opens the Stori consent screen; once you approve, Claude Code stores the token and all tools become available.
+              </p>
             </div>
 
             <div>
               <h3 className="text-xs font-semibold text-text-primary mb-2">Local Development</h3>
               <p className="text-xs text-text-secondary mb-2">
-                When running Stori locally, point the MCP server at your dev instance:
+                Point at your local dev server instead:
               </p>
               <CodeBlock
                 label=".mcp.json (local)"
                 code={`{
   "mcpServers": {
     "stori": {
-      "command": "npx",
-      "args": ["tsx", "mcp-server/index.ts"],
-      "env": {
-        "STORI_URL": "http://localhost:3100"
-      }
+      "type": "http",
+      "url": "http://localhost:3100/api/mcp"
     }
   }
 }`}
@@ -642,33 +634,18 @@ export default function McpToolsPage() {
         >
           <div className="space-y-3 pt-3 text-xs text-text-secondary leading-relaxed">
             <p>
-              The MCP server resolves credentials in this order:
+              The HTTP MCP endpoint uses OAuth 2.1 with dynamic client registration. Claude Code (or any MCP client)
+              handles the flow automatically — you approve the connection once in the browser, and the client stores the access token.
             </p>
-            <ol className="list-decimal list-inside space-y-1.5 ml-1">
-              <li>
-                <strong className="text-text-primary">Environment variable</strong> --
-                set <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">STORI_API_KEY</code> in
-                the <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">env</code> block of your MCP config.
-              </li>
-              <li>
-                <strong className="text-text-primary">Stored credentials</strong> --
-                reads from <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.stori/credentials.json</code>,
-                keyed by server URL.
-              </li>
-              <li>
-                <strong className="text-text-primary">Device flow</strong> --
-                if no key is found, the server initiates an OAuth-style device flow:
-              </li>
-            </ol>
-            <div className="bg-content-bg rounded-md p-3 space-y-1.5 ml-4">
-              <p>1. The server creates a device code via <code className="font-mono text-[11px]">POST /api/auth/device</code></p>
-              <p>2. It opens a verification URL in your browser</p>
-              <p>3. You approve the connection in the Stori UI</p>
-              <p>4. The server polls until authorized, then stores the API key in <code className="font-mono text-[11px]">~/.stori/credentials.json</code></p>
+            <div className="bg-content-bg rounded-md p-3 space-y-1.5">
+              <p>1. Claude Code discovers the auth endpoints via <code className="font-mono text-[11px]">/api/mcp/.well-known/oauth-authorization-server</code></p>
+              <p>2. It registers itself at <code className="font-mono text-[11px]">/api/mcp/register</code></p>
+              <p>3. Your browser opens <code className="font-mono text-[11px]">/api/mcp/authorize</code> — sign in with your Stori account and approve</p>
+              <p>4. Claude Code exchanges the code at <code className="font-mono text-[11px]">/api/mcp/token</code> and stores the access token</p>
             </div>
             <p>
-              Once authenticated, the key persists across sessions. To re-authenticate, delete <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.stori/credentials.json</code> and
-              restart the MCP server.
+              To re-authenticate, run <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">/mcp</code> in
+              Claude Code and pick the Stori server. Tokens auto-refresh; manual reset is only needed if you revoke access.
             </p>
           </div>
         </CollapsibleSection>
