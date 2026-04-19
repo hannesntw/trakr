@@ -585,11 +585,22 @@ export default function McpToolsPage() {
         >
           <div className="space-y-4 pt-3">
             <div>
-              <h3 className="text-xs font-semibold text-text-primary mb-2">Claude Code Configuration</h3>
+              <h3 className="text-xs font-semibold text-text-primary mb-2">One-line install</h3>
               <p className="text-xs text-text-secondary mb-2">
-                Add this to your <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">.mcp.json</code> in
-                the project root (or <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">~/.claude.json</code> for global access).
-                No install, no command — Claude Code connects directly over HTTP:
+                Run this in any terminal where Claude Code is installed:
+              </p>
+              <CodeBlock code="claude mcp add --transport http stori https://stori.zone/api/mcp" />
+              <p className="text-xs text-text-secondary mt-2">
+                Then run <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">/mcp</code> inside Claude Code
+                to authorize. Your browser opens the Stori consent screen; once you approve, Claude Code stores the token and all tools become available.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold text-text-primary mb-2">Manual config (reference)</h3>
+              <p className="text-xs text-text-secondary mb-2">
+                The CLI command writes this block into <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">.mcp.json</code> for
+                you. Shown here in case you need to author the file by hand or sync it across machines:
               </p>
               <CodeBlock
                 label=".mcp.json"
@@ -602,10 +613,6 @@ export default function McpToolsPage() {
   }
 }`}
               />
-              <p className="text-xs text-text-secondary mt-2">
-                Restart Claude Code, then run <code className="px-1 py-0.5 bg-content-bg border border-border/50 rounded text-[11px] font-mono">/mcp</code> to
-                authorize. Your browser opens the Stori consent screen; once you approve, Claude Code stores the token and all tools become available.
-              </p>
             </div>
 
             <div>
@@ -613,17 +620,7 @@ export default function McpToolsPage() {
               <p className="text-xs text-text-secondary mb-2">
                 Point at your local dev server instead:
               </p>
-              <CodeBlock
-                label=".mcp.json (local)"
-                code={`{
-  "mcpServers": {
-    "stori": {
-      "type": "http",
-      "url": "http://localhost:3100/api/mcp"
-    }
-  }
-}`}
-              />
+              <CodeBlock code="claude mcp add --transport http stori http://localhost:3100/api/mcp" />
             </div>
           </div>
         </CollapsibleSection>
