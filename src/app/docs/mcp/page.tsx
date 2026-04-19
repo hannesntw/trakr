@@ -29,7 +29,7 @@ interface ToolCategory {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tool data (derived from mcp-server/index.ts)                       */
+/*  Tool data (derived from src/app/api/mcp/route.ts)                  */
 /* ------------------------------------------------------------------ */
 
 const categories: ToolCategory[] = [

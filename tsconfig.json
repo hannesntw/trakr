@@ -39,7 +39,6 @@
   "exclude": [
     "node_modules",
     "design",
-    "mcp-server",
     "src/test",
     "src/**/__tests__",
     "src/e2e",

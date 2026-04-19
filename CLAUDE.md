@@ -15,7 +15,7 @@ npm run db:seed            # Reset and seed demo data
 - **Database:** Neon Postgres via Drizzle ORM. Local dev uses the same Neon instance.
 - **API:** REST routes in `src/app/api/`. All endpoints support JSON.
 - **UI:** Server components by default, client components where needed (`"use client"`).
-- **MCP Server:** `mcp-server/` — separate package wrapping the REST API.
+- **MCP Server:** HTTP MCP at `src/app/api/mcp/route.ts`, served at `https://stori.zone/api/mcp`.
 
 ## Key paths
 
@@ -25,7 +25,7 @@ npm run db:seed            # Reset and seed demo data
 - `src/app/projects/[key]/` — Project-scoped UI pages (board, backlog, sprints, work-items)
 - `src/components/` — Shared UI components
 - `src/lib/constants.ts` — Types, colors, labels
-- `mcp-server/index.ts` — MCP server entry point
+- `src/app/api/mcp/route.ts` — HTTP MCP server
 
 ## Conventions
 
