@@ -114,11 +114,15 @@ export async function POST(request: NextRequest) {
     .where(eq(workflowStates.projectId, parsed.data.projectId))
     .orderBy(asc(workflowStates.position));
 
-  let resolvedState = parsed.data.state;
-  if (wfStates.length > 0) {
-    const match = resolvedState && wfStates.find((s) => s.slug === resolvedState);
-    resolvedState = match ? match.slug : wfStates[0].slug;
+  if (wfStates.length === 0) {
+    return NextResponse.json(
+      { error: "Project has no workflow states. Apply a preset via POST /api/projects/:id/workflow before creating work items." },
+      { status: 400 }
+    );
   }
+
+  const match = parsed.data.state && wfStates.find((s) => s.slug === parsed.data.state);
+  const resolvedState = match ? match.slug : wfStates[0].slug;
 
   // Validate canvasColor — default to "blue" if invalid
   const VALID_CANVAS_COLORS = ["red", "blue", "amber", "emerald", "violet", "orange", "pink", "cyan"];
@@ -139,7 +143,7 @@ export async function POST(request: NextRequest) {
     canvasY = existingIdeas.length > 0 ? maxY + 220 : 100;
   }
 
-  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId, state: resolvedState ?? "new", canvasX, canvasY }).returning();
+  const [row] = await db.insert(workItems).values({ ...parsed.data, displayId, state: resolvedState, canvasX, canvasY }).returning();
 
   // Record initial status in status_history so the timeline shows the creation state
   await db.insert(statusHistory).values({

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { emit } from "@/lib/events";
 import { resolveApiUser } from "@/lib/api-auth";
 import { requireProjectAccess } from "@/lib/project-auth";
+import { applyPreset } from "@/lib/workflow-presets";
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -81,6 +82,20 @@ export async function PATCH(
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Recovery path: if caller flipped makerMode on and the project has no
+  // workflow states yet (orphaned from a pre-fix creation), seed the maker
+  // preset so the board/backlog work without a manual settings trip.
+  if (parsed.data.makerMode === true) {
+    const existingStates = await db
+      .select({ id: workflowStates.id })
+      .from(workflowStates)
+      .where(eq(workflowStates.projectId, id));
+    if (existingStates.length === 0) {
+      await applyPreset(id, "maker");
+    }
+  }
+
   emit({ type: "project", action: "updated", id: row.id, projectId: row.id });
   return NextResponse.json(row);
 }

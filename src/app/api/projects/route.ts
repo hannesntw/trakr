@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
     })
     .returning();
 
-  // TRK-139: Auto-create simplified workflow for maker mode projects
-  if (parsed.data.makerMode) {
-    await applyPreset(row.id, "maker");
-  }
+  // Always seed a workflow preset so the project has columns for the board
+  // and non-empty slugs for work-item creation. Maker projects get the
+  // simplified 3-state preset; everything else gets "simple".
+  await applyPreset(row.id, parsed.data.makerMode ? "maker" : "simple");
 
   emit({ type: "project", action: "created", id: row.id, projectId: row.id });
   return NextResponse.json(row, { status: 201 });
